@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/io.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:hook_app/utils/constants.dart';
+import 'package:hook_app/services/storage_service.dart';
 
 class Message {
   final String id;
@@ -116,8 +116,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
   Future<void> _initAndFetchUserId() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final authToken = prefs.getString(AppConstants.authTokenKey);
+      final authToken = await StorageService.getAuthToken();
 
       if (authToken == null || authToken.isEmpty) {
         setState(() {
@@ -138,11 +137,11 @@ class _MessagesScreenState extends State<MessagesScreen> {
       _userId = await TokenUtils.extractUserId(authToken);
 
       if (_userId == null) {
-        final refreshToken = prefs.getString(AppConstants.refreshTokenKey);
+        final refreshToken = await StorageService.getRefreshToken();
         if (refreshToken != null) {
           final newToken = await TokenUtils.refreshToken(refreshToken);
           if (newToken != null) {
-            await prefs.setString(AppConstants.authTokenKey, newToken);
+            await StorageService.saveAuthToken(newToken);
             _userId = await TokenUtils.extractUserId(newToken);
           }
         }
@@ -246,12 +245,11 @@ class _MessagesScreenState extends State<MessagesScreen> {
     try {
       var currentToken = authToken;
       if (JwtDecoder.isExpired(currentToken)) {
-        final prefs = await SharedPreferences.getInstance();
-        final refreshToken = prefs.getString(AppConstants.refreshTokenKey);
+        final refreshToken = await StorageService.getRefreshToken();
         if (refreshToken != null) {
           final newToken = await TokenUtils.refreshToken(refreshToken);
           if (newToken != null) {
-            await prefs.setString(AppConstants.authTokenKey, newToken);
+            await StorageService.saveAuthToken(newToken);
             currentToken = newToken;
           } else {
             throw Exception('Session expired. Please log in again.');
@@ -310,8 +308,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     if (text.trim().isEmpty) return;
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final authToken = prefs.getString(AppConstants.authTokenKey);
+      final authToken = await StorageService.getAuthToken();
 
       if (authToken == null) return;
 
@@ -353,6 +350,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 .jumpTo(_scrollController.position.maxScrollExtent);
           }
         } else {
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content:
@@ -361,11 +359,13 @@ class _MessagesScreenState extends State<MessagesScreen> {
           );
         }
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Server error: ${response.statusCode}')),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error sending message: ${e.toString()}')),
       );
@@ -376,8 +376,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     if (_bookingPurposeController.text.isEmpty) return;
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final authToken = prefs.getString(AppConstants.authTokenKey);
+      final authToken = await StorageService.getAuthToken();
 
       if (authToken == null) return;
 
@@ -424,6 +423,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 .jumpTo(_scrollController.position.maxScrollExtent);
           }
         } else {
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content:
@@ -432,11 +432,13 @@ class _MessagesScreenState extends State<MessagesScreen> {
           );
         }
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Server error: ${response.statusCode}')),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error initiating booking: ${e.toString()}')),
       );
@@ -445,8 +447,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
   Future<void> _respondToBooking(String proposalId, String decision) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final authToken = prefs.getString(AppConstants.authTokenKey);
+      final authToken = await StorageService.getAuthToken();
 
       if (authToken == null) return;
 
@@ -465,6 +466,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         if (responseData['success'] == true) {
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Booking ${decision.toLowerCase()} successfully'),
@@ -472,6 +474,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
           );
           await _fetchMessages(authToken); // Refresh messages
         } else {
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -480,11 +483,13 @@ class _MessagesScreenState extends State<MessagesScreen> {
           );
         }
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Server error: ${response.statusCode}')),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error responding to booking: ${e.toString()}')),
       );
@@ -533,7 +538,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     _bookingPurposeController.dispose();
     _scrollController.dispose();
     _messageFocusNode.dispose();
-    if (_channel.sink != null) _channel.sink.close();
+    _channel.sink.close();
     super.dispose();
   }
 
@@ -649,7 +654,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border(
+                    border: const Border(
                       top: BorderSide(color: Color(0xFF40C4FF)),
                       left: BorderSide(color: Color(0xFF40C4FF)),
                       right: BorderSide(color: Color(0xFF40C4FF)),
@@ -659,19 +664,19 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Booking Proposal',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF40C4FF),
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         (message.content as BookingProposal).meetingPurpose,
-                        style: TextStyle(fontSize: 14),
+                        style: const TextStyle(fontSize: 14),
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       if (!isSentByUser)
                         Row(
                           children: [
@@ -679,18 +684,18 @@ class _MessagesScreenState extends State<MessagesScreen> {
                               child: OutlinedButton(
                                 onPressed: () =>
                                     _respondToBooking(message.id, 'ACCEPTED'),
-                                child: Text('Accept'),
+                                child: const Text('Accept'),
                               ),
                             ),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: OutlinedButton(
                                 onPressed: () =>
                                     _respondToBooking(message.id, 'REJECTED'),
                                 style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: Colors.red),
+                                  side: const BorderSide(color: Colors.red),
                                 ),
-                                child: Text(
+                                child: const Text(
                                   'Reject',
                                   style: TextStyle(color: Colors.red),
                                 ),
@@ -701,7 +706,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                     ],
                   ),
                 ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
               Text(
                 _formatMessageTime(message.timestamp),
                 style: TextStyle(

@@ -6,11 +6,11 @@ class ServiceCard extends StatelessWidget {
   final Color color;
 
   const ServiceCard({
-    Key? key,
+    super.key,
     required this.icon,
     required this.title,
     required this.color,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +23,7 @@ class ServiceCard extends StatelessWidget {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
+              color: color.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(30),
             ),
             child: Icon(

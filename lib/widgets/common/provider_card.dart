@@ -63,7 +63,7 @@ class ProviderCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
+                    const CircleAvatar(
                       radius: 12,
                       backgroundImage: NetworkImage('https://via.placeholder.com/50'),
                     ),

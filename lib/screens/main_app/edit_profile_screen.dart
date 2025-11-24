@@ -86,21 +86,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         contentType: MediaType('image', 'jpeg'),
       ));
 
-      print('Uploading image to Cloudinary'); // Debug log
+
       final streamedResponse = await request.send();
       final responseBody = await streamedResponse.stream.bytesToString();
 
       if (streamedResponse.statusCode == 200) {
         final data = jsonDecode(responseBody);
         final imageUrl = data['secure_url'] as String?;
-        print('Image uploaded successfully: $imageUrl'); // Debug log
+
         return imageUrl;
       } else {
-        print('Image upload failed: $responseBody'); // Debug log
+
         return null;
       }
     } catch (error) {
-      print('Image upload error: $error'); // Debug log
+
       return null;
     }
   }
@@ -159,9 +159,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         }
       }
 
-      print(
-          'Updating profile to: ${AppConstants.userServiceBaseUrl}${AppConstants.apiVersion}/auth/update-userprofile');
-      print('Request payload: ${jsonEncode(updatedData)}'); // Debug log
+
       final url = Uri.parse(
           '${AppConstants.userServiceBaseUrl}${AppConstants.apiVersion}/auth/update-userprofile');
       final response = await http
@@ -175,8 +173,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           )
           .timeout(const Duration(seconds: 30));
 
-      print(
-          'Update response status: ${response.statusCode} - ${response.body}'); // Debug log
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile updated successfully')),
@@ -188,14 +186,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _errorMessage =
               'Failed to update profile: ${response.statusCode} - ${response.body}';
         });
-        print('Update error response: ${response.body}');
+
       }
     } catch (error) {
       setState(() {
         _isLoading = false;
         _errorMessage = 'Failed to connect to the server: $error';
       });
-      print('Profile Update Error: $error');
+
     }
   }
 
@@ -313,16 +311,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                               ? NetworkImage(initialData![
                                                       'profileImageUrl'])
                                                   as ImageProvider
-                                              : NetworkImage(
+                                              : const NetworkImage(
                                                       'https://via.placeholder.com/150')
                                                   as ImageProvider,
-                                      child: Align(
+                                      child: const Align(
                                         alignment: Alignment.bottomRight,
                                         child: CircleAvatar(
                                           radius: 20,
                                           backgroundColor:
                                               AppConstants.accentColor,
-                                          child: const Icon(
+                                          child: Icon(
                                             Icons.camera_alt,
                                             size: 20,
                                             color: Colors.white,
@@ -450,7 +448,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           labelText: label,
           labelStyle: const TextStyle(color: Colors.white70),
           filled: true,
-          fillColor: Colors.white.withOpacity(0.2),
+          fillColor: Colors.white.withValues(alpha: 0.2),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15),
             borderSide: const BorderSide(color: Colors.white, width: 2),

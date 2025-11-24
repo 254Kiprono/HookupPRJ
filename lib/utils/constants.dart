@@ -79,7 +79,7 @@ class TokenUtils {
       if (JwtDecoder.isExpired(token)) return null;
 
       final decoded = JwtDecoder.decode(token);
-      print('Token claims: $decoded'); // Debug logging
+
 
       // Try multiple possible user ID claims (priority order)
       final dynamic id = decoded['user_id'] ?? // Matches your Go backend
@@ -91,7 +91,7 @@ class TokenUtils {
       if (id is String) return int.tryParse(id);
       return null;
     } catch (e) {
-      print('Token extraction error: $e');
+
       return null;
     }
   }
@@ -110,7 +110,7 @@ class TokenUtils {
       }
       return null;
     } catch (e) {
-      print('Error refreshing token: $e');
+
       return null;
     }
   }

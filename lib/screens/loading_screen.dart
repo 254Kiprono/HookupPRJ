@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/app/routes.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
+import 'package:hook_app/services/storage_service.dart';
+import 'package:hook_app/services/api_service.dart';
 
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});
@@ -38,17 +38,15 @@ class _LoadingScreenState extends State<LoadingScreen>
       _isCheckingAuth = false;
     });
 
-    // Simulate loading delay
-    await Future.delayed(const Duration(seconds: 3));
+    // Removed fake delay for performance
 
-    final prefs = await SharedPreferences.getInstance();
-    final String? authToken = prefs.getString(AppConstants.authTokenKey);
-    print('LoadingScreen - Retrieved authToken: $authToken');
+    final String? authToken = await StorageService.getAuthToken();
+
+
 
     if (authToken == null || authToken.isEmpty) {
-      print('LoadingScreen - No token found, redirecting to login');
+      await StorageService.clearAll(); // Clear any stale data
       if (mounted) {
-        await prefs.clear(); // Clear any stale data
         Navigator.pushReplacementNamed(context, Routes.login);
       }
       return;
@@ -56,33 +54,12 @@ class _LoadingScreenState extends State<LoadingScreen>
 
     // Validate the token by attempting to fetch the user profile
     try {
-      final String url = AppConstants.getuserprofile;
-      print('LoadingScreen - Validating token by fetching profile from: $url');
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $authToken',
-        },
-      ).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        print('LoadingScreen - Token is valid, navigating to home');
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, Routes.home);
-        }
-      } else {
-        print(
-            'LoadingScreen - Token validation failed with status: ${response.statusCode}, redirecting to login');
-        await prefs.clear(); // Clear invalid token
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, Routes.login);
-        }
+      await ApiService.getUserProfile();
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, Routes.home);
       }
     } catch (error) {
-      print(
-          'LoadingScreen - Token validation error: $error, redirecting to login');
-      await prefs.clear(); // Clear on any error
+      await StorageService.clearAll(); // Clear on any error
       if (mounted) {
         Navigator.pushReplacementNamed(context, Routes.login);
       }
@@ -99,7 +76,7 @@ class _LoadingScreenState extends State<LoadingScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -125,7 +102,7 @@ class _LoadingScreenState extends State<LoadingScreen>
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(60),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.favorite,
                     color: AppConstants.primaryColor,
                     size: 48,

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hook_app/widgets/auth/auth_header.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:hook_app/app/routes.dart'; // Import for navigation
+// Import for navigation
 import 'package:hook_app/utils/constants.dart'; // Import for base URL
 
 class RegisterScreen extends StatefulWidget {
@@ -48,7 +48,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _isLoading = true;
       });
 
-      final String apiUrl = AppConstants.register; // Use pre-defined constant
+      const String apiUrl = AppConstants.register; // Use pre-defined constant
       final Map<String, String> headers = {'Content-Type': 'application/json'};
       final Map<String, dynamic> body = {
         "full_name": _fullNameController.text.trim(),
@@ -90,7 +90,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
               content:
                   Text('Failed to connect to the server. Please try again.')),
         );

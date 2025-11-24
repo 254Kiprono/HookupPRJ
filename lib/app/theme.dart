@@ -6,16 +6,16 @@ const Color accentColor = Color(0xFFE91E63);
 
 final ThemeData appTheme = ThemeData(
   primaryColor: primaryColor,
-  colorScheme: ColorScheme.light(
+  colorScheme: const ColorScheme.light(
     primary: primaryColor,
     secondary: secondaryColor,
   ),
   scaffoldBackgroundColor: Colors.grey[100],
-  appBarTheme: AppBarTheme(
+  appBarTheme: const AppBarTheme(
     elevation: 0,
     backgroundColor: Colors.transparent,
-    iconTheme: const IconThemeData(color: Colors.white),
-    titleTextStyle: const TextStyle(
+    iconTheme: IconThemeData(color: Colors.white),
+    titleTextStyle: TextStyle(
       color: Colors.white,
       fontSize: 24,
       fontWeight: FontWeight.bold,

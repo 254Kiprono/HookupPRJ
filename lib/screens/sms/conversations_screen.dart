@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/io.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hook_app/services/storage_service.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:hook_app/screens/main_app/messages_screen.dart';
 import 'package:hook_app/utils/constants.dart';
@@ -57,8 +57,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
 
   Future<void> _initAndFetchUserId() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final authToken = prefs.getString(AppConstants.authTokenKey);
+      final authToken = await StorageService.getAuthToken();
 
       if (authToken == null ||
           authToken.isEmpty ||
@@ -232,9 +231,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                     )
                   : RefreshIndicator(
                       onRefresh: () async {
-                        final prefs = await SharedPreferences.getInstance();
-                        final authToken =
-                            prefs.getString(AppConstants.authTokenKey);
+                        final authToken = await StorageService.getAuthToken();
                         if (authToken != null) {
                           await _fetchConversations(authToken);
                         }
@@ -250,7 +247,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                                 'https://via.placeholder.com/150', // Placeholder image
                               ),
                               onBackgroundImageError: (exception, stackTrace) {
-                                print('Failed to load avatar: $exception');
+
                               },
                             ),
                             title: Text(

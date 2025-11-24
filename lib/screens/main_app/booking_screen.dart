@@ -121,6 +121,8 @@ class _BookingScreenState extends State<BookingScreen> {
         body: jsonEncode(request),
       );
 
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
         if (responseData['status'] == 'PAYMENT_PENDING') {

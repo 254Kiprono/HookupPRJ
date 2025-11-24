@@ -44,7 +44,7 @@ class _AccountScreenState extends State<AccountScreen> {
           _isLoading = false; // No loading if cached data is available
         });
       } catch (e) {
-        print('Error parsing cached profile: $e');
+
       }
     } else {
       setState(() {
@@ -66,7 +66,7 @@ class _AccountScreenState extends State<AccountScreen> {
     }
 
     try {
-      print('Fetching profile from: ${AppConstants.getuserprofile}');
+
       final response = await http
           .post(
             Uri.parse(AppConstants.getuserprofile),
@@ -80,7 +80,7 @@ class _AccountScreenState extends State<AccountScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('Profile data received: $data');
+
 
         // Cache the new profile data
         await prefs.setString(AppConstants.userProfileKey, response.body);
@@ -103,7 +103,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 'Failed to fetch user profile: ${response.statusCode}';
           });
         }
-        print('Fetch error response: ${response.body}');
+
       }
     } catch (error) {
       if (mounted) {
@@ -113,7 +113,7 @@ class _AccountScreenState extends State<AccountScreen> {
           _errorMessage = 'Failed to connect to the server: $error';
         });
       }
-      print('Profile Fetch Error: $error');
+
     }
   }
 
@@ -257,7 +257,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   height: 100,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: AppConstants.primaryColor.withOpacity(0.7),
+                    color: AppConstants.primaryColor.withValues(alpha: 0.7),
                     borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(30),
                       bottomRight: Radius.circular(30),
@@ -302,20 +302,19 @@ class _AccountScreenState extends State<AccountScreen> {
                                           ? NetworkImage(
                                                   _userProfile!['profileImage'])
                                               as ImageProvider
-                                          : NetworkImage(
+                                          : const NetworkImage(
                                                   'https://via.placeholder.com/150')
                                               as ImageProvider,
                                   onBackgroundImageError:
                                       (exception, stackTrace) {
-                                    print(
-                                        'Failed to load profile image: $exception');
+
                                   },
-                                  child: Align(
+                                  child: const Align(
                                     alignment: Alignment.bottomRight,
                                     child: CircleAvatar(
                                       radius: 15,
                                       backgroundColor: AppConstants.accentColor,
-                                      child: const Icon(
+                                      child: Icon(
                                         Icons.camera_alt,
                                         size: 15,
                                         color: Colors.white,
@@ -429,14 +428,14 @@ class _AccountScreenState extends State<AccountScreen> {
                                                     MainAxisAlignment
                                                         .spaceBetween,
                                                 children: [
-                                                  Row(
+                                                  const Row(
                                                     children: [
                                                       Icon(Icons.wifi,
                                                           color: AppConstants
                                                               .primaryColor,
                                                           size: 24),
-                                                      const SizedBox(width: 12),
-                                                      const Text(
+                                                      SizedBox(width: 12),
+                                                      Text(
                                                         'Online Status',
                                                         style: TextStyle(
                                                             fontSize: 16,

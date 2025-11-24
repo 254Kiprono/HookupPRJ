@@ -160,24 +160,20 @@ class _LoginScreenState extends State<LoginScreen> {
           }
         }
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(AppConstants.authTokenKey, authToken);
-        print('Stored authToken: $authToken');
+        await StorageService.saveAuthToken(authToken);
+        print('Stored authToken: FOUND');
 
         if (refreshToken != null && refreshToken.isNotEmpty) {
-          await prefs.setString(AppConstants.refreshTokenKey, refreshToken);
-          print('Stored refreshToken: $refreshToken');
+          await StorageService.saveRefreshToken(refreshToken);
+          print('Stored refreshToken: FOUND');
         }
         if (role != null && role.isNotEmpty) {
-          await prefs.setString(AppConstants.userRoleKey, role);
+          await StorageService.saveUserRole(role);
           print('Stored role: $role');
         }
         if (userId != null && userId.isNotEmpty) {
-          final success = await prefs.setString(AppConstants.userIdKey, userId);
-          print('Stored userId: $userId, Success: $success');
-          // Verify storage by reading back
-          final storedUserId = prefs.getString(AppConstants.userIdKey);
-          print('Read back userId: $storedUserId');
+          await StorageService.saveUserId(userId);
+          print('Stored userId: $userId');
         } else {
           print('Warning: userId not found in login response or token');
         }
@@ -374,7 +370,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
+                          borderSide: const BorderSide(
                             color: AppConstants.accentColor,
                             width: 2,
                           ),
@@ -407,7 +403,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
+                          borderSide: const BorderSide(
                             color: AppConstants.accentColor,
                             width: 2,
                           ),
@@ -428,7 +424,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: () {
                           Navigator.pushNamed(context, Routes.forgotPassword);
                         },
-                        child: Text(
+                        child: const Text(
                           'Forgot Password?',
                           style: TextStyle(
                             color: AppConstants.accentColor,
@@ -464,8 +460,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    Row(
-                      children: const [
+                    const Row(
+                      children: [
                         Expanded(child: Divider()),
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 8),
@@ -486,9 +482,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: _isLoading
                           ? null
                           : () => _handleGoogleSignIn(context),
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
+                        children: [
                           Icon(Icons.g_mobiledata, color: Colors.red),
                           SizedBox(width: 8),
                           Text('Continue with Google'),
@@ -504,7 +500,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           onPressed: () {
                             Navigator.pushNamed(context, Routes.register);
                           },
-                          child: Text(
+                          child: const Text(
                             'Sign Up',
                             style: TextStyle(
                               color: AppConstants.accentColor,

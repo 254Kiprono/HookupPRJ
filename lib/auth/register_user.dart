@@ -29,7 +29,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
-      final String url = AppConstants.register; // Use AppConstants.register
+      const String url = AppConstants.register; // Use AppConstants.register
 
       try {
         final response = await http.post(

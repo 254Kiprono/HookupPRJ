@@ -42,7 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return;
       }
 
-      final String url =
+      const String url =
           AppConstants.getuserprofile; // Use pre-defined constant
       print('Fetching user profile from: $url');
 
@@ -168,7 +168,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         const SizedBox(height: 8),
                                         Row(
                                           children: [
-                                            Icon(Icons.person,
+                                            const Icon(Icons.person,
                                                 color:
                                                     AppConstants.primaryColor),
                                             const SizedBox(width: 8),
@@ -182,7 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         const SizedBox(height: 8),
                                         Row(
                                           children: [
-                                            Icon(Icons.email,
+                                            const Icon(Icons.email,
                                                 color:
                                                     AppConstants.primaryColor),
                                             const SizedBox(width: 8),
@@ -196,7 +196,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         const SizedBox(height: 8),
                                         Row(
                                           children: [
-                                            Icon(Icons.phone,
+                                            const Icon(Icons.phone,
                                                 color:
                                                     AppConstants.primaryColor),
                                             const SizedBox(width: 8),
@@ -210,7 +210,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         const SizedBox(height: 8),
                                         Row(
                                           children: [
-                                            Icon(Icons.cake,
+                                            const Icon(Icons.cake,
                                                 color:
                                                     AppConstants.primaryColor),
                                             const SizedBox(width: 8),
@@ -224,7 +224,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         const SizedBox(height: 8),
                                         Row(
                                           children: [
-                                            Icon(Icons.verified,
+                                            const Icon(Icons.verified,
                                                 color:
                                                     AppConstants.primaryColor),
                                             const SizedBox(width: 8),
@@ -238,7 +238,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         const SizedBox(height: 8),
                                         Row(
                                           children: [
-                                            Icon(Icons.verified_user,
+                                            const Icon(Icons.verified_user,
                                                 color:
                                                     AppConstants.primaryColor),
                                             const SizedBox(width: 8),
@@ -252,7 +252,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         const SizedBox(height: 8),
                                         Row(
                                           children: [
-                                            Icon(Icons.account_circle,
+                                            const Icon(Icons.account_circle,
                                                 color:
                                                     AppConstants.primaryColor),
                                             const SizedBox(width: 8),
@@ -266,7 +266,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         const SizedBox(height: 8),
                                         Row(
                                           children: [
-                                            Icon(Icons.calendar_today,
+                                            const Icon(Icons.calendar_today,
                                                 color:
                                                     AppConstants.primaryColor),
                                             const SizedBox(width: 8),

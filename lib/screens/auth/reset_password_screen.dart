@@ -161,9 +161,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 32),
-                  Text(
+                  const Text(
                     'We sent a 6-digit code to',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey,
                     ),

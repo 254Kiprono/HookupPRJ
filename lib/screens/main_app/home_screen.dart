@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hook_app/widgets/common/app_bar.dart';
 import 'package:hook_app/widgets/bottom_nav_bar.dart';
 import 'package:hook_app/utils/constants.dart';
@@ -10,64 +7,11 @@ import 'package:hook_app/screens/main_app/search_screen.dart';
 import 'package:hook_app/screens/main_app/bookings_screen.dart';
 import 'package:hook_app/screens/sms/conversations_screen.dart';
 import 'package:hook_app/screens/main_app/account_screen.dart';
-import 'package:hook_app/screens/main_app/booking_screen.dart';
-import 'package:hook_app/screens/main_app/messages_screen.dart';
+import 'package:hook_app/models/provider.dart';
+import 'package:hook_app/models/bnb.dart';
+import 'package:hook_app/services/storage_service.dart';
+import 'package:hook_app/services/api_service.dart';
 
-class Provider {
-  final int id;
-  final String name;
-  final double price;
-  final bool isActive;
-  final String distance;
-
-  Provider({
-    required this.id,
-    required this.name,
-    required this.price,
-    required this.isActive,
-    required this.distance,
-  });
-
-  factory Provider.fromJson(Map<String, dynamic> json) {
-    return Provider(
-      id: json['id'] as int,
-      name: json['name'] as String,
-      price: (json['price'] as num).toDouble(),
-      isActive: json['is_active'] as bool? ?? false,
-      distance: json['distance'] as String? ?? 'N/A',
-    );
-  }
-}
-
-class BnB {
-  final String id;
-  final String name;
-  final double price;
-  final String distance;
-  final double rating;
-  final String imageUrl;
-
-  BnB({
-    required this.id,
-    required this.name,
-    required this.price,
-    required this.distance,
-    required this.rating,
-    required this.imageUrl,
-  });
-
-  factory BnB.fromJson(Map<String, dynamic> json) {
-    return BnB(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      price: (json['price'] as num).toDouble(),
-      distance: json['distance'] as String? ?? 'N/A',
-      rating: (json['rating'] as num).toDouble(),
-      imageUrl:
-          json['image_url'] as String? ?? 'https://via.placeholder.com/600x300',
-    );
-  }
-}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -116,59 +60,34 @@ class _HomeScreenState extends State<HomeScreen> {
       _errorMessage = null;
     });
 
-    final prefs = await SharedPreferences.getInstance();
-    final String? authToken = prefs.getString(AppConstants.authTokenKey);
+    final String? authToken = await StorageService.getAuthToken();
 
     if (authToken == null || authToken.isEmpty) {
+      await StorageService.clearAll();
       if (mounted) {
-        await prefs.remove(AppConstants.authTokenKey);
         Navigator.pushReplacementNamed(context, Routes.login);
       }
       return;
     }
 
     try {
-      final String url = AppConstants.getuserprofile;
-      final response = await http
-          .post(
-            Uri.parse(url),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $authToken',
-            },
-            body: jsonEncode({}),
-          )
-          .timeout(const Duration(seconds: 30));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          _userFullName = data['fullName'] ?? 'User';
-          _userEmail = data['email'] ?? 'No email';
-          _userPhone = data['phone'] ?? 'N/A';
-          _userDob = data['dob'] ?? 'N/A';
-          _userLocation = data['location'] ?? 'N/A';
-          _userId = data['id'] as int?;
-          _isLoading = false;
-        });
-        _fetchNearbyContent(_searchRegion); // Fetch initial content
-      } else {
-        setState(() {
-          _isLoading = false;
-          _errorMessage =
-              'Failed to fetch user profile. Status: ${response.statusCode}';
-        });
-        await prefs.remove(AppConstants.authTokenKey);
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, Routes.login);
-        }
-      }
+      final data = await ApiService.getUserProfile();
+      setState(() {
+        _userFullName = data['fullName'] ?? 'User';
+        _userEmail = data['email'] ?? 'No email';
+        _userPhone = data['phone'] ?? 'N/A';
+        _userDob = data['dob'] ?? 'N/A';
+        _userLocation = data['location'] ?? 'N/A';
+        _userId = data['id'] as int?;
+        _isLoading = false;
+      });
+      _fetchNearbyContent(_searchRegion); // Fetch initial content
     } catch (error) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Failed to connect to the server: $error';
+        _errorMessage = 'Failed to fetch user profile: $error';
       });
-      await prefs.remove(AppConstants.authTokenKey);
+      await StorageService.clearAll();
       if (mounted) {
         Navigator.pushReplacementNamed(context, Routes.login);
       }
@@ -182,54 +101,17 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final authToken = prefs.getString(AppConstants.authTokenKey);
-
       // Fetch nearby providers
-      final providerResponse = await http.get(
-        Uri.parse('${AppConstants.searchProviders}?region=$region'),
-        headers: {
-          'Authorization': 'Bearer $authToken',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (providerResponse.statusCode == 200) {
-        final data = jsonDecode(providerResponse.body) as List<dynamic>;
-        setState(() {
-          _providers = data
-              .map((json) => Provider.fromJson(json))
-              .where((provider) => provider.isActive)
-              .toList();
-        });
-      } else {
-        setState(() {
-          _searchError =
-              'Failed to fetch providers: ${providerResponse.statusCode}';
-        });
-      }
+      final providers = await ApiService.searchProviders(region);
+      setState(() {
+        _providers = providers;
+      });
 
       // Fetch nearby BnBs
-      final bnbResponse = await http.get(
-        Uri.parse('${AppConstants.searchBnBs}?region=$region'),
-        headers: {
-          'Authorization': 'Bearer $authToken',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (bnbResponse.statusCode == 200) {
-        final data = jsonDecode(bnbResponse.body) as List<dynamic>;
-        setState(() {
-          _bnbs = data.map((json) => BnB.fromJson(json)).toList();
-        });
-      } else {
-        setState(() {
-          _searchError = _searchError != null
-              ? '$_searchError\nFailed to fetch BnBs: ${bnbResponse.statusCode}'
-              : 'Failed to fetch BnBs: ${bnbResponse.statusCode}';
-        });
-      }
+      final bnbs = await ApiService.searchBnBs(region);
+      setState(() {
+        _bnbs = bnbs;
+      });
     } catch (e) {
       setState(() {
         _searchError = 'Error fetching content: $e';
@@ -263,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.2),
+                    color: Colors.grey.withValues(alpha: 0.2),
                     spreadRadius: 2,
                     blurRadius: 5,
                     offset: const Offset(0, 3),
@@ -421,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   gradient: LinearGradient(
                     colors: [
                       AppConstants.primaryColor,
-                      AppConstants.primaryColor.withOpacity(0.8),
+                      AppConstants.primaryColor.withValues(alpha: 0.8),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -448,7 +330,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               gradient: LinearGradient(
                                 colors: [
                                   AppConstants.primaryColor,
-                                  AppConstants.primaryColor.withOpacity(0.8),
+                                  AppConstants.primaryColor.withValues(alpha: 0.8),
                                 ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -551,7 +433,7 @@ class SectionHeader extends StatelessWidget {
             onPressed: onActionTap,
             child: Text(
               actionText,
-              style: TextStyle(
+              style: const TextStyle(
                 color: AppConstants.primaryColor,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
@@ -698,7 +580,7 @@ class BnBCard extends StatelessWidget {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        Colors.black.withOpacity(0.6),
+                        Colors.black.withValues(alpha: 0.6),
                       ],
                     ),
                   ),
