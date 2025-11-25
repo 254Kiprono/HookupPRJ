@@ -58,6 +58,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         }),
       );
 
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
         Navigator.pushNamed(
           context,

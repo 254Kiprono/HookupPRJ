@@ -1,7 +1,7 @@
 // lib/screens/auth/verification_screen.dart
 import 'package:flutter/material.dart';
 import 'package:hook_app/utils/constants.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hook_app/services/storage_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -32,8 +32,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
       _errorMessage = null;
     });
 
-    final prefs = await SharedPreferences.getInstance();
-    final String? authToken = prefs.getString(AppConstants.authTokenKey);
+    final String? authToken = await StorageService.getAuthToken();
 
     if (authToken == null || authToken.isEmpty) {
       setState(() {
@@ -61,8 +60,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
           )
           .timeout(const Duration(seconds: 30));
 
-      print('Verification response status code: ${response.statusCode}');
-      print('Verification response body: ${response.body}');
+      if (!mounted) return;
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -81,11 +79,12 @@ class _VerificationScreenState extends State<VerificationScreen> {
         });
       }
     } catch (error) {
-      print('Error during verification: $error');
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Error verifying code: $error';
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Error verifying code: $error';
+        });
+      }
     }
   }
 
@@ -119,7 +118,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
               const SizedBox(height: 16),
               Text(
                 _errorMessage!,
-                style: const TextStyle(color: Colors.red, fileSize: 14),
+                style: const TextStyle(color: Colors.red, fontSize: 14),
               ),
             ],
             const SizedBox(height: 24),

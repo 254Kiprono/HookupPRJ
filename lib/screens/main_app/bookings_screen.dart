@@ -4,7 +4,7 @@ import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/app/routes.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hook_app/services/storage_service.dart';
 
 class BookingsScreen extends StatefulWidget {
   const BookingsScreen({super.key});
@@ -30,8 +30,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
       _errorMessage = null;
     });
 
-    final prefs = await SharedPreferences.getInstance();
-    final String? authToken = prefs.getString(AppConstants.authTokenKey);
+    final String? authToken = await StorageService.getAuthToken();
 
     if (authToken == null || authToken.isEmpty) {
       if (mounted) {

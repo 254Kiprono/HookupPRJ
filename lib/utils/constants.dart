@@ -6,10 +6,26 @@ import 'dart:convert';
 class AppConstants {
   static const String appName = 'HookUp';
 
-  // Colors
-  static const Color primaryColor = Color(0xFF6E48AA);
-  static const Color secondaryColor = Color(0xFF9D50BB);
-  static const Color accentColor = Color(0xFFE91E63);
+  // Colors - Bold & Seductive Dating App Palette
+  // Primary Colors
+  static const Color primaryColor = Color(0xFFFF6B9D); // Rose Pink (main accent)
+  static const Color secondaryColor = Color(0xFFFF1744); // Neon Pink (secondary accent)
+  static const Color accentColor = Color(0xFF00E5FF); // Soft Neon Blue (tertiary accent)
+  
+  // Background Colors
+  static const Color darkBackground = Color(0xFF121212); // Deep Charcoal
+  static const Color midnightPurple = Color(0xFF1A0B2E); // Midnight Purple (primary dark)
+  static const Color deepPurple = Color(0xFF2D1B4E); // Deep Purple (surface)
+  static const Color lightBackground = Color(0xFFF5F5F5); // Soft White
+  static const Color surfaceColor = Color(0xFF2D1B4E); // Deep Purple for cards
+  
+  // Support Colors
+  static const Color softRose = Color(0xFFFFC1E3); // Light rose for highlights
+  static const Color neonGlow = Color(0xFFFF1744); // Neon red for emphasis
+  static const Color mutedGray = Color(0xFF8B8B8B); // Muted gray for secondary text
+  static const Color errorColor = Color(0xFFFF1744); // Neon pink for errors
+  static const Color successColor = Color(0xFF00E5FF); // Neon blue for success
+  static const Color softWhite = Color(0xFFF5F5F5); // Text on dark backgrounds
 
   // Assets
   static const String logoPath = 'assets/images/logo.png';

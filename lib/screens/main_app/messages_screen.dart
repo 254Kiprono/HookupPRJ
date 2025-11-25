@@ -100,7 +100,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
   List<Message> _messages = [];
   bool _isLoading = true;
   String? _errorMessage;
-  bool _otherUserTyping = false;
+
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _messageFocusNode = FocusNode();
@@ -186,9 +186,6 @@ class _MessagesScreenState extends State<MessagesScreen> {
         } else if (data.containsKey('typing')) {
           final typingData = data['typing'] as Map<String, dynamic>;
           if (typingData['user_id'] == widget.otherUserId) {
-            setState(() {
-              _otherUserTyping = typingData['is_typing'] as bool;
-            });
           }
         } else if (data.containsKey('booking')) {
           final bookingData = data['booking'] as Map<String, dynamic>;
@@ -220,9 +217,6 @@ class _MessagesScreenState extends State<MessagesScreen> {
         });
       },
       onDone: () {
-        setState(() {
-          _otherUserTyping = false;
-        });
         _connectWebSocket(authToken); // Reconnect on disconnect
       },
     );

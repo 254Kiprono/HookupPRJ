@@ -1,3 +1,4 @@
+// lib/screens/main_app/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:hook_app/widgets/common/app_bar.dart';
 import 'package:hook_app/widgets/bottom_nav_bar.dart';
@@ -7,11 +8,13 @@ import 'package:hook_app/screens/main_app/search_screen.dart';
 import 'package:hook_app/screens/main_app/bookings_screen.dart';
 import 'package:hook_app/screens/sms/conversations_screen.dart';
 import 'package:hook_app/screens/main_app/account_screen.dart';
-import 'package:hook_app/models/provider.dart';
-import 'package:hook_app/models/bnb.dart';
 import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/services/api_service.dart';
-
+import 'package:hook_app/services/dummy_data_service.dart';
+import 'package:hook_app/services/location_service.dart';
+import 'package:hook_app/models/active_user.dart';
+import 'package:geolocator/geolocator.dart';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,274 +23,808 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   String? _userFullName;
-  String? _userEmail;
-  String? _userPhone;
-  String? _userDob;
-  String? _userLocation;
+  String? _userGender;
   bool _isLoading = true;
   String? _errorMessage;
   int _selectedIndex = 0;
-  late final List<Widget> _pages;
-  final TextEditingController _regionController =
-      TextEditingController(text: 'Roysambu');
-  String _searchRegion = 'Roysambu';
-  List<Provider> _providers = [];
-  List<BnB> _bnbs = [];
-  bool _isSearching = false;
-  String? _searchError;
-  int? _userId;
-  bool _includeBnB = false;
-  BnB? _selectedBnB;
+  
+  // Map and location state
+  List<ActiveUser> _activeUsers = [];
+  Position? _currentPosition;
+  int? _selectedUserIndex;
+  late AnimationController _pulseController;
+
+  // Filter state
+  double _maxDistance = 50.0; // Increased default to ensure users are visible
+  RangeValues _ageRange = const RangeValues(21, 35);
+  bool _onlineOnly = false;
 
   @override
   void initState() {
     super.initState();
-    _pages = [
-      _buildHomeContent(), // 0: Home
-      const SearchScreen(), // 1: Search
-      const BookingsScreen(), // 2: Bookings
-      const ConversationsScreen(), // 3: Messages
-      const AccountScreen(), // 4: Profile
-    ];
+    
+    // Initialize pulse animation for markers
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    // _pages initialization removed from here
+    
     _checkLoginAndFetchProfile();
   }
 
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
   Future<void> _checkLoginAndFetchProfile() async {
+    print('🔍 [HOME] Starting _checkLoginAndFetchProfile');
+    
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
+    print('🔍 [HOME] Getting auth token...');
     final String? authToken = await StorageService.getAuthToken();
+    print('🔍 [HOME] Auth token: ${authToken != null ? "EXISTS" : "NULL"}');
 
     if (authToken == null || authToken.isEmpty) {
-      await StorageService.clearAll();
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, Routes.login);
-      }
+      print('⚠️ [HOME] No auth token - loading dummy data for demo');
+      setState(() {
+        _userFullName = 'Guest User';
+        _userGender = 'male';
+        _isLoading = false;
+      });
+      await _loadActiveUsers();
+      print('✅ [HOME] Dummy data loaded for guest');
       return;
     }
 
     try {
-      final data = await ApiService.getUserProfile();
+      print('🔍 [HOME] Fetching user profile from API...');
+      final data = await ApiService.getUserProfile().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          print('⏱️ [HOME] API timeout - using defaults');
+          return {'fullName': 'User', 'gender': 'male'};
+        },
+      );
+      
+      print('✅ [HOME] Profile received: ${data['fullName']}, gender: ${data['gender']}');
+      
       setState(() {
         _userFullName = data['fullName'] ?? 'User';
-        _userEmail = data['email'] ?? 'No email';
-        _userPhone = data['phone'] ?? 'N/A';
-        _userDob = data['dob'] ?? 'N/A';
-        _userLocation = data['location'] ?? 'N/A';
-        _userId = data['id'] as int?;
+        _userGender = data['gender'] ?? 'male';
         _isLoading = false;
       });
-      _fetchNearbyContent(_searchRegion); // Fetch initial content
+      
+      print('🔍 [HOME] Loading active users...');
+      await _loadActiveUsers();
+      print('✅ [HOME] All data loaded successfully!');
+      
     } catch (error) {
+      print('❌ [HOME] Profile API error: $error');
+      print('🔍 [HOME] Loading dummy data as fallback...');
+      
       setState(() {
+        _userFullName = 'User';
+        _userGender = 'male';
         _isLoading = false;
-        _errorMessage = 'Failed to fetch user profile: $error';
       });
-      await StorageService.clearAll();
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, Routes.login);
-      }
+      
+      await _loadActiveUsers();
+      print('✅ [HOME] Fallback data loaded');
     }
   }
 
-  Future<void> _fetchNearbyContent(String region) async {
+  Future<void> _loadActiveUsers() async {
+    print('Loading active users...');
+    
+    // Always use default Nairobi location for now (faster loading)
+    final position = LocationService.getDefaultLocation();
+    
+    print('Using location: ${position.latitude}, ${position.longitude}');
+
     setState(() {
-      _isSearching = true;
-      _searchError = null;
+      _currentPosition = position;
     });
 
-    try {
-      // Fetch nearby providers
-      final providers = await ApiService.searchProviders(region);
-      setState(() {
-        _providers = providers;
-      });
+    // Generate dummy active users based on gender
+    print('Generating dummy users for gender: ${_userGender ?? 'male'}');
+    final users = DummyDataService.generateActiveUsers(
+      userGender: _userGender ?? 'male',
+      centerLat: position.latitude,
+      centerLon: position.longitude,
+      count: 20,
+    );
 
-      // Fetch nearby BnBs
-      final bnbs = await ApiService.searchBnBs(region);
-      setState(() {
-        _bnbs = bnbs;
-      });
-    } catch (e) {
-      setState(() {
-        _searchError = 'Error fetching content: $e';
-      });
-    } finally {
-      setState(() {
-        _isSearching = false;
-      });
-    }
+    print('Generated ${users.length} users');
+    setState(() {
+      _activeUsers = users;
+    });
+    
+    print('Active users loaded successfully');
+  }
+
+  List<ActiveUser> get _filteredUsers {
+    return _activeUsers.where((user) {
+      if (user.distance > _maxDistance) return false;
+      if (user.age < _ageRange.start || user.age > _ageRange.end) return false;
+      if (_onlineOnly && !user.isOnline) return false;
+      return true;
+    }).toList();
   }
 
   void _onItemTapped(int index) {
-    if (index >= 0 && index < _pages.length) {
-      setState(() {
-        _selectedIndex = index;
-      });
-    }
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   Widget _buildHomeContent() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 80),
+    if (_activeUsers.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final filteredUsers = _filteredUsers;
+
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppConstants.midnightPurple,
+            AppConstants.deepPurple,
+            AppConstants.darkBackground,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.2),
-                    spreadRadius: 2,
-                    blurRadius: 5,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _regionController,
-                      decoration: InputDecoration(
-                        hintText: 'Search by location (e.g., Roysambu)',
-                        prefixIcon:
-                            const Icon(Icons.search, color: Colors.grey),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.clear, color: Colors.grey),
-                          onPressed: () {
-                            _regionController.clear();
-                          },
-                        ),
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      _searchRegion = _regionController.text;
-                      _fetchNearbyContent(_searchRegion);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppConstants.primaryColor,
-                    ),
-                    child: const Text('Search',
-                        style: TextStyle(color: Colors.white)),
-                  ),
-                ],
-              ),
-            ),
+          // Filter chips
+          _buildFilterChips(),
+          
+          // Map placeholder with user grid
+          Expanded(
+            child: _buildUserGrid(filteredUsers),
           ),
-          if (_isSearching) const Center(child: CircularProgressIndicator()),
-          if (_searchError != null)
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                _searchError!,
-                style: const TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
-              ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChips() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _buildFilterChip(
+              icon: Icons.location_on,
+              label: '${_maxDistance.toInt()} km',
+              onTap: () => _showDistanceFilter(),
             ),
-          SectionHeader(
-            title: 'Nearby Providers',
-            actionText: 'See all',
-            onActionTap: () {},
-          ),
-          _providers.isEmpty && !_isSearching && _searchError == null
-              ? const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Text('No providers found in this region.'),
+            const SizedBox(width: 8),
+            _buildFilterChip(
+              icon: Icons.cake,
+              label: '${_ageRange.start.toInt()}-${_ageRange.end.toInt()}',
+              onTap: () => _showAgeFilter(),
+            ),
+            const SizedBox(width: 8),
+            _buildFilterChip(
+              icon: Icons.circle,
+              label: _onlineOnly ? 'Online' : 'All',
+              isActive: _onlineOnly,
+              onTap: () {
+                setState(() {
+                  _onlineOnly = !_onlineOnly;
+                });
+              },
+            ),
+            const SizedBox(width: 8),
+            _buildFilterChip(
+              icon: Icons.refresh,
+              label: 'Reset',
+              onTap: () {
+                setState(() {
+                  _maxDistance = 10.0;
+                  _ageRange = const RangeValues(21, 35);
+                  _onlineOnly = false;
+                });
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool isActive = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: isActive
+              ? LinearGradient(
+                  colors: [AppConstants.primaryColor, AppConstants.accentColor],
                 )
-              : GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  padding: const EdgeInsets.all(8),
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                  childAspectRatio: 0.75,
-                  children: _providers.map((provider) {
-                    return ProviderCard(
-                      name: provider.name,
-                      price: '${provider.price} KES/hr',
-                      distance: provider.distance,
-                      imageUrl: 'https://via.placeholder.com/300x200',
-                      onBook: () {
-                        Navigator.pushNamed(
-                          context,
-                          Routes.booking,
-                          arguments: {
-                            'providerId': provider.id,
-                            'providerName': provider.name,
-                            'price': provider.price,
-                          },
+              : null,
+          color: isActive ? null : AppConstants.deepPurple.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppConstants.primaryColor.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: AppConstants.softWhite, size: 16),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                color: AppConstants.softWhite,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserGrid(List<ActiveUser> users) {
+    if (users.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.person_search,
+              size: 80,
+              color: AppConstants.mutedGray.withOpacity(0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No users found',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: AppConstants.softWhite.withOpacity(0.7),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Try adjusting your filters',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppConstants.mutedGray.withOpacity(0.6),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.75,
+      ),
+      itemCount: users.length,
+      itemBuilder: (context, index) {
+        return _buildUserCard(users[index], index);
+      },
+    );
+  }
+
+  Widget _buildUserCard(ActiveUser user, int index) {
+    return AnimatedBuilder(
+      animation: _pulseController,
+      builder: (context, child) {
+        final pulseValue = _pulseController.value;
+        
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              _selectedUserIndex = index;
+            });
+            _showUserDetails(user);
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(
+                colors: [
+                  AppConstants.deepPurple.withOpacity(0.8),
+                  AppConstants.surfaceColor.withOpacity(0.6),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              border: Border.all(
+                width: 2,
+                color: user.isOnline
+                    ? AppConstants.primaryColor.withOpacity(0.5 + pulseValue * 0.5)
+                    : AppConstants.mutedGray.withOpacity(0.3),
+              ),
+              boxShadow: user.isOnline
+                  ? [
+                      BoxShadow(
+                        color: AppConstants.primaryColor.withOpacity(0.3 + pulseValue * 0.3),
+                        blurRadius: 15 + pulseValue * 10,
+                        spreadRadius: 2 + pulseValue * 3,
+                      ),
+                    ]
+                  : [],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: Stack(
+                children: [
+                  // Profile image
+                  Positioned.fill(
+                    child: Image.network(
+                      user.profileImage,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: AppConstants.deepPurple,
+                          child: const Icon(
+                            Icons.person,
+                            size: 80,
+                            color: AppConstants.softWhite,
+                          ),
                         );
                       },
-                    );
-                  }).toList(),
-                ),
-          SectionHeader(
-            title: 'Nearby BnBs',
-            actionText: 'See all',
-            onActionTap: () {},
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                Checkbox(
-                  value: _includeBnB,
-                  onChanged: (value) {
-                    setState(() {
-                      _includeBnB = value ?? false;
-                      if (!_includeBnB) _selectedBnB = null;
-                    });
-                  },
-                ),
-                const Text('Include BnB in booking'),
-              ],
+                    ),
+                  ),
+                  
+                  // Gradient overlay
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.8),
+                          ],
+                          stops: const [0.5, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  // Online indicator
+                  if (user.isOnline)
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Container(
+                        width: (12 + pulseValue * 4).toDouble(),
+                        height: (12 + pulseValue * 4).toDouble(),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppConstants.successColor,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppConstants.successColor.withOpacity(0.6),
+                              blurRadius: (8 + pulseValue * 4).toDouble(),
+                              spreadRadius: (2 + pulseValue * 2).toDouble(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  
+                  // User info
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${user.name}, ${user.age}',
+                            style: const TextStyle(
+                              color: AppConstants.softWhite,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.location_on,
+                                size: 14,
+                                color: AppConstants.primaryColor,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${user.distance} km away',
+                                style: TextStyle(
+                                  color: AppConstants.softWhite.withOpacity(0.8),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          _bnbs.isEmpty && !_isSearching && _searchError == null
-              ? const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Text('No BnBs found in this region.'),
-                )
-              : Column(
-                  children: _bnbs.map((bnb) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: BnBCard(
-                        bnb: bnb,
-                        isSelected: _selectedBnB?.id == bnb.id,
-                        onSelect: _includeBnB
-                            ? () {
-                                setState(() {
-                                  _selectedBnB = bnb;
-                                });
-                              }
-                            : null,
-                      ),
-                    );
-                  }).toList(),
+        );
+      },
+    );
+  }
+
+  void _showUserDetails(ActiveUser user) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppConstants.deepPurple.withOpacity(0.95),
+              AppConstants.darkBackground.withOpacity(0.95),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+          border: Border.all(
+            color: AppConstants.primaryColor.withOpacity(0.3),
+            width: 2,
+          ),
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppConstants.mutedGray.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            
+            // Profile image
+            Container(
+              margin: const EdgeInsets.all(20),
+              height: 200,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppConstants.primaryColor,
+                  width: 3,
                 ),
-          const SizedBox(height: 80),
-        ],
+                boxShadow: [
+                  BoxShadow(
+                    color: AppConstants.primaryColor.withOpacity(0.3),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(17),
+                child: Image.network(
+                  user.profileImage,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                ),
+              ),
+            ),
+            
+            // User info
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        '${user.name}, ${user.age}',
+                        style: const TextStyle(
+                          color: AppConstants.softWhite,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (user.isOnline)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppConstants.successColor,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            'Online',
+                            style: TextStyle(
+                              color: AppConstants.softWhite,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.location_on,
+                        size: 18,
+                        color: AppConstants.primaryColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${user.distance} km away',
+                        style: TextStyle(
+                          color: AppConstants.softWhite.withOpacity(0.8),
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    user.bio,
+                    style: TextStyle(
+                      color: AppConstants.softWhite.withOpacity(0.9),
+                      fontSize: 16,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Action buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            // Navigate to profile
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppConstants.deepPurple,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(
+                                color: AppConstants.primaryColor.withOpacity(0.5),
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                          child: const Text(
+                            'View Profile',
+                            style: TextStyle(
+                              color: AppConstants.softWhite,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                AppConstants.primaryColor,
+                                AppConstants.accentColor,
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              // Navigate to messages
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.message, size: 18, color: AppConstants.softWhite),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Message',
+                                  style: TextStyle(
+                                    color: AppConstants.softWhite,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDistanceFilter() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppConstants.deepPurple.withOpacity(0.95),
+                AppConstants.darkBackground.withOpacity(0.95),
+              ],
+            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Maximum Distance: ${_maxDistance.toInt()} km',
+                style: const TextStyle(
+                  color: AppConstants.softWhite,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Slider(
+                value: _maxDistance,
+                min: 1,
+                max: 50,
+                divisions: 49,
+                activeColor: AppConstants.primaryColor,
+                inactiveColor: AppConstants.mutedGray,
+                onChanged: (value) {
+                  setModalState(() {
+                    _maxDistance = value;
+                  });
+                  setState(() {
+                    _maxDistance = value;
+                  });
+                },
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppConstants.primaryColor,
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Apply',
+                  style: TextStyle(color: AppConstants.softWhite),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAgeFilter() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppConstants.deepPurple.withOpacity(0.95),
+                AppConstants.darkBackground.withOpacity(0.95),
+              ],
+            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Age Range: ${_ageRange.start.toInt()}-${_ageRange.end.toInt()}',
+                style: const TextStyle(
+                  color: AppConstants.softWhite,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              RangeSlider(
+                values: _ageRange,
+                min: 18,
+                max: 60,
+                divisions: 42,
+                activeColor: AppConstants.primaryColor,
+                inactiveColor: AppConstants.mutedGray,
+                onChanged: (values) {
+                  setModalState(() {
+                    _ageRange = values;
+                  });
+                  setState(() {
+                    _ageRange = values;
+                  });
+                },
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppConstants.primaryColor,
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Apply',
+                  style: TextStyle(color: AppConstants.softWhite),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -303,7 +840,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   gradient: LinearGradient(
                     colors: [
                       AppConstants.primaryColor,
-                      AppConstants.primaryColor.withValues(alpha: 0.8),
+                      AppConstants.primaryColor.withOpacity(0.8),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -311,7 +848,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 child: CustomAppBar(
                   title: 'Hello, ${_userFullName ?? 'User'}',
-                  subtitle: 'Find your perfect match',
+                  subtitle: 'Find your perfect match nearby',
                   showProfile: true,
                   primaryColor: Theme.of(context).primaryColor,
                   secondaryColor: Theme.of(context).colorScheme.secondary,
@@ -330,7 +867,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               gradient: LinearGradient(
                                 colors: [
                                   AppConstants.primaryColor,
-                                  AppConstants.primaryColor.withValues(alpha: 0.8),
+                                  AppConstants.primaryColor.withOpacity(0.8),
                                 ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -346,7 +883,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                         )
-                      : _selectedIndex == 4 // Skip AppBar for Profile tab
+                      : _selectedIndex == 4
                           ? null
                           : AppBar(
                               title: Text(
@@ -389,8 +926,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 )
-              : _selectedIndex >= 0 && _selectedIndex < _pages.length
-                  ? _pages[_selectedIndex]
+              : _selectedIndex >= 0
+                  ? _buildPageContent(_selectedIndex)
                   : const Center(child: Text('Error: Invalid tab index')),
       bottomNavigationBar: AppBottomNavBar(
         currentIndex: _selectedIndex,
@@ -400,247 +937,21 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-}
 
-class SectionHeader extends StatelessWidget {
-  final String title;
-  final String actionText;
-  final VoidCallback onActionTap;
-
-  const SectionHeader({
-    super.key,
-    required this.title,
-    required this.actionText,
-    required this.onActionTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-              color: Colors.black87,
-            ),
-          ),
-          TextButton(
-            onPressed: onActionTap,
-            child: Text(
-              actionText,
-              style: const TextStyle(
-                color: AppConstants.primaryColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  Widget _buildPageContent(int index) {
+    switch (index) {
+      case 0:
+        return _buildHomeContent();
+      case 1:
+        return const SearchScreen();
+      case 2:
+        return const BookingsScreen();
+      case 3:
+        return const ConversationsScreen();
+      case 4:
+        return const AccountScreen();
+      default:
+        return const Center(child: Text('Error: Invalid tab index'));
+    }
   }
 }
-
-class ProviderCard extends StatelessWidget {
-  final String name;
-  final String price;
-  final String distance;
-  final String imageUrl;
-  final VoidCallback onBook;
-
-  const ProviderCard({
-    super.key,
-    required this.name,
-    required this.price,
-    required this.distance,
-    required this.imageUrl,
-    required this.onBook,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: Image.network(
-              imageUrl,
-              height: 120,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  price,
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  distance,
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: onBook,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppConstants.primaryColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text(
-                    'Book Now',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class BnBCard extends StatelessWidget {
-  final BnB bnb;
-  final bool isSelected;
-  final VoidCallback? onSelect;
-
-  const BnBCard({
-    super.key,
-    required this.bnb,
-    required this.isSelected,
-    this.onSelect,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: isSelected
-            ? const BorderSide(color: AppConstants.primaryColor, width: 2)
-            : BorderSide.none,
-      ),
-      child: InkWell(
-        onTap: onSelect,
-        borderRadius: BorderRadius.circular(12),
-        child: Column(
-          children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(12),
-                  ),
-                  child: Image.network(
-                    bnb.imageUrl,
-                    height: 180,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                Container(
-                  height: 180,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.6),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    bnb.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on,
-                          size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(
-                        bnb.distance,
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: List.generate(5, (index) {
-                      return Icon(
-                        index < bnb.rating ? Icons.star : Icons.star_border,
-                        color: const Color(0xFFFFD54F),
-                        size: 16,
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${bnb.price} KES',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-const Color amber400 = Color(0xFFFFD54F);

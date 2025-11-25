@@ -70,6 +70,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _isLoading = false;
         });
 
+        if (!mounted) return;
+
         if (response.statusCode == 200 || response.statusCode == 201) {
           final responseData = jsonDecode(response.body);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -89,12 +91,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         setState(() {
           _isLoading = false;
         });
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content:
                   Text('Failed to connect to the server. Please try again.')),
         );
-        print('Registration Error: $error');
+
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

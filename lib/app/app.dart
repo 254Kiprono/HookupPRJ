@@ -10,7 +10,9 @@ class HookUpApp extends StatelessWidget {
     return MaterialApp(
       title: 'HookUp',
       debugShowCheckedModeBanner: false,
-      theme: appTheme,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
       initialRoute: Routes.loading,
       onGenerateRoute: Routes.generateRoute,
     );

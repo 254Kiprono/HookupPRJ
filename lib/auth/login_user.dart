@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hook_app/widgets/auth/auth_header.dart';
 import 'package:hook_app/app/routes.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:http/http.dart' as http;
@@ -7,6 +6,8 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:hook_app/services/storage_service.dart';
+import 'dart:ui'; // For BackdropFilter
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -88,6 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
             content: Text(
               'Too many failed attempts. Please try again in $remainingMinutes minute${remainingMinutes == 1 ? '' : 's'}.',
             ),
+            backgroundColor: AppConstants.errorColor,
           ),
         );
         return;
@@ -103,7 +105,6 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      print('Login request to: ${AppConstants.login}');
       final response = await http
           .post(
             Uri.parse(AppConstants.login),
@@ -122,9 +123,10 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = false;
       });
 
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        print('Login response: $responseData');
 
         final String? authToken = responseData['token'];
         final String? refreshToken = responseData['refreshToken'];
@@ -143,39 +145,25 @@ class _LoginScreenState extends State<LoginScreen> {
         if (userId == null || userId.isEmpty) {
           try {
             final decodedToken = JwtDecoder.decode(authToken);
-            print('Decoded token payload: $decodedToken');
-            // Try various possible field names for user ID
             userId = decodedToken['user_id']?.toString() ??
                 decodedToken['userId']?.toString() ??
                 decodedToken['id']?.toString() ??
                 decodedToken['sub']?.toString();
-            print('Extracted userId from token: $userId');
-            if (userId == null) {
-              print('Error: No user ID field found in token payload');
-            }
           } catch (e, stackTrace) {
-            print('Error decoding token: $e');
-            print('Stack trace: $stackTrace');
             userId = null;
           }
         }
 
         await StorageService.saveAuthToken(authToken);
-        print('Stored authToken: FOUND');
 
         if (refreshToken != null && refreshToken.isNotEmpty) {
           await StorageService.saveRefreshToken(refreshToken);
-          print('Stored refreshToken: FOUND');
         }
         if (role != null && role.isNotEmpty) {
           await StorageService.saveUserRole(role);
-          print('Stored role: $role');
         }
         if (userId != null && userId.isNotEmpty) {
           await StorageService.saveUserId(userId);
-          print('Stored userId: $userId');
-        } else {
-          print('Warning: userId not found in login response or token');
         }
 
         // Reset failed login attempts on successful login
@@ -187,11 +175,13 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacementNamed(context, Routes.home);
       } else {
         await _incrementFailedLoginAttempts();
+        if (!mounted) return;
         final errorData = jsonDecode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorData['message'] ??
-                'Login failed. Invalid credentials, confirm and login again.'),
+                'Login failed. Invalid credentials.'),
+            backgroundColor: AppConstants.errorColor,
           ),
         );
       }
@@ -200,10 +190,10 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = false;
       });
       await _incrementFailedLoginAttempts();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to connect to the server.')),
       );
-      print('Login Error: $error');
     }
   }
 
@@ -213,7 +203,6 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      print('Google Sign-In request to: ${AppConstants.googleAuth}');
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         setState(() {
@@ -252,9 +241,10 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = false;
       });
 
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        print('Google Sign-In response: $responseData');
 
         final String? authToken = responseData['token'];
         final String? refreshToken = responseData['refreshToken'];
@@ -274,49 +264,32 @@ class _LoginScreenState extends State<LoginScreen> {
         if (userId == null || userId.isEmpty) {
           try {
             final decodedToken = JwtDecoder.decode(authToken);
-            print('Decoded token payload (Google Sign-In): $decodedToken');
             userId = decodedToken['user_id']?.toString() ??
                 decodedToken['userId']?.toString() ??
                 decodedToken['id']?.toString() ??
                 decodedToken['sub']?.toString();
-            print('Extracted userId from token (Google Sign-In): $userId');
-            if (userId == null) {
-              print(
-                  'Error: No user ID field found in token payload (Google Sign-In)');
-            }
           } catch (e, stackTrace) {
-            print('Error decoding token (Google Sign-In): $e');
-            print('Stack trace (Google Sign-In): $stackTrace');
             userId = null;
           }
         }
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(AppConstants.authTokenKey, authToken);
-        print('Stored authToken (Google Sign-In): $authToken');
 
         if (refreshToken != null && refreshToken.isNotEmpty) {
           await prefs.setString(AppConstants.refreshTokenKey, refreshToken);
-          print('Stored refreshToken (Google Sign-In): $refreshToken');
         }
         if (role != null && role.isNotEmpty) {
           await prefs.setString(AppConstants.userRoleKey, role);
-          print('Stored role (Google Sign-In): $role');
         }
         if (userId != null && userId.isNotEmpty) {
-          final success = await prefs.setString(AppConstants.userIdKey, userId);
-          print('Stored userId (Google Sign-In): $userId, Success: $success');
-          // Verify storage by reading back
-          final storedUserId = prefs.getString(AppConstants.userIdKey);
-          print('Read back userId (Google Sign-In): $storedUserId');
-        } else {
-          print(
-              'Warning: userId not found in Google Sign-In response or token');
+          await prefs.setString(AppConstants.userIdKey, userId);
         }
 
         // Reset failed login attempts on successful Google sign-in
         await _resetFailedLoginAttempts();
 
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Google sign-in successful!')),
         );
@@ -327,6 +300,7 @@ class _LoginScreenState extends State<LoginScreen> {
           final errorData = jsonDecode(response.body);
           errorMessage = errorData['message'] ?? errorMessage;
         } catch (_) {}
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorMessage)),
         );
@@ -338,184 +312,264 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to connect to the server.')),
       );
-      print('Google Sign-In Error: $error');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const AuthHeader(
-              title: 'Welcome Back',
-              subtitle: 'Login to continue your journey',
+      body: Stack(
+        children: [
+          // Background Gradient
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF2C0E18), // Darker Wine
+                  AppConstants.primaryColor, // Deep Wine
+                  Color(0xFF121212), // Dark Charcoal
+                ],
+              ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _emailOrPhoneController,
-                      decoration: InputDecoration(
-                        labelText: 'Email or Phone Number',
-                        hintText: 'john@example.com or 07XXXXXXXX',
-                        prefixIcon: const Icon(Icons.phone),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+          ),
+          // Subtle Pattern or Overlay (Optional)
+          Container(
+            color: Colors.black.withOpacity(0.3),
+          ),
+          // Content
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Logo / Branding
+                  const Icon(
+                    Icons.favorite_rounded,
+                    size: 64,
+                    color: AppConstants.secondaryColor,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    AppConstants.appName.toUpperCase(),
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2.0,
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: AppConstants.accentColor,
-                            width: 2,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Premium Social Discovery',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.white70,
+                          letterSpacing: 1.0,
+                        ),
+                  ),
+                  const SizedBox(height: 48),
+
+                  // Glassmorphism Form Container
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.2),
+                          ),
+                        ),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            children: [
+                              TextFormField(
+                                controller: _emailOrPhoneController,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  labelText: 'Email or Phone',
+                                  labelStyle:
+                                      const TextStyle(color: Colors.white70),
+                                  prefixIcon: const Icon(Icons.person_outline,
+                                      color: AppConstants.secondaryColor),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                        color: Colors.white.withOpacity(0.3)),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                        color: AppConstants.secondaryColor),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.black.withOpacity(0.2),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Required';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 20),
+                              TextFormField(
+                                controller: _passwordController,
+                                obscureText: true,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  labelText: 'Password',
+                                  labelStyle:
+                                      const TextStyle(color: Colors.white70),
+                                  prefixIcon: const Icon(Icons.lock_outline,
+                                      color: AppConstants.secondaryColor),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                        color: Colors.white.withOpacity(0.3)),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                        color: AppConstants.secondaryColor),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.black.withOpacity(0.2),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Required';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: () {
+                                    Navigator.pushNamed(
+                                        context, Routes.forgotPassword);
+                                  },
+                                  child: const Text(
+                                    'Forgot Password?',
+                                    style: TextStyle(
+                                      color: AppConstants.secondaryColor,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 32),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppConstants.secondaryColor,
+                                    foregroundColor: Colors.black87,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 8,
+                                    shadowColor: AppConstants.secondaryColor
+                                        .withOpacity(0.5),
+                                  ),
+                                  onPressed: _isLoading
+                                      ? null
+                                      : () => _loginUser(context),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          height: 24,
+                                          width: 24,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.black87,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text(
+                                          'LOGIN',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 1.2,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                      keyboardType: TextInputType.text,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email or phone number';
-                        }
-                        final emailRegex =
-                            RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                        final phoneRegex = RegExp(r'^07\d{8}$');
-                        if (!emailRegex.hasMatch(value) &&
-                            !phoneRegex.hasMatch(value)) {
-                          return 'Please enter a valid email or phone number (e.g., 07XXXXXXXX)';
-                        }
-                        return null;
-                      },
                     ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _passwordController,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        hintText: '••••••••',
-                        prefixIcon: const Icon(Icons.lock),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: AppConstants.accentColor,
-                            width: 2,
-                          ),
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Expanded(
+                          child: Divider(color: Colors.white.withOpacity(0.2))),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'OR',
+                          style: TextStyle(
+                              color: Colors.white.withOpacity(0.5),
+                              fontSize: 12),
                         ),
                       ),
-                      obscureText: true,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your password';
-                        }
-                        return null;
-                      },
+                      Expanded(
+                          child: Divider(color: Colors.white.withOpacity(0.2))),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: BorderSide(color: Colors.white.withOpacity(0.3)),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 16, horizontal: 24),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, Routes.forgotPassword);
+                    onPressed:
+                        _isLoading ? null : () => _handleGoogleSignIn(context),
+                    icon: const Icon(Icons.g_mobiledata, size: 28),
+                    label: const Text('Continue with Google'),
+                  ),
+                  const SizedBox(height: 48),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Don't have an account? ",
+                        style: TextStyle(color: Colors.white.withOpacity(0.7)),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pushNamed(context, Routes.register);
                         },
                         child: const Text(
-                          'Forgot Password?',
+                          'Sign Up',
                           style: TextStyle(
-                            color: AppConstants.accentColor,
+                            color: AppConstants.secondaryColor,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppConstants.primaryColor,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed:
-                            _isLoading ? null : () => _loginUser(context),
-                        child: _isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white)
-                            : const Text(
-                                'Login',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    const Row(
-                      children: [
-                        Expanded(child: Divider()),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8),
-                          child: Text('or'),
-                        ),
-                        Expanded(child: Divider()),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                        ),
-                        side: BorderSide(color: Colors.grey.shade400),
-                      ),
-                      onPressed: _isLoading
-                          ? null
-                          : () => _handleGoogleSignIn(context),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.g_mobiledata, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Continue with Google'),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text("Don't have an account?"),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, Routes.register);
-                          },
-                          child: const Text(
-                            'Sign Up',
-                            style: TextStyle(
-                              color: AppConstants.accentColor,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

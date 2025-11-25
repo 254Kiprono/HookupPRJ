@@ -22,6 +22,11 @@ dependencies:
   flutter_dotenv: ^6.0.0
 
   http_parser: any
+  google_fonts: ^6.3.2
+  google_maps_flutter: ^2.5.0
+  google_maps_flutter_web: ^0.5.4+2
+  geolocator: ^10.1.0
+  permission_handler: ^11.1.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

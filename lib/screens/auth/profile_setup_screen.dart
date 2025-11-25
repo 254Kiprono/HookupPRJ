@@ -4,7 +4,7 @@ import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/widgets/auth/auth_header.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hook_app/services/storage_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -31,8 +31,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final String? authToken = prefs.getString(AppConstants.authTokenKey);
+      final String? authToken = await StorageService.getAuthToken();
 
       if (authToken == null || authToken.isEmpty) {
         setState(() {
@@ -44,7 +43,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       const String url =
           AppConstants.getuserprofile; // Use pre-defined constant
-      print('Fetching user profile from: $url');
+
 
       final response = await http.get(
         Uri.parse(url),
@@ -73,7 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _isLoading = false;
         _errorMessage = 'Failed to connect to the server: $error';
       });
-      print('Profile Fetch Error: $error');
+
     }
   }
 

@@ -80,6 +80,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         }),
       );
 
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
         Navigator.pushReplacementNamed(context, Routes.login);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -121,6 +123,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           'isEmail': _isEmail,
         }),
       );
+
+      if (!mounted) return;
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
