@@ -12,7 +12,7 @@ class RegisterBnBOwnerScreen extends StatefulWidget {
   State<RegisterBnBOwnerScreen> createState() => _RegisterBnBOwnerScreenState();
 }
 
-class _RegisterBnBOwnerScreenState extends State<Register BnBOwnerScreen> {
+class _RegisterBnBOwnerScreenState extends State<RegisterBnBOwnerScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -91,11 +91,11 @@ class _RegisterBnBOwnerScreenState extends State<Register BnBOwnerScreen> {
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('BnB Owner registration successful! Please login.'),
+            content: Text('BnB Owner registration successful!'),
             backgroundColor: AppConstants.successColor,
           ),
         );
-        Navigator.pushReplacementNamed(context, Routes.login);
+        Navigator.pushReplacementNamed(context, Routes.bnbOwnerLogin);
       } else {
         final errorData = jsonDecode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(

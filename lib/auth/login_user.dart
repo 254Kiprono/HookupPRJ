@@ -130,8 +130,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
         final String? authToken = responseData['token'];
         final String? refreshToken = responseData['refreshToken'];
-        final dynamic roleData = responseData['role']; // Can be int or string
-        String? userId = responseData['userId'];
 
         if (authToken == null || authToken.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -141,32 +139,43 @@ class _LoginScreenState extends State<LoginScreen> {
           return;
         }
 
-        // Decode the JWT token to extract user_id if not provided in response
-        if (userId == null || userId.isEmpty) {
-          try {
-            final decodedToken = JwtDecoder.decode(authToken);
-            userId = decodedToken['user_id']?.toString() ??
-                decodedToken['userId']?.toString() ??
-                decodedToken['id']?.toString() ??
-                decodedToken['sub']?.toString();
-          } catch (e, stackTrace) {
-            userId = null;
-          }
+        // === DECODE JWT TOKEN TO EXTRACT ROLE ===
+        Map<String, dynamic> decodedToken = JwtDecoder.decode(authToken);
+        int? roleId = decodedToken['role_id'] as int?;
+        String? userId = decodedToken['user_id']?.toString() ?? 
+                        decodedToken['userId']?.toString() ??
+                        decodedToken['id']?.toString() ??
+                        decodedToken['sub']?.toString();
+        
+        print('🔑 [LOGIN] Decoded token: $decodedToken');
+        print('🔑 [LOGIN] Role from token: $roleId');
+        print('🔑 [LOGIN] Expected BnB Owner roleID: ${AppConstants.bnbOwnerRoleId}');
+        
+        // Block BnB owners from using regular login
+        if (roleId == AppConstants.bnbOwnerRoleId) {
+          print('🚫 [LOGIN] Blocking BnB owner (roleID=$roleId) from regular login');
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('BnB owners must use the BnB Owner Login button below.'),
+              backgroundColor: AppConstants.errorColor,
+              duration: Duration(seconds: 4),
+            ),
+          );
+          return;
         }
+        
+        print('✅ [LOGIN] Role check passed, user is not a BnB owner');
 
+        // Now save credentials
         await StorageService.saveAuthToken(authToken);
 
         if (refreshToken != null && refreshToken.isNotEmpty) {
           await StorageService.saveRefreshToken(refreshToken);
         }
         
-        // Save role - convert to string if it's an int
-        if (roleData != null) {
-          String roleString = roleData.toString();
-          print('🔑 [LOGIN] Saving role: "$roleString" (type: ${roleData.runtimeType})');
-          await StorageService.saveUserRole(roleString);
-        } else {
-          print('⚠️ [LOGIN] No role received from backend');
+        if (roleId != null) {
+          await StorageService.saveUserRole(roleId.toString());
         }
         
         if (userId != null && userId.isNotEmpty) {
@@ -576,10 +585,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  // BnB Owner Registration Link
+                  // BnB Owner Login Link
                   GestureDetector(
                     onTap: () {
-                      Navigator.pushNamed(context, Routes.registerBnBOwner);
+                      Navigator.pushNamed(context, Routes.bnbOwnerLogin);
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
@@ -599,7 +608,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           const Icon(Icons.home_work, color: AppConstants.accentColor, size: 20),
                           const SizedBox(width: 8),
                           Text(
-                            'Have a BnB? Register as Owner',
+                            'BnB Owner Login',
                             style: TextStyle(
                               color: AppConstants.accentColor.withOpacity(0.9),
                               fontSize: 14,

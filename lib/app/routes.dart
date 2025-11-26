@@ -17,6 +17,7 @@ import 'package:hook_app/screens/bnb_owner/register_bnb_screen.dart';
 import 'package:hook_app/screens/bnb_owner/manage_bnb_screen.dart';
 import 'package:hook_app/screens/bnb_owner/bnb_booking_history_screen.dart';
 import 'package:hook_app/screens/auth/register_bnb_owner_screen.dart';
+import 'package:hook_app/screens/auth/bnb_owner_login_screen.dart';
 import 'package:hook_app/models/bnb.dart';
 
 class Routes {
@@ -35,6 +36,7 @@ class Routes {
   static const String editProfile = '/edit-profile'; // Added new route
 
   // BnB Owner Routes
+  static const String bnbOwnerLogin = '/bnb-owner-login';
   static const String bnbDashboard = '/bnb-dashboard';
   static const String registerBnB = '/register-bnb';
   static const String registerBnBOwner = '/register-bnb-owner';
@@ -157,6 +159,9 @@ class Routes {
       
       case registerBnBOwner:
         return MaterialPageRoute(builder: (_) => const RegisterBnBOwnerScreen());
+      
+      case bnbOwnerLogin:
+        return MaterialPageRoute(builder: (_) => const BnBOwnerLoginScreen());
       
       case manageBnB:
         if (settings.arguments == null || settings.arguments is! BnB) {
