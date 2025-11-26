@@ -2,10 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/app/routes.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:hook_app/screens/main_app/messages_screen.dart';
+import 'package:hook_app/services/booking_service.dart';
+import 'package:hook_app/services/bnb_service.dart';
+import 'package:hook_app/services/storage_service.dart';
+import 'package:hook_app/services/api_service.dart';
+import 'package:hook_app/models/bnb.dart';
 
 class BookingScreen extends StatefulWidget {
   final int providerId;
@@ -27,16 +28,24 @@ class _BookingScreenState extends State<BookingScreen> {
   bool _isLoading = false;
   String? _errorMessage;
   bool _includeBnB = false;
-  String? _bnbId;
-  double _bnbPrice = 0.0;
+  BnB? _selectedBnB;
   String? _userFullName;
   String? _userPhone;
   int? _userId;
+  List<BnB> _availableBnBs = [];
+  bool _isLoadingBnBs = false;
+  final _locationController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _fetchUserProfile();
+  }
+
+  @override
+  void dispose() {
+    _locationController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchUserProfile() async {
@@ -45,48 +54,52 @@ class _BookingScreenState extends State<BookingScreen> {
       _errorMessage = null;
     });
 
-    final prefs = await SharedPreferences.getInstance();
-    final String? authToken = prefs.getString(AppConstants.authTokenKey);
-
-    if (authToken == null || authToken.isEmpty) {
+    try {
+      final data = await ApiService.getUserProfile();
+      final userId = await StorageService.getUserId();
+      
+      setState(() {
+        _userFullName = data['fullName'] ?? 'User';
+        _userPhone = data['phone'] ?? 'N/A';
+        _userId = userId != null ? int.tryParse(userId) : null;
+        _isLoading = false;
+      });
+    } catch (error) {
       if (mounted) {
-        Navigator.pushReplacementNamed(context, Routes.login);
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Failed to load user profile: $error';
+        });
       }
-      return;
     }
+  }
+
+  Future<void> _searchBnBs(String location) async {
+    if (location.trim().isEmpty) return;
+
+    setState(() {
+      _isLoadingBnBs = true;
+    });
 
     try {
-      final response = await http
-          .post(
-            Uri.parse(AppConstants.getuserprofile),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $authToken',
-            },
-            body: jsonEncode({}),
-          )
-          .timeout(const Duration(seconds: 30));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          _userFullName = data['fullName'] ?? 'User';
-          _userPhone = data['phone'] ?? 'N/A';
-          _userId = data['id'] as int?;
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _isLoading = false;
-          _errorMessage =
-              'Failed to fetch user profile. Status: ${response.statusCode}';
-        });
-      }
+      final bnbs = await BnBService.getBnBsByLocation(location.trim());
+      
+      setState(() {
+        _availableBnBs = bnbs.where((bnb) => bnb.available).toList();
+        _isLoadingBnBs = false;
+      });
     } catch (error) {
       setState(() {
-        _isLoading = false;
-        _errorMessage = 'Failed to connect to the server: $error';
+        _isLoadingBnBs = false;
       });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error searching BnBs: $error'),
+            backgroundColor: AppConstants.errorColor,
+          ),
+        );
+      }
     }
   }
 
@@ -98,173 +111,563 @@ class _BookingScreenState extends State<BookingScreen> {
       _errorMessage = null;
     });
 
-    final request = {
-      'client_id': _userId.toString(),
-      'provider_id': widget.providerId.toString(),
-      'price': widget.price,
-      'client_phone': _userPhone ?? '',
-      'payer_name': _userFullName ?? 'User',
-      'include_bnb': _includeBnB,
-      'bnb_id': _includeBnB && _bnbId != null ? _bnbId : '',
-      'bnb_price': _includeBnB && _bnbPrice != 0.0 ? _bnbPrice : 0,
-    };
-
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final authToken = prefs.getString(AppConstants.authTokenKey);
-      final response = await http.post(
-        Uri.parse(AppConstants.bookings),
-        headers: {
-          'Authorization': 'Bearer $authToken',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(request),
+      final response = await BookingService.createBooking(
+        providerId: widget.providerId.toString(),
+        price: widget.price,
+        includeBnb: _includeBnB,
+        bnbId: _selectedBnB?.bnbId.toString(),
+        bnbPrice: _selectedBnB?.price,
+        payerName: _userFullName ?? 'User',
+        clientPhone: _userPhone ?? '',
       );
 
-      if (!mounted) return;
-
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-        if (responseData['status'] == 'PAYMENT_PENDING') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text(
-                    'Booking initiated for ${widget.providerName}. Awaiting payment...')),
-          );
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  MessagesScreen(otherUserId: widget.providerId),
-            ),
-          );
-        }
-      } else {
-        setState(() {
-          _isLoading = false;
-          _errorMessage =
-              'Error initiating booking: ${response.statusCode} - ${response.body}';
-        });
+      if (mounted) {
+        setState(() => _isLoading = false);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Booking created! ID: ${response['booking_id']}'),
+            backgroundColor: AppConstants.successColor,
+          ),
+        );
+        
+        // Navigate to bookings screen
+        Navigator.pushReplacementNamed(context, Routes.bookings);
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Error initiating booking: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Error creating booking: $e';
+        });
+      }
     }
+  }
+
+  double get _totalPrice {
+    double total = widget.price + 100.0; // Base price + service fee
+    if (_includeBnB && _selectedBnB != null) {
+      total += _selectedBnB!.price;
+    }
+    return total;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Book ${widget.providerName}'),
-        backgroundColor: AppConstants.primaryColor,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppConstants.midnightPurple,
+              AppConstants.deepPurple,
+              AppConstants.darkBackground,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _errorMessage != null
+                        ? _buildErrorWidget()
+                        : _buildBookingContent(),
+              ),
+            ],
+          ),
+        ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _errorMessage!,
-                        style: const TextStyle(color: Colors.red, fontSize: 16),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _fetchUserProfile,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppConstants.primaryColor,
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 12, horizontal: 24),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          'Retry',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
-                        ),
-                      ),
-                    ],
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(
+              Icons.arrow_back,
+              color: AppConstants.softWhite,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Book ${widget.providerName}',
+                  style: const TextStyle(
+                    color: AppConstants.softWhite,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
                   ),
-                )
-              : Padding(
-                  padding: const EdgeInsets.all(16.0),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '\$${widget.price.toStringAsFixed(2)}/hr',
+                  style: TextStyle(
+                    color: AppConstants.accentColor.withOpacity(0.9),
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBookingContent() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildPriceBreakdown(),
+          const SizedBox(height: 24),
+          _buildBnBToggle(),
+          if (_includeBnB) ...[
+            const SizedBox(height: 20),
+            _buildBnBSearch(),
+            if (_availableBnBs.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _buildBnBList(),
+            ],
+          ],
+          const SizedBox(height: 32),
+          _buildConfirmButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriceBreakdown() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppConstants.deepPurple.withOpacity(0.8),
+            AppConstants.surfaceColor.withOpacity(0.6),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppConstants.primaryColor.withOpacity(0.3),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Price Breakdown',
+            style: TextStyle(
+              color: AppConstants.softWhite,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildPriceRow('Service', widget.price),
+          const SizedBox(height: 8),
+          _buildPriceRow('Service Fee', 100.0),
+          if (_includeBnB && _selectedBnB != null) ...[
+            const SizedBox(height: 8),
+            _buildPriceRow('BnB (${_selectedBnB!.name})', _selectedBnB!.price),
+          ],
+          const Divider(
+            color: AppConstants.mutedGray,
+            height: 24,
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Total',
+                style: TextStyle(
+                  color: AppConstants.softWhite,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                '\$${_totalPrice.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  color: AppConstants.accentColor,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriceRow(String label, double amount) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: AppConstants.softWhite.withOpacity(0.8),
+            fontSize: 16,
+          ),
+        ),
+        Text(
+          '\$${amount.toStringAsFixed(2)}',
+          style: const TextStyle(
+            color: AppConstants.softWhite,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBnBToggle() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppConstants.deepPurple.withOpacity(0.6),
+            AppConstants.surfaceColor.withOpacity(0.4),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _includeBnB 
+              ? AppConstants.primaryColor.withOpacity(0.5)
+              : AppConstants.mutedGray.withOpacity(0.3),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.home, color: AppConstants.primaryColor, size: 28),
+              SizedBox(width: 12),
+              Text(
+                'Include BnB',
+                style: TextStyle(
+                  color: AppConstants.softWhite,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          Switch(
+            value: _includeBnB,
+            onChanged: (value) {
+              setState(() {
+                _includeBnB = value;
+                if (!_includeBnB) {
+                  _selectedBnB = null;
+                  _availableBnBs = [];
+                }
+              });
+            },
+            activeColor: AppConstants.successColor,
+            inactiveThumbColor: AppConstants.mutedGray,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBnBSearch() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Search BnBs',
+          style: TextStyle(
+            color: AppConstants.softWhite,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppConstants.deepPurple.withOpacity(0.6),
+                AppConstants.surfaceColor.withOpacity(0.4),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppConstants.primaryColor.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: TextField(
+            controller: _locationController,
+            style: const TextStyle(color: AppConstants.softWhite),
+            decoration: InputDecoration(
+              hintText: 'Enter location',
+              hintStyle: TextStyle(color: AppConstants.softWhite.withOpacity(0.5)),
+              prefixIcon: const Icon(Icons.search, color: AppConstants.primaryColor),
+              suffixIcon: _isLoadingBnBs
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppConstants.primaryColor,
+                        ),
+                      ),
+                    )
+                  : IconButton(
+                      icon: const Icon(Icons.arrow_forward, color: AppConstants.accentColor),
+                      onPressed: () => _searchBnBs(_locationController.text),
+                    ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            ),
+            onSubmitted: _searchBnBs,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBnBList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Available BnBs (${_availableBnBs.length})',
+          style: const TextStyle(
+            color: AppConstants.softWhite,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _availableBnBs.length,
+          itemBuilder: (context, index) {
+            return _buildBnBCard(_availableBnBs[index]);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBnBCard(BnB bnb) {
+    final isSelected = _selectedBnB?.bnbId == bnb.bnbId;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppConstants.deepPurple.withOpacity(0.8),
+            AppConstants.surfaceColor.withOpacity(0.6),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isSelected 
+              ? AppConstants.successColor
+              : AppConstants.primaryColor.withOpacity(0.3),
+          width: isSelected ? 2 : 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              _selectedBnB = isSelected ? null : bnb;
+            });
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                if (isSelected)
+                  const Icon(
+                    Icons.check_circle,
+                    color: AppConstants.successColor,
+                    size: 28,
+                  )
+                else
+                  Icon(
+                    Icons.radio_button_unchecked,
+                    color: AppConstants.mutedGray.withOpacity(0.5),
+                    size: 28,
+                  ),
+                const SizedBox(width: 12),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Booking Details',
-                        style: Theme.of(context).textTheme.headlineSmall,
+                        bnb.name,
+                        style: const TextStyle(
+                          color: AppConstants.softWhite,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      Text('Provider: ${widget.providerName}'),
-                      Text('Price: ${widget.price} KES/hr'),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 4),
                       Row(
                         children: [
-                          Checkbox(
-                            value: _includeBnB,
-                            onChanged: (value) {
-                              setState(() {
-                                _includeBnB = value ?? false;
-                                if (!_includeBnB) {
-                                  _bnbId = null;
-                                  _bnbPrice = 0.0;
-                                }
-                              });
-                            },
+                          const Icon(
+                            Icons.location_on,
+                            size: 14,
+                            color: AppConstants.primaryColor,
                           ),
-                          const Text('Include BnB in booking'),
-                        ],
-                      ),
-                      if (_includeBnB) ...[
-                        TextField(
-                          decoration: const InputDecoration(
-                            labelText: 'BnB ID (Temporary)',
-                            border: OutlineInputBorder(),
-                          ),
-                          onChanged: (value) {
-                            _bnbId = value;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          decoration: const InputDecoration(
-                            labelText: 'BnB Price (Temporary)',
-                            border: OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.number,
-                          onChanged: (value) {
-                            _bnbPrice = double.tryParse(value) ?? 0.0;
-                          },
-                        ),
-                      ],
-                      const SizedBox(height: 24),
-                      Center(
-                        child: ElevatedButton(
-                          onPressed: _createBooking,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppConstants.primaryColor,
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 12, horizontal: 24),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                          const SizedBox(width: 4),
+                          Text(
+                            bnb.location,
+                            style: TextStyle(
+                              color: AppConstants.softWhite.withOpacity(0.7),
+                              fontSize: 14,
                             ),
                           ),
-                          child: const Text(
-                            'Confirm Booking',
-                            style: TextStyle(fontSize: 16, color: Colors.white),
-                          ),
-                        ),
+                        ],
                       ),
                     ],
                   ),
                 ),
+                Text(
+                  bnb.formattedPrice,
+                  style: const TextStyle(
+                    color: AppConstants.accentColor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConfirmButton() {
+    return Container(
+      height: 56,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppConstants.primaryColor, AppConstants.accentColor],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppConstants.primaryColor.withOpacity(0.4),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _isLoading ? null : _createBooking,
+          borderRadius: BorderRadius.circular(16),
+          child: Center(
+            child: _isLoading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: AppConstants.softWhite,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text(
+                    'Confirm Booking',
+                    style: TextStyle(
+                      color: AppConstants.softWhite,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.error_outline,
+            size: 80,
+            color: AppConstants.errorColor,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Error',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: AppConstants.softWhite,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              _errorMessage ?? 'Unknown error',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppConstants.mutedGray.withOpacity(0.8),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: _fetchUserProfile,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppConstants.primaryColor,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+            ),
+            child: const Text(
+              'Retry',
+              style: TextStyle(color: AppConstants.softWhite),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

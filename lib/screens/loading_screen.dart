@@ -38,28 +38,42 @@ class _LoadingScreenState extends State<LoadingScreen>
       _isCheckingAuth = false;
     });
 
-    // Removed fake delay for performance
-
     final String? authToken = await StorageService.getAuthToken();
-
-
+    print('🔐 [LOADING] Auth token present: ${authToken != null}');
 
     if (authToken == null || authToken.isEmpty) {
-      await StorageService.clearAll(); // Clear any stale data
+      await StorageService.clearAll();
+      print('❌ [LOADING] No auth token, redirecting to login');
       if (mounted) {
         Navigator.pushReplacementNamed(context, Routes.login);
       }
       return;
     }
 
-    // Validate the token by attempting to fetch the user profile
     try {
       await ApiService.getUserProfile();
+      print('✅ [LOADING] User profile fetched successfully');
+      
+      final roleId = await StorageService.getRoleId();
+      final roleString = await StorageService.getUserRole();
+      
+      print('👤 [LOADING] Role ID (parsed): $roleId');
+      print('👤 [LOADING] Role String (raw): "$roleString"');
+      print('🎯 [LOADING] Expected BnB Owner Role ID: ${AppConstants.bnbOwnerRoleId}');
+      print('🔍 [LOADING] Is BnB Owner: ${roleId == AppConstants.bnbOwnerRoleId}');
+      
       if (mounted) {
-        Navigator.pushReplacementNamed(context, Routes.home);
+        if (roleId == AppConstants.bnbOwnerRoleId) {
+          print('🏠 [LOADING] ➡️ Navigating to BnB Dashboard');
+          Navigator.pushReplacementNamed(context, Routes.bnbDashboard);
+        } else {
+          print('❤️ [LOADING] ➡️ Navigating to Home Screen');
+          Navigator.pushReplacementNamed(context, Routes.home);
+        }
       }
     } catch (error) {
-      await StorageService.clearAll(); // Clear on any error
+      print('❌ [LOADING] Error: $error');
+      await StorageService.clearAll();
       if (mounted) {
         Navigator.pushReplacementNamed(context, Routes.login);
       }

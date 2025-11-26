@@ -130,7 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         final String? authToken = responseData['token'];
         final String? refreshToken = responseData['refreshToken'];
-        final String? role = responseData['role'];
+        final dynamic roleData = responseData['role']; // Can be int or string
         String? userId = responseData['userId'];
 
         if (authToken == null || authToken.isEmpty) {
@@ -159,10 +159,18 @@ class _LoginScreenState extends State<LoginScreen> {
         if (refreshToken != null && refreshToken.isNotEmpty) {
           await StorageService.saveRefreshToken(refreshToken);
         }
-        if (role != null && role.isNotEmpty) {
-          await StorageService.saveUserRole(role);
+        
+        // Save role - convert to string if it's an int
+        if (roleData != null) {
+          String roleString = roleData.toString();
+          print('🔑 [LOGIN] Saving role: "$roleString" (type: ${roleData.runtimeType})');
+          await StorageService.saveUserRole(roleString);
+        } else {
+          print('⚠️ [LOGIN] No role received from backend');
         }
+        
         if (userId != null && userId.isNotEmpty) {
+          print('👤 [LOGIN] Saving userId: "$userId"');
           await StorageService.saveUserId(userId);
         }
 
@@ -172,7 +180,8 @@ class _LoginScreenState extends State<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Login successful!')),
         );
-        Navigator.pushReplacementNamed(context, Routes.home);
+        // Use loading screen for role-based navigation
+        Navigator.pushReplacementNamed(context, Routes.loading);
       } else {
         await _incrementFailedLoginAttempts();
         if (!mounted) return;
@@ -293,7 +302,8 @@ class _LoginScreenState extends State<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Google sign-in successful!')),
         );
-        Navigator.pushReplacementNamed(context, Routes.home);
+        // Use loading screen for role-based navigation
+        Navigator.pushReplacementNamed(context, Routes.loading);
       } else {
         String errorMessage = 'Google sign-in failed.';
         try {
@@ -564,6 +574,41 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 16),
+                  // BnB Owner Registration Link
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(context, Routes.registerBnBOwner);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppConstants.accentColor.withOpacity(0.5), width: 1.5),
+                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          colors: [
+                            AppConstants.accentColor.withOpacity(0.1),
+                            AppConstants.primaryColor.withOpacity(0.1),
+                          ],
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.home_work, color: AppConstants.accentColor, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Have a BnB? Register as Owner',
+                            style: TextStyle(
+                              color: AppConstants.accentColor.withOpacity(0.9),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),

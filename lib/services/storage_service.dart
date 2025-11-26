@@ -40,6 +40,12 @@ class StorageService {
     return await _storage.read(key: _userRoleKey);
   }
 
+  static Future<int?> getRoleId() async {
+    final role = await _storage.read(key: _userRoleKey);
+    if (role == null) return null;
+    return int.tryParse(role);
+  }
+
   static Future<void> clearAll() async {
     await _storage.deleteAll();
   }

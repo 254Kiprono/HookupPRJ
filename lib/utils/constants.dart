@@ -35,6 +35,10 @@ class AppConstants {
       'https://hk-userservice.devsinkenya.com';
   static const String messagingServiceBaseUrl =
       'https://message-service.devsinkenya.com';
+  static const String bnbServiceBaseUrl =
+      'https://bnb-service.devsinkenya.com';
+  static const String bookingServiceBaseUrl =
+      'https://booking-service.devsinkenya.com';
   static const String apiVersion = '/v1';
 
   // Authentication Endpoints (User Service)
@@ -56,6 +60,21 @@ class AppConstants {
   static const String searchProviders =
       '$userServiceBaseUrl$apiVersion/location/search-providers';
   static const String searchBnBs = '$userServiceBaseUrl$apiVersion/bnbs/search';
+
+  // BnB Service Endpoints
+  static const String registerBnB = '$bnbServiceBaseUrl$apiVersion/bnb/register';
+  static const String updateBnB = '$bnbServiceBaseUrl$apiVersion/bnb'; // + /{bnb_id}
+  static const String getBnBsByLocation = '$bnbServiceBaseUrl$apiVersion/bnb/location'; // + /{location}
+  static const String getBnBDetails = '$bnbServiceBaseUrl$apiVersion/bnb'; // + /{bnb_id}
+  static const String deleteBnB = '$bnbServiceBaseUrl$apiVersion/bnb'; // + /{bnb_id}
+  static const String getBnBsByOwner = '$bnbServiceBaseUrl$apiVersion/bnb/owner'; // + /{owner_id}
+
+  // Booking Service Endpoints
+  static const String createBooking = '$bookingServiceBaseUrl$apiVersion/bookings';
+  static const String updateBookingStatus = '$bookingServiceBaseUrl$apiVersion/bookings'; // + /{booking_id}
+  static const String getBooking = '$bookingServiceBaseUrl$apiVersion/bookings'; // + /{booking_id}
+  static const String listBookings = '$bookingServiceBaseUrl$apiVersion/bookings';
+  static const String getBookingsByBnbOwner = '$bookingServiceBaseUrl$apiVersion/bnb/bookings';
 
   // Messaging Endpoints (Messaging Service) - Aligned with .proto
   static const String conversations =
@@ -86,6 +105,11 @@ class AppConstants {
   static const String userIdKey = 'user_id';
   static const String otpVerificationId = 'otp_verification_id';
   static const String userProfileKey = 'user_profile';
+
+  // Role Constants
+  static const int bnbOwnerRoleId = 4;
+  static const int regularUserRoleId = 1; // Adjust based on your backend
+
 }
 
 class TokenUtils {

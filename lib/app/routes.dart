@@ -12,6 +12,12 @@ import 'package:hook_app/screens/main_app/bookings_screen.dart'; // Import Booki
 import 'package:hook_app/screens/main_app/messages_screen.dart';
 import 'package:hook_app/screens/main_app/account_screen.dart'; // Already imported
 import 'package:hook_app/screens/main_app/edit_profile_screen.dart'; // Fixed import
+import 'package:hook_app/screens/bnb_owner/bnb_owner_dashboard_screen.dart';
+import 'package:hook_app/screens/bnb_owner/register_bnb_screen.dart';
+import 'package:hook_app/screens/bnb_owner/manage_bnb_screen.dart';
+import 'package:hook_app/screens/bnb_owner/bnb_booking_history_screen.dart';
+import 'package:hook_app/screens/auth/register_bnb_owner_screen.dart';
+import 'package:hook_app/models/bnb.dart';
 
 class Routes {
   static const String loading = '/';
@@ -27,6 +33,13 @@ class Routes {
   static const String messages = '/messages';
   static const String account = '/account';
   static const String editProfile = '/edit-profile'; // Added new route
+
+  // BnB Owner Routes
+  static const String bnbDashboard = '/bnb-dashboard';
+  static const String registerBnB = '/register-bnb';
+  static const String registerBnBOwner = '/register-bnb-owner';
+  static const String manageBnB = '/manage-bnb';
+  static const String bnbBookingHistory = '/bnb-booking-history';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -134,6 +147,33 @@ class Routes {
         return MaterialPageRoute(
           builder: (_) => EditProfileScreen(arguments: args),
         );
+      
+      // BnB Owner Routes
+      case bnbDashboard:
+        return MaterialPageRoute(builder: (_) => const BnBOwnerDashboardScreen());
+      
+      case registerBnB:
+        return MaterialPageRoute(builder: (_) => const RegisterBnBScreen());
+      
+      case registerBnBOwner:
+        return MaterialPageRoute(builder: (_) => const RegisterBnBOwnerScreen());
+      
+      case manageBnB:
+        if (settings.arguments == null || settings.arguments is! BnB) {
+          return MaterialPageRoute(
+            builder: (_) => const Scaffold(
+              body: Center(child: Text('Invalid arguments for ManageBnBScreen')),
+            ),
+          );
+        }
+        final bnb = settings.arguments as BnB;
+        return MaterialPageRoute(
+          builder: (_) => ManageBnBScreen(bnb: bnb),
+        );
+      
+      case bnbBookingHistory:
+        return MaterialPageRoute(builder: (_) => const BnBBookingHistoryScreen());
+      
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(
