@@ -190,7 +190,6 @@ class MessagingService {
     }
   }
 
-  // Booking Flow APIs
 
   /// Initiate a booking proposal
   static Future<BookingResponse> initiateBooking({
@@ -316,7 +315,7 @@ class MessagingService {
       // Send authentication
       _channel!.sink.add(jsonEncode({
         'auth': {
-          'token': token,
+          'token': to<<ken,
         }
       }));
 

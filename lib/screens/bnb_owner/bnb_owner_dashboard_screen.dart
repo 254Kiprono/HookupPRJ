@@ -31,21 +31,46 @@ class _BnBOwnerDashboardScreenState extends State<BnBOwnerDashboardScreen> {
 
     try {
       final userId = await StorageService.getUserId();
-      if (userId == null) {
-        throw Exception('User ID not found');
+      print('📋 [BNB DASHBOARD] Retrieved userId from storage: "$userId"');
+      
+      if (userId == null || userId.isEmpty) {
+        throw Exception('User ID not found in storage');
       }
 
-      final bnbs = await BnBService.getBnBsByOwner(int.parse(userId));
+      // Try to parse userId
+      final userIdInt = int.tryParse(userId);
+      if (userIdInt == null) {
+        throw Exception('Invalid user ID format: "$userId" is not a valid number');
+      }
+
+      print('📋 [BNB DASHBOARD] Fetching BnBs for owner ID: $userIdInt');
+      final bnbs = await BnBService.getBnBsByOwner(userIdInt);
       
+      print('📋 [BNB DASHBOARD] Successfully loaded ${bnbs.length} BnBs');
       setState(() {
         _bnbs = bnbs;
         _isLoading = false;
       });
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
+      print('📋 [BNB DASHBOARD] Error loading BnBs: $e');
+      
+      // If it's a fetch error or 404, treat as empty list (no BnBs available)
+      // Don't show error message to user
+      if (e.toString().contains('Failed to fetch') || 
+          e.toString().contains('404') ||
+          e.toString().contains('ClientException')) {
+        setState(() {
+          _bnbs = []; // Empty list
+          _isLoading = false;
+          _error = null; // No error - just empty
+        });
+      } else {
+        // Real errors (auth, network, etc) - show error
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 

@@ -53,11 +53,25 @@ class _RegisterBnBScreenState extends State<RegisterBnBScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
+      print('🏠 [REGISTER BNB] Error: $e');
+      
+      String errorMessage;
+      if (e.toString().contains('ClientException') || e.toString().contains('Failed to fetch')) {
+        errorMessage = 'Unable to connect to server. Please check your internet connection.';
+      } else if (e.toString().contains('unauthorized') || e.toString().contains('401')) {
+        errorMessage = 'Session expired. Please login again.';
+      } else if (e.toString().contains('timeout')) {
+        errorMessage = 'Request timed out. Please try again.';
+      } else {
+        errorMessage = 'Failed to register BnB. Please try again later.';
+      }
+      
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text(errorMessage),
             backgroundColor: AppConstants.errorColor,
+            duration: const Duration(seconds: 4),
           ),
         );
       }

@@ -22,19 +22,28 @@ class BnB {
   });
 
   factory BnB.fromJson(Map<String, dynamic> json) {
+    // Helper to safely parse integers that might be null or strings
+    int? _parseInt(dynamic value) {
+      if (value == null) return null;
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value);
+      if (value is double) return value.toInt();
+      return null;
+    }
+
     return BnB(
-      bnbId: json['bnb_id'] as int,
-      ownerId: json['owner_id'] as int,
-      name: json['name'] as String,
-      location: json['location'] as String,
-      price: (json['price'] as num).toDouble(),
+      bnbId: _parseInt(json['bnb_id']) ?? _parseInt(json['bnbId']) ?? 0,
+      ownerId: _parseInt(json['owner_id']) ?? _parseInt(json['ownerId']) ?? 0,
+      name: json['name'] as String? ?? '',
+      location: json['location'] as String? ?? '',
+      price: (json['price'] as num?)?.toDouble() ?? 0.0,
       available: json['available'] as bool? ?? true,
       callNumber: json['call_number'] as String?,
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
+          ? DateTime.tryParse(json['created_at'] as String) ?? DateTime.now()
           : DateTime.now(),
       updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
+          ? DateTime.tryParse(json['updated_at'] as String) ?? DateTime.now()
           : DateTime.now(),
     );
   }

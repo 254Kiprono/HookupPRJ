@@ -32,26 +32,39 @@ class Booking {
   });
 
   factory Booking.fromJson(Map<String, dynamic> json) {
+    String _parseString(dynamic value) {
+      if (value == null) return '';
+      return value.toString();
+    }
+
+    double _parseDouble(dynamic value) {
+      if (value == null) return 0.0;
+      if (value is int) return value.toDouble();
+      if (value is double) return value;
+      if (value is String) return double.tryParse(value) ?? 0.0;
+      return 0.0;
+    }
+
     return Booking(
-      bookingId: json['booking_id'] as String,
-      clientId: json['client_id'] as String,
-      providerId: json['provider_id'] as String,
-      price: (json['price'] as num).toDouble(),
-      serviceFee: (json['service_fee'] as num).toDouble(),
-      totalAmount: (json['total_amount'] as num).toDouble(),
+      bookingId: _parseString(json['booking_id']),
+      clientId: _parseString(json['client_id']),
+      providerId: _parseString(json['provider_id']),
+      price: _parseDouble(json['price']),
+      serviceFee: _parseDouble(json['service_fee']),
+      totalAmount: _parseDouble(json['total_amount']),
       includeBnb: json['include_bnb'] as bool? ?? false,
-      bnbId: json['bnb_id'] as String?,
-      bnbPrice: json['bnb_price'] != null ? (json['bnb_price'] as num).toDouble() : null,
+      bnbId: json['bnb_id']?.toString(),
+      bnbPrice: json['bnb_price'] != null ? _parseDouble(json['bnb_price']) : null,
       status: _statusFromString(json['status'] as String? ?? 'PENDING'),
-      paymentId: json['payment_id'] as String?,
+      paymentId: json['payment_id']?.toString(),
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
+          ? DateTime.tryParse(json['created_at'] as String) ?? DateTime.now()
           : DateTime.now(),
       updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
+          ? DateTime.tryParse(json['updated_at'] as String) ?? DateTime.now()
           : DateTime.now(),
       completedAt: json['completed_at'] != null
-          ? DateTime.parse(json['completed_at'] as String)
+          ? DateTime.tryParse(json['completed_at'] as String)
           : null,
     );
   }

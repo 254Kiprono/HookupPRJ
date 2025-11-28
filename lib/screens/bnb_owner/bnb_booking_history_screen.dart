@@ -35,8 +35,22 @@ class _BnBBookingHistoryScreenState extends State<BnBBookingHistoryScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      print('📋 [BOOKING HISTORY] Error loading bookings: $e');
+      
+      String errorMessage;
+      if (e.toString().contains('authorization token not provided') || 
+          e.toString().contains('Unauthenticated')) {
+        // This is a specific backend issue where internal service calls fail auth
+        // We'll show a friendly message but log the real issue
+        errorMessage = 'System error: Unable to verify booking details. Please contact support.';
+      } else if (e.toString().contains('ClientException') || e.toString().contains('Failed to fetch')) {
+        errorMessage = 'Unable to connect to server. Please check your internet connection.';
+      } else {
+        errorMessage = 'Failed to load bookings. Please try again later.';
+      }
+
       setState(() {
-        _error = e.toString();
+        _error = errorMessage;
         _isLoading = false;
       });
     }

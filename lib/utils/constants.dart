@@ -62,7 +62,7 @@ class AppConstants {
   static const String searchBnBs = '$userServiceBaseUrl$apiVersion/bnbs/search';
 
   // BnB Service Endpoints
-  static const String registerBnB = '$bnbServiceBaseUrl$apiVersion/bnb/register';
+  static const String registerBnB = '$bnbServiceBaseUrl$apiVersion/bnb/create';
   static const String updateBnB = '$bnbServiceBaseUrl$apiVersion/bnb'; // + /{bnb_id}
   static const String getBnBsByLocation = '$bnbServiceBaseUrl$apiVersion/bnb/location'; // + /{location}
   static const String getBnBDetails = '$bnbServiceBaseUrl$apiVersion/bnb'; // + /{bnb_id}
