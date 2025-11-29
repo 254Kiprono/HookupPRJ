@@ -1,4 +1,3 @@
-// lib/screens/main_app/booking_screen.dart
 import 'package:flutter/material.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/app/routes.dart';
@@ -7,6 +6,7 @@ import 'package:hook_app/services/bnb_service.dart';
 import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/services/api_service.dart';
 import 'package:hook_app/models/bnb.dart';
+import 'package:hook_app/models/bnb_session.dart';
 
 class BookingScreen extends StatefulWidget {
   final int providerId;
@@ -29,6 +29,7 @@ class _BookingScreenState extends State<BookingScreen> {
   String? _errorMessage;
   bool _includeBnB = false;
   BnB? _selectedBnB;
+  BnBSession? _selectedSession; // Added for session selection
   String? _userFullName;
   String? _userPhone;
   int? _userId;
@@ -117,7 +118,7 @@ class _BookingScreenState extends State<BookingScreen> {
         price: widget.price,
         includeBnb: _includeBnB,
         bnbId: _selectedBnB?.bnbId.toString(),
-        bnbPrice: _selectedBnB?.price,
+        bnbPrice: _selectedBnB?.priceKES, // Changed from price
         payerName: _userFullName ?? 'User',
         clientPhone: _userPhone ?? '',
       );
@@ -147,8 +148,8 @@ class _BookingScreenState extends State<BookingScreen> {
 
   double get _totalPrice {
     double total = widget.price + 100.0; // Base price + service fee
-    if (_includeBnB && _selectedBnB != null) {
-      total += _selectedBnB!.price;
+    if (_includeBnB && _selectedBnB != null && _selectedSession != null) {
+      total += _selectedSession!.price;
     }
     return total;
   }
@@ -245,6 +246,10 @@ class _BookingScreenState extends State<BookingScreen> {
               const SizedBox(height: 16),
               _buildBnBList(),
             ],
+            if (_selectedBnB != null) ...[
+              const SizedBox(height: 20),
+              _buildSessionSelector(),
+            ],
           ],
           const SizedBox(height: 32),
           _buildConfirmButton(),
@@ -284,9 +289,12 @@ class _BookingScreenState extends State<BookingScreen> {
           _buildPriceRow('Service', widget.price),
           const SizedBox(height: 8),
           _buildPriceRow('Service Fee', 100.0),
-          if (_includeBnB && _selectedBnB != null) ...[
+          if (_includeBnB && _selectedBnB != null && _selectedSession != null) ...[
             const SizedBox(height: 8),
-            _buildPriceRow('BnB (${_selectedBnB!.name})', _selectedBnB!.price),
+            _buildPriceRow(
+              'BnB (${_selectedBnB!.name}) - ${_selectedSession!.displayName}',
+              _selectedSession!.price,
+            ),
           ],
           const Divider(
             color: AppConstants.mutedGray,
@@ -383,6 +391,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 _includeBnB = value;
                 if (!_includeBnB) {
                   _selectedBnB = null;
+                  _selectedSession = null; // Clear session when BnB is deselected
                   _availableBnBs = [];
                 }
               });
@@ -509,6 +518,7 @@ class _BookingScreenState extends State<BookingScreen> {
           onTap: () {
             setState(() {
               _selectedBnB = isSelected ? null : bnb;
+              _selectedSession = null; // Clear session when changing BnB
             });
           },
           borderRadius: BorderRadius.circular(16),
@@ -575,6 +585,131 @@ class _BookingScreenState extends State<BookingScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSessionSelector() {
+    if (_selectedBnB == null || _selectedBnB!.sessions.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppConstants.errorColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppConstants.errorColor.withOpacity(0.3)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.info_outline, color: AppConstants.errorColor),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'No sessions available for this BnB. Using base price.',
+                style: TextStyle(color: AppConstants.errorColor),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final validSessions = _selectedBnB!.sessions.where((s) => s.isValid).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Select Booking Duration',
+          style: TextStyle(
+            color: AppConstants.softWhite,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...validSessions.map((session) {
+          final isSelected = _selectedSession?.duration == session.duration;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppConstants.deepPurple.withOpacity(0.8),
+                  AppConstants.surfaceColor.withOpacity(0.6),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSelected
+                    ? AppConstants.successColor
+                    : AppConstants.primaryColor.withOpacity(0.3),
+                width: isSelected ? 2 : 1,
+              ),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  setState(() {
+                    _selectedSession = isSelected ? null : session;
+                  });
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      if (isSelected)
+                        const Icon(
+                          Icons.check_circle,
+                          color: AppConstants.successColor,
+                          size: 28,
+                        )
+                      else
+                        Icon(
+                          Icons.radio_button_unchecked,
+                          color: AppConstants.mutedGray.withOpacity(0.5),
+                          size: 28,
+                        ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              session.displayName,
+                              style: const TextStyle(
+                                color: AppConstants.softWhite,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${session.duration} hours',
+                              style: TextStyle(
+                                color: AppConstants.softWhite.withOpacity(0.7),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        session.formattedPrice,
+                        style: const TextStyle(
+                          color: AppConstants.accentColor,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ],
     );
   }
 

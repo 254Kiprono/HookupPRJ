@@ -315,7 +315,7 @@ class MessagingService {
       // Send authentication
       _channel!.sink.add(jsonEncode({
         'auth': {
-          'token': to<<ken,
+          'token': token,
         }
       }));
 

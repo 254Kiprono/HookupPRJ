@@ -3,15 +3,18 @@ import 'package:http/http.dart' as http;
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/models/bnb.dart';
+import 'package:hook_app/models/bnb_session.dart';
 
 class BnBService {
   /// Register a new BnB (BnB owners only)
   static Future<Map<String, dynamic>> registerBnB({
     required String name,
     required String location,
-    required double price,
+    required String address,
+    required double priceKES,
     required bool available,
-    String? callNumber,
+    required String callNumber, // Now required
+    required List<BnBSession> sessions, // Sessions included in registration
   }) async {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
@@ -25,9 +28,11 @@ class BnBService {
       body: jsonEncode({
         'name': name,
         'location': location,
-        'price': price,
+        'address': address,
+        'price': priceKES, // Backend expects 'price' not 'price_kes'
         'available': available,
-        'call_number': callNumber ?? '',
+        'call_number': callNumber,
+        'sessions': sessions.map((s) => s.toJson()).toList(),
       }),
     ).timeout(const Duration(seconds: 30));
 
@@ -43,12 +48,28 @@ class BnBService {
     required int bnbId,
     required String name,
     required String location,
-    required double price,
+    required String address,
+    required double priceKES,
     required bool available,
-    String? callNumber,
+    required String callNumber, // Now required
+    List<BnBSession>? sessions, // Optional sessions for update
   }) async {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
+
+    final body = {
+      'name': name,
+      'location': location,
+      'address': address,
+      'price': priceKES, // Backend expects 'price' not 'price_kes'
+      'available': available,
+      'call_number': callNumber,
+    };
+
+    // Include sessions if provided
+    if (sessions != null) {
+      body['sessions'] = sessions.map((s) => s.toJson()).toList();
+    }
 
     final response = await http.put(
       Uri.parse('${AppConstants.updateBnB}/$bnbId'),
@@ -56,13 +77,7 @@ class BnBService {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
-      body: jsonEncode({
-        'name': name,
-        'location': location,
-        'price': price,
-        'available': available,
-        'call_number': callNumber ?? '',
-      }),
+      body: jsonEncode(body),
     ).timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {
@@ -138,20 +153,29 @@ class BnBService {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
+    final url = '${AppConstants.getBnBsByOwner}/$ownerId';
+    print('[BNB SERVICE] Fetching BnBs from: $url');
+
     final response = await http.get(
-      Uri.parse('${AppConstants.getBnBsByOwner}/$ownerId'),
+      Uri.parse(url),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
     ).timeout(const Duration(seconds: 30));
 
+    print('[BNB SERVICE] Response status: ${response.statusCode}');
+    print('[BNB SERVICE] Response body: ${response.body}');
+
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
+      print('[BNB SERVICE] Decoded data: $data');
       final bnbsList = data['bnbs'] as List<dynamic>? ?? [];
+      print('[BNB SERVICE] Found ${bnbsList.length} BnBs');
       return bnbsList.map((json) => BnB.fromJson(json as Map<String, dynamic>)).toList();
     } else {
       throw Exception('Failed to fetch owner BnBs: ${response.statusCode} - ${response.body}');
     }
   }
+
 }

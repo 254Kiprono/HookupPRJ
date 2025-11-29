@@ -35,7 +35,7 @@ class _BnBBookingHistoryScreenState extends State<BnBBookingHistoryScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      print('📋 [BOOKING HISTORY] Error loading bookings: $e');
+      print('[BOOKING HISTORY] Error loading bookings: $e');
       
       String errorMessage;
       if (e.toString().contains('authorization token not provided') || 

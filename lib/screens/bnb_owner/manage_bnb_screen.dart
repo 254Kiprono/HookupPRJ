@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/bnb_service.dart';
 import 'package:hook_app/models/bnb.dart';
+import 'package:hook_app/screens/bnb_owner/manage_sessions_screen.dart';
 
 class ManageBnBScreen extends StatefulWidget {
   final BnB bnb;
@@ -15,6 +16,7 @@ class ManageBnBScreen extends StatefulWidget {
 class _ManageBnBScreenState extends State<ManageBnBScreen> {
   late TextEditingController _nameController;
   late TextEditingController _locationController;
+  late TextEditingController _addressController;
   late TextEditingController _priceController;
   late TextEditingController _callNumberController;
   late bool _available;
@@ -26,7 +28,8 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
     super.initState();
     _nameController = TextEditingController(text: widget.bnb.name);
     _locationController = TextEditingController(text: widget.bnb.location);
-    _priceController = TextEditingController(text: widget.bnb.price.toString());
+    _addressController = TextEditingController(text: widget.bnb.address);
+    _priceController = TextEditingController(text: widget.bnb.priceKES.toString()); // Changed from price
     _callNumberController = TextEditingController(text: widget.bnb.callNumber ?? '');
     _available = widget.bnb.available;
   }
@@ -35,6 +38,7 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
   void dispose() {
     _nameController.dispose();
     _locationController.dispose();
+    _addressController.dispose();
     _priceController.dispose();
     _callNumberController.dispose();
     super.dispose();
@@ -48,11 +52,12 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
         bnbId: widget.bnb.bnbId,
         name: _nameController.text.trim(),
         location: _locationController.text.trim(),
-        price: double.parse(_priceController.text.trim()),
+        address: _addressController.text.trim(),
+        priceKES: double.parse(_priceController.text.trim()),
         available: _available,
         callNumber: _callNumberController.text.trim().isNotEmpty 
             ? _callNumberController.text.trim() 
-            : null,
+            : '',
       );
 
       if (context.mounted) {
@@ -177,6 +182,8 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
                         const SizedBox(height: 20),
                         _buildActionButtons(),
                       ] else ...[
+                        _buildSessionsButton(),
+                        const SizedBox(height: 16),
                         _buildViewButtons(),
                       ],
                     ],
@@ -297,7 +304,9 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
           const SizedBox(height: 20),
           _buildDetailRow(Icons.location_on, 'Location', widget.bnb.location),
           const SizedBox(height: 12),
-          _buildDetailRow(Icons.attach_money, 'Price', widget.bnb.formattedPrice),
+          _buildDetailRow(Icons.map, 'Address', widget.bnb.address),
+          const SizedBox(height: 12),
+          _buildDetailRow(Icons.attach_money, 'Price', 'KES ${widget.bnb.priceKES.toStringAsFixed(0)}'),
           if (widget.bnb.callNumber != null) ...[
             const SizedBox(height: 12),
             _buildDetailRow(Icons.phone, 'Contact', widget.bnb.callNumber!),
@@ -344,9 +353,11 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
         const SizedBox(height: 16),
         _buildTextField(_locationController, 'Location', Icons.location_on),
         const SizedBox(height: 16),
+        _buildTextField(_addressController, 'Address', Icons.map),
+        const SizedBox(height: 16),
         _buildTextField(
           _priceController, 
-          'Price per Night', 
+          'Price per Night (KES)', 
           Icons.attach_money,
           keyboardType: TextInputType.number,
         ),
@@ -447,6 +458,24 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
     );
   }
 
+  Widget _buildSessionsButton() {
+    return _buildGradientButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ManageSessionsScreen(bnb: widget.bnb),
+          ),
+        );
+      },
+      label: 'Manage Sessions (${widget.bnb.sessions.length})',
+      icon: Icons.access_time,
+      gradient: const LinearGradient(
+        colors: [AppConstants.accentColor, AppConstants.primaryColor],
+      ),
+    );
+  }
+
   Widget _buildViewButtons() {
     return Column(
       children: [
@@ -487,7 +516,16 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
         const SizedBox(height: 16),
         _buildGradientButton(
           onPressed: () {
-            setState(() => _isEditing = false);
+            setState(() {
+              _isEditing = false;
+              // Reset values
+              _nameController.text = widget.bnb.name;
+              _locationController.text = widget.bnb.location;
+              _addressController.text = widget.bnb.address;
+              _priceController.text = widget.bnb.priceKES.toString(); // Changed from price
+              _callNumberController.text = widget.bnb.callNumber ?? '';
+              _available = widget.bnb.available;
+            });
           },
           label: 'Cancel',
           icon: Icons.close,
