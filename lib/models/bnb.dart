@@ -8,6 +8,7 @@ class BnB {
   final String address;
   final double priceKES; // Renamed from price
   final bool available;
+  final int bnbType; // Added to match backend
   final String? callNumber;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -21,6 +22,7 @@ class BnB {
     required this.address,
     required this.priceKES,
     required this.available,
+    this.bnbType = 0, // Default to 0 (STUDIO)
     this.callNumber,
     required this.createdAt,
     required this.updatedAt,
@@ -52,9 +54,13 @@ class BnB {
       name: json['name'] as String? ?? '',
       location: json['location'] as String? ?? '',
       address: json['address'] as String? ?? '',
-      priceKES: (json['price_kes'] as num?)?.toDouble() ?? 0.0, // Changed from 'price'
+      // Check both 'price' and 'price_kes'
+      priceKES: (json['price'] as num?)?.toDouble() ?? (json['price_kes'] as num?)?.toDouble() ?? 0.0,
       available: json['available'] as bool? ?? true,
-      callNumber: json['call_number'] as String?,
+      // Check multiple possible field names for bnbType
+      bnbType: _parseInt(json['bnbType']) ?? _parseInt(json['bnb_type']) ?? _parseInt(json['bn_b_type']) ?? 0,
+      // Backend sends 'contactNumber', but also check 'call_number' for compatibility
+      callNumber: json['contactNumber'] as String? ?? json['contact_number'] as String?,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String) ?? DateTime.now()
           : DateTime.now(),
@@ -72,7 +78,8 @@ class BnB {
       'address': address,
       'price_kes': priceKES, // Changed from 'price'
       'available': available,
-      'call_number': callNumber,
+      'bnb_type': bnbType,
+      'contact_number': callNumber,
     };
   }
 

@@ -7,6 +7,7 @@ import 'package:hook_app/app/routes.dart';
 import 'package:hook_app/screens/bnb_owner/manage_bnb_screen.dart';
 import 'package:hook_app/screens/bnb_owner/bnb_owner_profile_screen.dart';
 import 'package:hook_app/screens/bnb_owner/bnb_wallet_screen.dart';
+import 'package:hook_app/screens/bnb_owner/bnb_bookings_screen.dart';
 
 class BnBOwnerDashboardScreen extends StatefulWidget {
   const BnBOwnerDashboardScreen({super.key});
@@ -75,6 +76,17 @@ class _BnBOwnerDashboardScreenState extends State<BnBOwnerDashboardScreen> {
         });
       }
     }
+  }
+
+  String _formatPhone(String phone) {
+    if (phone.isEmpty) return phone;
+    // Remove +254 or 254 prefix and replace with 0
+    if (phone.startsWith('+254')) {
+      return '0${phone.substring(4)}';
+    } else if (phone.startsWith('254')) {
+      return '0${phone.substring(3)}';
+    }
+    return phone;
   }
 
   @override
@@ -202,6 +214,17 @@ class _BnBOwnerDashboardScreenState extends State<BnBOwnerDashboardScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const BnBWalletScreen()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.calendar_today, color: AppConstants.softWhite),
+            title: const Text('My Bookings', style: TextStyle(color: AppConstants.softWhite)),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const BnBBookingsScreen()),
               );
             },
           ),
@@ -444,7 +467,7 @@ class _BnBOwnerDashboardScreenState extends State<BnBOwnerDashboardScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'KES ${bnb.priceKES.toStringAsFixed(0)} / night', // Changed from price
+                          'KES ${bnb.priceKES.toStringAsFixed(0)} / night',
                           style: const TextStyle(
                             color: AppConstants.accentColor,
                             fontSize: 14,
@@ -453,6 +476,47 @@ class _BnBOwnerDashboardScreenState extends State<BnBOwnerDashboardScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.map,
+                          size: 16,
+                          color: AppConstants.primaryColor,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            bnb.address,
+                            style: TextStyle(
+                              color: AppConstants.softWhite.withOpacity(0.7),
+                              fontSize: 14,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (bnb.callNumber != null && bnb.callNumber!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.phone,
+                            size: 16,
+                            color: AppConstants.primaryColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _formatPhone(bnb.callNumber!),
+                            style: TextStyle(
+                              color: AppConstants.softWhite.withOpacity(0.7),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),

@@ -55,6 +55,7 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
         address: _addressController.text.trim(),
         priceKES: double.parse(_priceController.text.trim()),
         available: _available,
+        bnbType: widget.bnb.bnbType,
         callNumber: _callNumberController.text.trim().isNotEmpty 
             ? _callNumberController.text.trim() 
             : '',
@@ -84,6 +85,17 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
         setState(() => _isSubmitting = false);
       }
     }
+  }
+
+  String _formatPhone(String phone) {
+    if (phone.isEmpty) return phone;
+    // Remove +254 or 254 prefix and replace with 0
+    if (phone.startsWith('+254')) {
+      return '0${phone.substring(4)}';
+    } else if (phone.startsWith('254')) {
+      return '0${phone.substring(3)}';
+    }
+    return phone;
   }
 
   Future<void> _deleteBnB() async {
@@ -309,7 +321,7 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
           _buildDetailRow(Icons.attach_money, 'Price', 'KES ${widget.bnb.priceKES.toStringAsFixed(0)}'),
           if (widget.bnb.callNumber != null) ...[
             const SizedBox(height: 12),
-            _buildDetailRow(Icons.phone, 'Contact', widget.bnb.callNumber!),
+            _buildDetailRow(Icons.phone, 'Contact', _formatPhone(widget.bnb.callNumber!)),
           ],
         ],
       ),

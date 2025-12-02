@@ -35,6 +35,7 @@ class _ManageSessionsScreenState extends State<ManageSessionsScreen> {
         address: widget.bnb.address,
         priceKES: widget.bnb.priceKES,
         available: widget.bnb.available,
+        bnbType: widget.bnb.bnbType,
         callNumber: widget.bnb.callNumber ?? '',
         sessions: _sessions,
       );

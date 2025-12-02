@@ -45,6 +45,47 @@ class Booking {
       return 0.0;
     }
 
+    DateTime? _parseTimestamp(dynamic value) {
+      if (value == null) return null;
+      
+      // Handle proto timestamp format: {"seconds": 1234567890, "nanos": 0}
+      if (value is Map<String, dynamic>) {
+        final seconds = value['seconds'];
+        if (seconds != null) {
+          final sec = seconds is int ? seconds : int.tryParse(seconds.toString());
+          if (sec != null) {
+            return DateTime.fromMillisecondsSinceEpoch(sec * 1000, isUtc: true).toLocal();
+          }
+        }
+      }
+      
+      // Handle ISO 8601 string format
+      if (value is String) {
+        return DateTime.tryParse(value);
+      }
+      
+      return null;
+    }
+
+    // Parse status - handle both enum names and string values
+    String statusStr = 'PENDING';
+    if (json['status'] != null) {
+      if (json['status'] is String) {
+        statusStr = json['status'] as String;
+      } else if (json['status'] is int) {
+        // Handle proto enum numeric values
+        final statusMap = {
+          0: 'PENDING',
+          1: 'PAID',
+          2: 'COMPLETED',
+          3: 'CANCELLED',
+          4: 'PAYMENT_PENDING',
+          5: 'SERVICE_PENDING',
+        };
+        statusStr = statusMap[json['status'] as int] ?? 'PENDING';
+      }
+    }
+
     return Booking(
       bookingId: _parseString(json['booking_id']),
       clientId: _parseString(json['client_id']),
@@ -55,17 +96,11 @@ class Booking {
       includeBnb: json['include_bnb'] as bool? ?? false,
       bnbId: json['bnb_id']?.toString(),
       bnbPrice: json['bnb_price'] != null ? _parseDouble(json['bnb_price']) : null,
-      status: _statusFromString(json['status'] as String? ?? 'PENDING'),
+      status: _statusFromString(statusStr),
       paymentId: json['payment_id']?.toString(),
-      createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'] as String) ?? DateTime.now()
-          : DateTime.now(),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.tryParse(json['updated_at'] as String) ?? DateTime.now()
-          : DateTime.now(),
-      completedAt: json['completed_at'] != null
-          ? DateTime.tryParse(json['completed_at'] as String)
-          : null,
+      createdAt: _parseTimestamp(json['created_at']) ?? DateTime.now(),
+      updatedAt: _parseTimestamp(json['updated_at']) ?? DateTime.now(),
+      completedAt: _parseTimestamp(json['completed_at']),
     );
   }
 

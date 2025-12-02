@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/services/user_service.dart';
+import 'package:hook_app/screens/bnb_owner/edit_profile_screen.dart';
 
 class BnBOwnerProfileScreen extends StatefulWidget {
   const BnBOwnerProfileScreen({super.key});
@@ -23,6 +24,7 @@ class _BnBOwnerProfileScreenState extends State<BnBOwnerProfileScreen> {
   Future<void> _loadProfile() async {
     try {
       final profile = await UserService.getUserProfile();
+      print('[PROFILE DEBUG] Loaded profile data: $profile'); // Debug log
       if (mounted) {
         setState(() {
           _userData = profile;
@@ -110,6 +112,34 @@ class _BnBOwnerProfileScreenState extends State<BnBOwnerProfileScreen> {
   }
 
   Widget _buildProfileHeader() {
+    // Robust name resolution logic
+    String getDisplayName() {
+      if (_userData == null) return 'BnB Owner';
+
+      // Support both snake_case and camelCase keys from backend
+      final String? fullName =
+          (_userData!['full_name'] ?? _userData!['fullName']) as String?;
+      final String? firstName =
+          (_userData!['first_name'] ?? _userData!['firstName']) as String?;
+      final String? lastName =
+          (_userData!['last_name'] ?? _userData!['lastName']) as String?;
+      
+      // 1. Prioritize full_name
+      if (fullName != null && fullName.trim().isNotEmpty) {
+        return fullName;
+      }
+
+      // 2. Try combining first and last name
+      if (firstName != null && firstName.trim().isNotEmpty) {
+        if (lastName != null && lastName.trim().isNotEmpty) {
+          return '$firstName $lastName';
+        }
+        return firstName; // First name only
+      }
+
+      return 'Name Not Set';
+    }
+
     return Column(
       children: [
         Container(
@@ -128,10 +158,12 @@ class _BnBOwnerProfileScreenState extends State<BnBOwnerProfileScreen> {
               ),
             ],
           ),
-          child: _userData?['profile_image'] != null && _userData!['profile_image'].isNotEmpty
+          child: (_userData?['profile_image'] ?? _userData?['profileImage']) != null &&
+                  ((_userData?['profile_image'] ?? _userData?['profileImage']) as String).isNotEmpty
               ? ClipOval(
                   child: Image.network(
-                    _userData!['profile_image'],
+                    // Support both snake_case and camelCase keys
+                    (_userData!['profile_image'] ?? _userData!['profileImage']) as String,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => const Icon(
                       Icons.person,
@@ -148,7 +180,7 @@ class _BnBOwnerProfileScreenState extends State<BnBOwnerProfileScreen> {
         ),
         const SizedBox(height: 16),
         Text(
-          _userData?['full_name'] ?? _userData?['email'] ?? 'BnB Owner',
+          getDisplayName(),
           style: const TextStyle(
             color: AppConstants.softWhite,
             fontSize: 20,
@@ -180,11 +212,11 @@ class _BnBOwnerProfileScreenState extends State<BnBOwnerProfileScreen> {
     // Format phone number to 07 format
     String formatPhone(String? phone) {
       if (phone == null || phone.isEmpty) return 'Not set';
-      // Remove +254 or 254 prefix and replace with 07
+      // Remove +254 or 254 prefix and replace with 0
       if (phone.startsWith('+254')) {
-        return '07${phone.substring(4)}';
+        return '0${phone.substring(4)}';
       } else if (phone.startsWith('254')) {
-        return '07${phone.substring(3)}';
+        return '0${phone.substring(3)}';
       }
       return phone;
     }
@@ -200,14 +232,15 @@ class _BnBOwnerProfileScreenState extends State<BnBOwnerProfileScreen> {
       }
     }
 
-    // Get verification status text
-    String getVerificationStatus(bool? verified) {
-      return verified == true ? 'Verified' : 'Not Verified';
-    }
-
-    // Get verification color
-    Color getVerificationColor(bool? verified) {
-      return verified == true ? AppConstants.successColor : AppConstants.errorColor;
+    // Check verification status safely
+    bool isVerified(String keyPrefix) {
+      if (_userData == null) return false;
+      // Check various possible keys (snake_case and camelCase)
+      return _userData!['${keyPrefix}_verified'] == true || 
+             _userData!['is_${keyPrefix}_verified'] == true ||
+             _userData!['verified_$keyPrefix'] == true ||
+             _userData!['${keyPrefix}Verified'] == true ||
+             _userData!['is${keyPrefix[0].toUpperCase()}${keyPrefix.substring(1)}Verified'] == true;
     }
 
     return Container(
@@ -221,94 +254,99 @@ class _BnBOwnerProfileScreenState extends State<BnBOwnerProfileScreen> {
       ),
       child: Column(
         children: [
-          _buildDetailItem(Icons.person, 'Full Name', _userData?['full_name'] ?? 'Not set'),
-          const Divider(color: AppConstants.mutedGray),
-          _buildDetailItem(Icons.email, 'Email', _userData?['email'] ?? 'Not set'),
-          const Divider(color: AppConstants.mutedGray),
-          _buildVerificationItem(
-            Icons.verified, 
-            'Email Verification', 
-            getVerificationStatus(_userData?['email_verified']),
-            getVerificationColor(_userData?['email_verified']),
+          _buildDetailItem(
+            Icons.person, 
+            'Full Name', 
+            (_userData?['full_name'] ??
+                    _userData?['fullName'] ??
+                    _userData?['first_name'] ??
+                    _userData?['firstName'] ??
+                    'Not set') as String,
           ),
           const Divider(color: AppConstants.mutedGray),
-          _buildDetailItem(Icons.phone, 'Phone', formatPhone(_userData?['phone'])),
-          const Divider(color: AppConstants.mutedGray),
-          _buildVerificationItem(
-            Icons.verified, 
-            'Phone Verification', 
-            getVerificationStatus(_userData?['phone_verified']),
-            getVerificationColor(_userData?['phone_verified']),
+          _buildDetailItem(
+            Icons.email, 
+            'Email', 
+            _userData?['email'] ?? 'Not set',
+            isVerified: isVerified('email'),
           ),
           const Divider(color: AppConstants.mutedGray),
-          _buildDetailItem(Icons.location_on, 'Location', _userData?['location'] ?? 'Not set'),
+          _buildDetailItem(
+            Icons.phone, 
+            'Phone', 
+            formatPhone(_userData?['phone']),
+            isVerified: isVerified('phone') || isVerified('mobile'),
+          ),
           const Divider(color: AppConstants.mutedGray),
-          _buildDetailItem(Icons.cake, 'Date of Birth', formatDOB(_userData?['dob'])),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailItem(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        children: [
-          Icon(icon, color: AppConstants.mutedGray, size: 20),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  color: AppConstants.mutedGray.withOpacity(0.8),
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: const TextStyle(
-                  color: AppConstants.softWhite,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+          _buildDetailItem(
+            Icons.location_on, 
+            'Location', 
+            _userData?['location'] ?? 'Not set',
+          ),
+          const Divider(color: AppConstants.mutedGray),
+          _buildDetailItem(
+            Icons.cake, 
+            'Date of Birth', 
+            formatDOB(_userData?['dob']),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildVerificationItem(IconData icon, String label, String value, Color valueColor) {
+  Widget _buildDetailItem(IconData icon, String label, String value, {bool isVerified = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
           Icon(icon, color: AppConstants.mutedGray, size: 20),
           const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  color: AppConstants.mutedGray.withOpacity(0.8),
-                  fontSize: 12,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: AppConstants.mutedGray.withOpacity(0.8),
+                    fontSize: 12,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: TextStyle(
-                  color: valueColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        value,
+                        style: const TextStyle(
+                          color: AppConstants.softWhite,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (isVerified) ...[
+                      const SizedBox(width: 8),
+                      const Icon(
+                        Icons.check_circle,
+                        color: AppConstants.successColor,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 4),
+                      const Text(
+                        'Verified',
+                        style: TextStyle(
+                          color: AppConstants.successColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -319,11 +357,18 @@ class _BnBOwnerProfileScreenState extends State<BnBOwnerProfileScreen> {
     return Column(
       children: [
         _buildGradientButton(
-          onPressed: () {
-            // TODO: Implement edit profile
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Edit Profile coming soon!')),
-            );
+          onPressed: () async {
+            if (_userData != null) {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditProfileScreen(userData: _userData!),
+                ),
+              );
+              if (result == true) {
+                _loadProfile(); // Refresh profile if changes were saved
+              }
+            }
           },
           label: 'Edit Profile',
           icon: Icons.edit,
