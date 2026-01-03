@@ -66,7 +66,7 @@ class _RegisterBnBScreenState extends State<RegisterBnBScreen> {
 
     try {
       // Register the BnB with sessions in a single call
-      final response = await BnBService.registerBnB(
+      await BnBService.registerBnB(
         name: _nameController.text.trim(),
         location: _locationController.text.trim(),
         address: _addressController.text.trim(),

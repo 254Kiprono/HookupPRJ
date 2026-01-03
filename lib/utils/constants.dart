@@ -48,13 +48,18 @@ class AppConstants {
       '$userServiceBaseUrl$apiVersion/auth/request-passreset';
   static const String verifyOTP =
       '$userServiceBaseUrl$apiVersion/auth/verify-otp';
+  static const String googleSignUp = '$userServiceBaseUrl$apiVersion/auth/google-signup';
+  static const String googleSignIn = '$userServiceBaseUrl$apiVersion/auth/google-signin';
+  static const String logout = '$userServiceBaseUrl$apiVersion/auth/logout';
+  static const String updateLocation = '$userServiceBaseUrl$apiVersion/auth/update-location';
+  static const String searchNearbyUsers = '$userServiceBaseUrl$apiVersion/users/search-nearby';
   static const String resetPassword =
       '$userServiceBaseUrl$apiVersion/auth/reset-password';
   static const String resendOTP =
       '$userServiceBaseUrl$apiVersion/auth/request-passreset';
   static const String getuserprofile =
       '$userServiceBaseUrl$apiVersion/auth/get-userprofile';
-  static const String googleAuth = '$userServiceBaseUrl$apiVersion/auth/google';
+
 
   // User Service Search Endpoints
   static const String searchProviders =
@@ -94,6 +99,13 @@ class AppConstants {
   static const String bookingHistory =
       '$messagingServiceBaseUrl$apiVersion/bookings/history';
 
+  // Wallet Service Endpoints
+  static const String walletServiceBaseUrl = 'https://wallet-service.devsinkenya.com';
+  static const String getWalletBalance = '$walletServiceBaseUrl$apiVersion/wallet'; // + /{user_id}/balance
+  static const String withdraw = '$walletServiceBaseUrl$apiVersion/wallet/withdraw';
+  static const String getWithdrawHistory = '$walletServiceBaseUrl$apiVersion/wallet'; // + /{user_id}/withdrawals
+  static const String getPaymentHistory = '$walletServiceBaseUrl$apiVersion/wallet'; // + /{user_id}/payment-history
+
   // WebSocket Endpoint
   static const String websocketUrl =
       'wss://message-service.devsinkenya.com/v1/stream';
@@ -109,6 +121,7 @@ class AppConstants {
   // Role Constants
   static const int bnbOwnerRoleId = 4;
   static const int regularUserRoleId = 1; // Adjust based on your backend
+  static const int customerCareRoleId = 3; // Customer Care role
 
 }
 

@@ -246,7 +246,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final response = await http
           .post(
-            Uri.parse(AppConstants.googleAuth),
+            // Use dedicated Google sign-in endpoint
+            Uri.parse(AppConstants.googleSignIn),
             headers: {
               'Content-Type': 'application/json',
               'Cache-Control': 'no-cache',
@@ -265,8 +266,10 @@ class _LoginScreenState extends State<LoginScreen> {
         final responseData = jsonDecode(response.body);
 
         final String? authToken = responseData['token'];
-        final String? refreshToken = responseData['refreshToken'];
-        final String? role = responseData['role'];
+        // gRPC gateway maps `refresh_token` -> `refreshToken`
+        final String? refreshToken =
+            responseData['refreshToken'] ?? responseData['refresh_token'];
+        final String? roleString = responseData['role'];
         String? userId = responseData['userId'];
 
         if (authToken == null || authToken.isEmpty) {
@@ -278,7 +281,8 @@ class _LoginScreenState extends State<LoginScreen> {
           return;
         }
 
-        // Decode the JWT token to extract user_id if not provided in response
+        // Decode the JWT token to extract user_id and numeric role if not provided
+        String? numericRoleId;
         if (userId == null || userId.isEmpty) {
           try {
             final decodedToken = JwtDecoder.decode(authToken);
@@ -286,22 +290,28 @@ class _LoginScreenState extends State<LoginScreen> {
                 decodedToken['userId']?.toString() ??
                 decodedToken['id']?.toString() ??
                 decodedToken['sub']?.toString();
-          } catch (e, stackTrace) {
+            final roleId = decodedToken['role_id'];
+            if (roleId != null) {
+              numericRoleId = roleId.toString();
+            }
+          } catch (e) {
             userId = null;
           }
         }
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(AppConstants.authTokenKey, authToken);
-
+        // Persist session using StorageService for consistency
+        await StorageService.saveAuthToken(authToken);
         if (refreshToken != null && refreshToken.isNotEmpty) {
-          await prefs.setString(AppConstants.refreshTokenKey, refreshToken);
+          await StorageService.saveRefreshToken(refreshToken);
         }
-        if (role != null && role.isNotEmpty) {
-          await prefs.setString(AppConstants.userRoleKey, role);
+        // Prefer numeric role ID from token; if missing, fall back to role string
+        if (numericRoleId != null && numericRoleId.isNotEmpty) {
+          await StorageService.saveUserRole(numericRoleId);
+        } else if (roleString != null && roleString.isNotEmpty) {
+          await StorageService.saveUserRole(roleString);
         }
         if (userId != null && userId.isNotEmpty) {
-          await prefs.setString(AppConstants.userIdKey, userId);
+          await StorageService.saveUserId(userId);
         }
 
         // Reset failed login attempts on successful Google sign-in

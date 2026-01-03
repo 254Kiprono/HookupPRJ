@@ -5,7 +5,7 @@ import 'package:hook_app/widgets/bottom_nav_bar.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/app/routes.dart';
 import 'package:hook_app/screens/main_app/search_screen.dart';
-import 'package:hook_app/screens/main_app/bookings_screen.dart';
+import 'package:hook_app/screens/main_app/bnbs_browse_screen.dart';
 import 'package:hook_app/screens/sms/conversations_screen.dart';
 import 'package:hook_app/screens/main_app/account_screen.dart';
 import 'package:hook_app/services/storage_service.dart';
@@ -945,7 +945,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       case 1:
         return const SearchScreen();
       case 2:
-        return const BookingsScreen();
+        return const BnBsBrowseScreen();
       case 3:
         return const ConversationsScreen();
       case 4:

@@ -21,6 +21,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
+  String? _selectedGender; // 'MALE', 'FEMALE', 'OTHER'
   bool _agreeTerms = true;
   bool _isLoading = false;
   DateTime? _selectedDate;
@@ -57,6 +59,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         "dob":
             "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}",
         "password": _passwordController.text,
+        "location": _locationController.text.trim(),
+        "gender": _selectedGender,
       };
 
       try {
@@ -191,6 +195,54 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
+                      controller: _locationController,
+                      decoration: const InputDecoration(
+                        labelText: 'Location',
+                        hintText: 'City / Area',
+                        prefixIcon: Icon(Icons.location_on),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your location';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(
+                        labelText: 'Gender',
+                        prefixIcon: Icon(Icons.person_outline),
+                      ),
+                      value: _selectedGender,
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'MALE',
+                          child: Text('Male'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'FEMALE',
+                          child: Text('Female'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'OTHER',
+                          child: Text('Other'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedGender = value;
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please select your gender';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
                       controller: _passwordController,
                       decoration: const InputDecoration(
                         labelText: 'Password',
@@ -202,8 +254,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         if (value == null || value.isEmpty) {
                           return 'Please enter a password';
                         }
-                        if (value.length < 6) {
-                          return 'Password must be at least 6 characters';
+                        // Enforce strong password policy:
+                        // - At least 8 characters
+                        // - At least one uppercase, one lowercase, and one number
+                        if (value.length < 8) {
+                          return 'Password must be at least 8 characters';
+                        }
+                        if (!RegExp(r'[A-Z]').hasMatch(value)) {
+                          return 'Password must contain at least one uppercase letter';
+                        }
+                        if (!RegExp(r'[a-z]').hasMatch(value)) {
+                          return 'Password must contain at least one lowercase letter';
+                        }
+                        if (!RegExp(r'[0-9]').hasMatch(value)) {
+                          return 'Password must contain at least one number';
                         }
                         return null;
                       },

@@ -32,8 +32,8 @@ class AppBottomNavBar extends StatelessWidget {
           label: 'Search',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_today),
-          label: 'Bookings',
+          icon: Icon(Icons.holiday_village),
+          label: 'BNBs',
         ),
         BottomNavigationBarItem(
           icon: Badge(

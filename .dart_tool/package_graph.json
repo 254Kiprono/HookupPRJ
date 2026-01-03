@@ -18,6 +18,7 @@
         "http",
         "http_parser",
         "image_picker",
+        "intl",
         "jwt_decoder",
         "permission_handler",
         "shared_preferences",
@@ -123,6 +124,15 @@
         "source_span",
         "string_scanner",
         "typed_data"
+      ]
+    },
+    {
+      "name": "intl",
+      "version": "0.19.0",
+      "dependencies": [
+        "clock",
+        "meta",
+        "path"
       ]
     },
     {

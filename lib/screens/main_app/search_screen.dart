@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/app/routes.dart';
 import 'package:hook_app/services/storage_service.dart';
+import 'package:hook_app/services/user_service.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -51,67 +53,63 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
     super.dispose();
   }
 
-  Future<void> _searchProviders(String region) async {
-    if (region.trim().isEmpty) {
-      setState(() {
-        _errorMessage = 'Please enter a location';
-      });
-      return;
-    }
-
+  Future<void> _searchProviders(String? region) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
       _providers = [];
     });
 
-    // FIX: Use StorageService instead of SharedPreferences to prevent logout
-    final String? authToken = await StorageService.getAuthToken();
-
-    if (authToken == null || authToken.isEmpty) {
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, Routes.login);
-      }
-      return;
-    }
-
     try {
-      final response = await http
-          .post(
-            Uri.parse(AppConstants.searchProviders),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $authToken',
-            },
-            body: jsonEncode({'region': region}),
-          )
-          .timeout(const Duration(seconds: 30));
+      // Get current location
+      final position = await _determinePosition();
+      
+      // Call UserService
+      final data = await UserService.searchNearbyUsers(
+        latitude: position.latitude,
+        longitude: position.longitude,
+        radiusKm: 50.0, // Default 50km radius
+        county: region?.isNotEmpty == true ? region : null,
+      );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (mounted) {
-          setState(() {
-            _providers = data['providers'] ?? [];
-            _isLoading = false;
-          });
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-            _errorMessage =
-                'Failed to load providers. Status: ${response.statusCode}';
-          });
-        }
+      if (mounted) {
+        setState(() {
+          _providers = data['users'] ?? [];
+          _isLoading = false;
+        });
       }
     } catch (error) {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Failed to connect to the server: $error';
+          _errorMessage = 'Failed to search: ${error.toString().replaceAll("Exception: ", "")}';
         });
       }
     }
+  }
+
+  Future<Position> _determinePosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      throw Exception('Location services are disabled.');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        throw Exception('Location permissions are denied');
+      }
+    }
+    
+    if (permission == LocationPermission.deniedForever) {
+      throw Exception('Location permissions are permanently denied.');
+    } 
+
+    return await Geolocator.getCurrentPosition();
   }
 
   @override
@@ -416,8 +414,11 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                                   physics: const BouncingScrollPhysics(),
                                   itemCount: _providers.length,
                                   itemBuilder: (context, index) {
-                                    final provider = _providers[index];
-                                    final isAvailable = provider['available'] ?? false;
+                                    final item = _providers[index];
+
+                                    final user = item['user'] ?? {};
+                                    final distance = item['distance_km'] ?? 0.0;
+                                    final isAvailable = (user['isActive'] ?? user['is_active']) == true;
                                     
                                     return Container(
                                       margin: const EdgeInsets.only(bottom: 16),
@@ -459,12 +460,20 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                                                     AppConstants.accentColor.withOpacity(0.3),
                                                   ],
                                                 ),
+                                                image: user['profile_image'] != null && user['profile_image'].toString().isNotEmpty
+                                                    ? DecorationImage(
+                                                        image: NetworkImage(user['profile_image']),
+                                                        fit: BoxFit.cover,
+                                                      )
+                                                    : null,
                                               ),
-                                              child: const Icon(
-                                                Icons.person,
-                                                color: AppConstants.softWhite,
-                                                size: 28,
-                                              ),
+                                              child: user['profile_image'] == null || user['profile_image'].toString().isEmpty
+                                                  ? const Icon(
+                                                      Icons.person,
+                                                      color: AppConstants.softWhite,
+                                                      size: 28,
+                                                    )
+                                                  : null,
                                             ),
                                             if (isAvailable)
                                               Positioned(
@@ -497,7 +506,7 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                                           ],
                                         ),
                                         title: Text(
-                                          provider['name'] ?? 'Unknown Provider',
+                                          user['full_name'] ?? 'Unknown User',
                                           style: const TextStyle(
                                             color: AppConstants.softWhite,
                                             fontSize: 18,
@@ -533,7 +542,7 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                                                     ),
                                                     const SizedBox(width: 4),
                                                     Text(
-                                                      '${provider['distance'] ?? 'N/A'} km',
+                                                      '${distance.toStringAsFixed(1)} km',
                                                       style: const TextStyle(
                                                         color: AppConstants.accentColor,
                                                         fontSize: 12,
@@ -566,7 +575,7 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                                                   ),
                                                 ),
                                                 child: Text(
-                                                  isAvailable ? 'Available' : 'Busy',
+                                                  isAvailable ? 'Online' : 'Offline',
                                                   style: TextStyle(
                                                     color: isAvailable
                                                         ? AppConstants.successColor

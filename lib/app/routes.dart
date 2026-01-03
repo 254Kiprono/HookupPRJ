@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hook_app/auth/login_user.dart'; // Assuming this is LoginScreen
+import 'package:hook_app/auth/login_user.dart'; 
 import 'package:hook_app/screens/auth/register_screen.dart';
 import 'package:hook_app/screens/auth/forgot_password_screen.dart';
 import 'package:hook_app/screens/auth/reset_password_screen.dart';
@@ -7,11 +7,11 @@ import 'package:hook_app/screens/loading_screen.dart';
 import 'package:hook_app/screens/main_app/home_screen.dart';
 import 'package:hook_app/screens/main_app/search_screen.dart';
 import 'package:hook_app/screens/main_app/provider_detail_screen.dart';
-import 'package:hook_app/screens/main_app/booking_screen.dart'; // Import BookingScreen
-import 'package:hook_app/screens/main_app/bookings_screen.dart'; // Import BookingsScreen
+import 'package:hook_app/screens/main_app/booking_screen.dart'; 
+import 'package:hook_app/screens/main_app/bookings_screen.dart'; 
 import 'package:hook_app/screens/main_app/messages_screen.dart';
-import 'package:hook_app/screens/main_app/account_screen.dart'; // Already imported
-import 'package:hook_app/screens/main_app/edit_profile_screen.dart'; // Fixed import
+import 'package:hook_app/screens/main_app/account_screen.dart'; 
+import 'package:hook_app/screens/main_app/edit_profile_screen.dart'; 
 import 'package:hook_app/screens/bnb_owner/bnb_owner_dashboard_screen.dart';
 import 'package:hook_app/screens/bnb_owner/register_bnb_screen.dart';
 import 'package:hook_app/screens/bnb_owner/manage_bnb_screen.dart';
@@ -29,11 +29,11 @@ class Routes {
   static const String home = '/home';
   static const String search = '/search';
   static const String providerDetail = '/provider-detail';
-  static const String booking = '/booking'; // For creating a booking
-  static const String bookings = '/bookings'; // For viewing booking history
+  static const String booking = '/booking'; 
+  static const String bookings = '/bookings'; 
   static const String messages = '/messages';
   static const String account = '/account';
-  static const String editProfile = '/edit-profile'; // Added new route
+  static const String editProfile = '/edit-profile'; 
 
   // BnB Owner Routes
   static const String bnbOwnerLogin = '/bnb-owner-login';
@@ -117,7 +117,7 @@ class Routes {
         final args = settings.arguments as Map<String, dynamic>;
         final otherUserId = args['otherUserId'] as int?;
         final otherUserName =
-            args['otherUserName'] as String?; // Extract otherUserName
+            args['otherUserName'] as String?; 
         if (otherUserId == null) {
           return MaterialPageRoute(
             builder: (_) => const Scaffold(
@@ -130,7 +130,7 @@ class Routes {
           builder: (_) => MessagesScreen(
             otherUserId: otherUserId,
             otherUserName:
-                otherUserName ?? 'Unknown', // Pass with default if null
+                otherUserName ?? 'Unknown', 
           ),
         );
       case account:

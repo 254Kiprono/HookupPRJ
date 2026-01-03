@@ -5,7 +5,7 @@ import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/models/wallet_transaction.dart';
 
 class WalletService {
-  /// Get wallet balance (total earnings - withdrawals)
+  /// Get wallet balance from backend
   static Future<Map<String, dynamic>> getWalletBalance() async {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
@@ -13,43 +13,80 @@ class WalletService {
     final userId = await StorageService.getUserId();
     if (userId == null) throw Exception('No user ID found');
 
-    // For now, calculate from transactions
-    // In production, this should be a dedicated endpoint
-    final transactions = await getTransactions();
-    
-    double totalEarnings = 0.0;
-    double totalWithdrawals = 0.0;
-    
-    for (var txn in transactions) {
-      if (txn.status == TransactionStatus.completed) {
-        if (txn.type == TransactionType.earning) {
-          totalEarnings += txn.amount;
-        } else {
-          totalWithdrawals += txn.amount;
-        }
+    try {
+      final uri = Uri.parse('${AppConstants.getWalletBalance}/$userId/balance');
+      
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw Exception('Request timeout');
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {
+          'user_id': data['userId'] ?? data['user_id'] ?? userId,
+          'balance': (data['balance'] as num?)?.toDouble() ?? 0.0,
+          'last_updated': data['lastUpdated'] ?? data['last_updated'],
+        };
+      } else if (response.statusCode == 401) {
+        throw Exception('Unauthorized: Please login again');
+      } else if (response.statusCode == 403) {
+        throw Exception('Forbidden: Insufficient permissions');
+      } else {
+        throw Exception('Failed to fetch wallet balance: ${response.statusCode}');
       }
+    } on http.ClientException catch (e) {
+      print('❌ [WALLET] Network error: ${e.message}');
+      // Return zero balance instead of throwing to prevent app crash
+      return {
+        'user_id': userId,
+        'balance': 0.0,
+        'last_updated': null,
+        'error': 'Network error: ${e.message}',
+      };
+    } on FormatException catch (e) {
+      print('❌ [WALLET] Invalid response format: $e');
+      return {
+        'user_id': userId,
+        'balance': 0.0,
+        'last_updated': null,
+        'error': 'Invalid response format',
+      };
+    } catch (e) {
+      print('❌ [WALLET] Error fetching balance: $e');
+      // If endpoint fails, return zero balance
+      return {
+        'user_id': userId,
+        'balance': 0.0,
+        'last_updated': null,
+        'error': e.toString(),
+      };
     }
-    
-    return {
-      'total_earnings': totalEarnings,
-      'total_withdrawals': totalWithdrawals,
-      'balance': totalEarnings - totalWithdrawals,
-    };
   }
 
-  /// Get all wallet transactions
-  static Future<List<WalletTransaction>> getTransactions() async {
+  /// Get payment history (all transactions)
+  static Future<List<WalletTransaction>> getTransactions({
+    int limit = 50,
+    int offset = 0,
+  }) async {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
     final userId = await StorageService.getUserId();
     if (userId == null) throw Exception('No user ID found');
 
-    // TODO: Replace with actual API endpoint when backend is ready
-    // For now, return empty list - will be populated from bookings
     try {
       final response = await http.get(
-        Uri.parse('${AppConstants.bookingServiceBaseUrl}/v1/wallet/transactions'),
+        Uri.parse('${AppConstants.getPaymentHistory}/$userId/payment-history?limit=$limit&offset=$offset'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -68,6 +105,40 @@ class WalletService {
       }
     } catch (e) {
       // Endpoint might not exist yet, return empty list
+      return [];
+    }
+  }
+
+  /// Get withdrawal history
+  static Future<List<WalletTransaction>> getWithdrawalHistory({
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final token = await StorageService.getAuthToken();
+    if (token == null) throw Exception('No auth token found');
+
+    final userId = await StorageService.getUserId();
+    if (userId == null) throw Exception('No user ID found');
+
+    try {
+      final response = await http.get(
+        Uri.parse('${AppConstants.getWithdrawHistory}/$userId/withdrawals?limit=$limit&offset=$offset'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final historyList = data['history'] as List<dynamic>? ?? [];
+        return historyList
+            .map((json) => WalletTransaction.fromJson(json as Map<String, dynamic>))
+            .toList();
+      } else {
+        return [];
+      }
+    } catch (e) {
       return [];
     }
   }
@@ -127,11 +198,9 @@ class WalletService {
   }
 
   /// Request a withdrawal
-  static Future<WalletTransaction> requestWithdrawal({
+  static Future<Map<String, dynamic>> requestWithdrawal({
     required double amount,
-    required String withdrawalMethod,
-    String? accountDetails,
-    String? reference,
+    required String phoneNumber,
   }) async {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
@@ -141,38 +210,25 @@ class WalletService {
 
     try {
       final response = await http.post(
-        Uri.parse('${AppConstants.bookingServiceBaseUrl}/v1/wallet/withdrawals'),
+        Uri.parse(AppConstants.withdraw),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode({
+          'user_id': userId,
           'amount': amount,
-          'withdrawal_method': withdrawalMethod,
-          'account_details': accountDetails,
-          'reference': reference ?? 'WD-${DateTime.now().millisecondsSinceEpoch}',
+          'phone_number': phoneNumber,
         }),
       ).timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        return WalletTransaction.fromJson(data['transaction'] as Map<String, dynamic>);
+        return jsonDecode(response.body) as Map<String, dynamic>;
       } else {
         throw Exception('Failed to request withdrawal: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      // If backend endpoint doesn't exist, create a local transaction record
-      return WalletTransaction(
-        transactionId: 'WD-${DateTime.now().millisecondsSinceEpoch}',
-        type: TransactionType.withdrawal,
-        amount: amount,
-        status: TransactionStatus.pending,
-        timestamp: DateTime.now(),
-        reference: reference,
-        withdrawalMethod: withdrawalMethod,
-        accountDetails: accountDetails,
-        description: 'Withdrawal request',
-      );
+      rethrow;
     }
   }
 
@@ -215,4 +271,9 @@ class WalletService {
     return earnings;
   }
 }
+
+
+
+
+
 

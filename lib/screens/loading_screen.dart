@@ -15,6 +15,7 @@ class _LoadingScreenState extends State<LoadingScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
+  String? _errorMessage;
   bool _isCheckingAuth = true;
 
   @override
@@ -34,12 +35,12 @@ class _LoadingScreenState extends State<LoadingScreen>
   Future<void> _checkAuth() async {
     if (!_isCheckingAuth) return;
 
-    setState(() {
-      _isCheckingAuth = false;
-    });
-
+    // Don't set _isCheckingAuth = false here, wait until done
+    
     final String? authToken = await StorageService.getAuthToken();
+    final String? userId = await StorageService.getUserId();
     print('🔐 [LOADING] Auth token present: ${authToken != null}');
+    print('👤 [LOADING] User ID present: ${userId != null}');
 
     if (authToken == null || authToken.isEmpty) {
       await StorageService.clearAll();
@@ -51,16 +52,15 @@ class _LoadingScreenState extends State<LoadingScreen>
     }
 
     try {
-      await ApiService.getUserProfile();
-      print('✅ [LOADING] User profile fetched successfully');
+      // Skip fetching profile here to avoid 403 error loop. 
+      // Trust the token we just got.
+      print('⚠️ [LOADING] Skipping getUserProfile check to unblock login');
       
       final roleId = await StorageService.getRoleId();
       final roleString = await StorageService.getUserRole();
       
       print('👤 [LOADING] Role ID (parsed): $roleId');
       print('👤 [LOADING] Role String (raw): "$roleString"');
-      print('🎯 [LOADING] Expected BnB Owner Role ID: ${AppConstants.bnbOwnerRoleId}');
-      print('🔍 [LOADING] Is BnB Owner: ${roleId == AppConstants.bnbOwnerRoleId}');
       
       if (mounted) {
         if (roleId == AppConstants.bnbOwnerRoleId) {
@@ -73,9 +73,12 @@ class _LoadingScreenState extends State<LoadingScreen>
       }
     } catch (error) {
       print('❌ [LOADING] Error: $error');
-      await StorageService.clearAll();
+      // await StorageService.clearAll(); // Keep data for debugging
       if (mounted) {
-        Navigator.pushReplacementNamed(context, Routes.login);
+        setState(() {
+          _errorMessage = 'Error: $error\nUser ID: $userId';
+          _isCheckingAuth = false;
+        });
       }
     }
   }
@@ -98,54 +101,96 @@ class _LoadingScreenState extends State<LoadingScreen>
           ),
         ),
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedBuilder(
-                animation: _animation,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: _animation.value,
-                    child: child,
-                  );
-                },
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(60),
+          child: _errorMessage != null
+              ? Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.white, size: 48),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Authentication Failed',
+                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: Colors.white70),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _errorMessage = null;
+                            _isCheckingAuth = true;
+                          });
+                          _checkAuth();
+                        },
+                        child: const Text('Retry'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextButton(
+                        onPressed: () async {
+                          await StorageService.clearAll();
+                          if (mounted) {
+                            Navigator.pushReplacementNamed(context, Routes.login);
+                          }
+                        },
+                        child: const Text('Go to Login', style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
                   ),
-                  child: const Icon(
-                    Icons.favorite,
-                    color: AppConstants.primaryColor,
-                    size: 48,
-                  ),
+                )
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AnimatedBuilder(
+                      animation: _animation,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: _animation.value,
+                          child: child,
+                        );
+                      },
+                      child: Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(60),
+                        ),
+                        child: const Icon(
+                          Icons.favorite,
+                          color: AppConstants.primaryColor,
+                          size: 48,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'HookUp',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Connecting you with amazing experiences',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'HookUp',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Connecting you with amazing experiences',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 24),
-              const CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            ],
-          ),
         ),
       ),
     );

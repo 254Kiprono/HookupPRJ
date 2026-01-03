@@ -163,10 +163,10 @@ class _BnBWalletScreenState extends State<BnBWalletScreen> {
           throw Exception('Insufficient balance');
         }
 
+        // Use phone number from account details field for M-Pesa withdrawal
         await WalletService.requestWithdrawal(
           amount: amount,
-          withdrawalMethod: methodController.text,
-          accountDetails: accountController.text.isNotEmpty ? accountController.text : null,
+          phoneNumber: accountController.text.isNotEmpty ? accountController.text : methodController.text,
         );
 
         if (mounted) {

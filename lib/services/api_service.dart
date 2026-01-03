@@ -10,13 +10,15 @@ class ApiService {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
+    // Use POST method (endpoint requires POST per gRPC-Gateway)
+    // Backend extracts userID and roleID from JWT token via AuthInterceptor, so body can be empty
     final response = await http.post(
       Uri.parse(AppConstants.getuserprofile),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
-      body: jsonEncode({}),
+      body: jsonEncode({}), // Empty body - backend extracts everything from JWT token
     ).timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {

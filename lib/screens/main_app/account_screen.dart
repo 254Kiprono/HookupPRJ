@@ -6,8 +6,14 @@ import 'package:hook_app/app/routes.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:http/http.dart' as http;
 import 'package:hook_app/services/storage_service.dart';
+import 'package:hook_app/services/user_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:hook_app/screens/main_app/bnbs_browse_screen.dart';
+import 'package:hook_app/screens/main_app/orders_screen.dart';
+import 'package:hook_app/screens/main_app/wallet_screen.dart';
+
+import 'package:hook_app/screens/main_app/profile_details_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -71,7 +77,7 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
         final data = jsonDecode(cachedProfile);
         setState(() {
           _userProfile = data;
-          _isOnline = data['isActive'] == true;
+          _isOnline = (data['isActive'] ?? data['is_active']) == true;
           _isLoading = false;
         });
         _fadeController.forward();
@@ -82,6 +88,9 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
       setState(() {
         _isLoading = true;
       });
+      // Start fade animation even if no cached profile exists
+      // This ensures menu items are visible while profile is loading
+      _fadeController.forward();
     }
   }
 
@@ -89,7 +98,7 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
     final String? authToken = await StorageService.getAuthToken();
     final prefs = await SharedPreferences.getInstance();
 
-    if (authToken == null || authToken.isEmpty) {
+    if (authToken == null) {
       if (mounted) {
         Navigator.pushReplacementNamed(context, Routes.login);
       }
@@ -97,158 +106,131 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
     }
 
     try {
-      final response = await http
-          .post(
-            Uri.parse(AppConstants.getuserprofile),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $authToken',
-            },
-            body: jsonEncode({}),
-          )
-          .timeout(const Duration(seconds: 30));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        await prefs.setString(AppConstants.userProfileKey, response.body);
-
-        if (mounted) {
-          setState(() {
-            _userProfile = data;
-            _isOnline = data['isActive'] == true;
-            _isLoading = false;
-            _errorMessage = null;
-          });
-          _fadeController.forward();
-        }
-      } else {
-        final errorData = jsonDecode(response.body);
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-            _errorMessage = errorData['message'] ??
-                'Failed to fetch user profile: ${response.statusCode}';
-          });
-        }
-      }
-    } catch (error) {
+      print('🔍 [ACCOUNT] Fetching user profile...');
+      final response = await UserService.getUserProfile();
+      
+      // Extract user data from response (backend returns {user: {...}})
+      final data = response['user'] ?? response;
+      
+      print('✅ [ACCOUNT] Profile fetched successfully');
+      
+      // Cache the profile data
+      await prefs.setString(AppConstants.userProfileKey, jsonEncode(data));
+      
       if (mounted) {
         setState(() {
-          _isLoading = _userProfile == null;
-          _errorMessage = 'Failed to connect to the server: $error';
+          _userProfile = data;
+          _isOnline = (data['isActive'] ?? data['is_active']) == true;
+          _isLoading = false;
+          _errorMessage = null;
         });
+        _fadeController.forward();
+      }
+    } catch (e) {
+      print('❌ [ACCOUNT] Profile fetch error: $e');
+      final roleId = await StorageService.getRoleId();
+      print('👤 [ACCOUNT] Current role ID: $roleId');
+      
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          // Show a more helpful error message based on error type
+          if (e.toString().contains('403') || e.toString().contains('insufficient privileges')) {
+            _errorMessage = 'Permission denied (Role ID: $roleId). Profile features may be limited.';
+          } else if (e.toString().contains('501') || e.toString().contains('Method Not Allowed')) {
+            _errorMessage = 'API method error. Please try again.';
+          } else {
+            _errorMessage = 'Failed to load profile. Menu items are still available.';
+          }
+        });
+        // Ensure menu items are visible even if profile fetch fails
+        _fadeController.forward();
       }
     }
   }
 
   Future<void> _updateOnlineStatus(bool isOnline) async {
-    final String? authToken = await StorageService.getAuthToken();
     final prefs = await SharedPreferences.getInstance();
 
-    if (authToken == null || authToken.isEmpty) {
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, Routes.login);
-      }
-      return;
-    }
-
     try {
-      final response = await http.put(
-        Uri.parse(
-            '${AppConstants.userServiceBaseUrl}${AppConstants.apiVersion}/auth/update-online-status'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $authToken',
-        },
-        body: jsonEncode({'isActive': isOnline}),
-      );
-
-      if (response.statusCode == 200) {
-        if (_userProfile != null) {
-          _userProfile!['isActive'] = isOnline;
-          await prefs.setString(
-              AppConstants.userProfileKey, jsonEncode(_userProfile));
+      // Use the UserService method instead of direct HTTP call
+      final response = await UserService.updateActiveStatus(isOnline);
+      
+      // Update local profile cache
+      if (_userProfile != null) {
+        _userProfile!['isActive'] = isOnline;
+        // Update from response if available
+        if (response['user'] != null) {
+          _userProfile = response['user'];
         }
+        await prefs.setString(
+            AppConstants.userProfileKey, jsonEncode(_userProfile));
+      }
 
-        if (mounted) {
-          setState(() {
-            _isOnline = isOnline;
-            _errorMessage = null;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Online status ${isOnline ? 'activated' : 'deactivated'}',
-                style: const TextStyle(color: AppConstants.softWhite),
-              ),
-              backgroundColor: AppConstants.deepPurple,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+      if (mounted) {
+        setState(() {
+          _isOnline = isOnline;
+          _errorMessage = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Online status ${isOnline ? 'activated' : 'deactivated'}',
+              style: const TextStyle(color: AppConstants.softWhite),
             ),
-          );
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-            _errorMessage =
-                'Failed to update online status: ${response.statusCode}';
-          });
-        }
+            backgroundColor: AppConstants.deepPurple,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
       }
     } catch (error) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Failed to connect to the server: $error';
+          _errorMessage = 'Failed to update online status: $error';
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error: ${error.toString()}',
+              style: const TextStyle(color: AppConstants.softWhite),
+            ),
+            backgroundColor: AppConstants.errorColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
       }
     }
   }
 
   Future<void> _logout() async {
-    final String? authToken = await StorageService.getAuthToken();
-
-    try {
-      await http.post(
-        Uri.parse(
-            '${AppConstants.userServiceBaseUrl}${AppConstants.apiVersion}/auth/logout'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $authToken',
-        },
-      );
-    } catch (e) {
-      // Ignore errors during logout
-    }
-
     await StorageService.clearAll();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(AppConstants.userProfileKey);
-
     if (mounted) {
-      Navigator.pushReplacementNamed(context, Routes.login);
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        Routes.login,
+        (route) => false,
+      );
     }
   }
 
   Future<void> _pickProfileImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null && mounted) {
-      setState(() {
-        _profileImage = File(image.path);
-      });
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        setState(() {
+          _profileImage = File(image.path);
+        });
+        // Upload image logic would go here
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            'Profile picture selected. Save to upload.',
-            style: TextStyle(color: AppConstants.softWhite),
-          ),
-          backgroundColor: AppConstants.deepPurple,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+        SnackBar(content: Text('Failed to pick image: $e')),
       );
     }
   }
@@ -465,235 +447,146 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                     ),
                   ),
                   
-                  // Name
-                  if (_userProfile != null)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      child: Text(
-                        _userProfile!['fullName'] ?? 'N/A',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: AppConstants.softWhite,
-                          shadows: [
-                            Shadow(
-                              blurRadius: 8.0,
-                              color: AppConstants.primaryColor.withOpacity(0.3),
-                              offset: const Offset(0, 2),
+                  // Name or Error Message
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Column(
+                      children: [
+                        if (_userProfile != null)
+                          Text(
+                            _userProfile!['fullName'] ?? 'N/A',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: AppConstants.softWhite,
+                              shadows: [
+                                Shadow(
+                                  blurRadius: 8.0,
+                                  color: AppConstants.primaryColor.withOpacity(0.3),
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
+                            textAlign: TextAlign.center,
+                          )
+                        else if (_errorMessage != null)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Text(
+                              _errorMessage!,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppConstants.errorColor,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        const SizedBox(height: 20),
+                      ],
                     ),
+                  ),
                   
                   const SizedBox(height: 32),
                   
-                  // Content
+                  // Menu List
                   Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: _isLoading
-                        ? Center(
-                            child: CircularProgressIndicator(
-                              color: AppConstants.primaryColor,
-                            ),
-                          )
-                        : _errorMessage != null
-                            ? Center(
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      _errorMessage!,
-                                      style: const TextStyle(
-                                        color: AppConstants.errorColor,
-                                        fontSize: 16,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    _buildGradientButton(
-                                      text: 'Retry',
-                                      onPressed: _fetchUserProfile,
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          AppConstants.primaryColor,
-                                          AppConstants.secondaryColor,
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : _userProfile != null
-                                ? Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      // Info Card with Glassmorphism
-                                      _buildGlassmorphicCard(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            _buildInfoRow(
-                                              Icons.person_outline,
-                                              'Account Type',
-                                              _getReadableAccountType(
-                                                  _userProfile!['role'] ?? 'Unknown'),
-                                            ),
-                                            _buildDivider(),
-                                            _buildInfoRow(
-                                              Icons.email_outlined,
-                                              'Email',
-                                              _userProfile!['email'] ?? 'N/A',
-                                            ),
-                                            _buildDivider(),
-                                            _buildInfoRow(
-                                              Icons.phone_outlined,
-                                              'Phone',
-                                              _formatPhone(_userProfile!['phone'] ?? 'N/A'),
-                                            ),
-                                            _buildDivider(),
-                                            _buildInfoRow(
-                                              Icons.cake_outlined,
-                                              'Date of Birth',
-                                              _userProfile!['dob'] ?? 'N/A',
-                                            ),
-                                            _buildDivider(),
-                                            _buildInfoRow(
-                                              Icons.location_on_outlined,
-                                              'Location',
-                                              _userProfile!['location'] ?? 'N/A',
-                                            ),
-                                            _buildDivider(),
-                                            _buildInfoRow(
-                                              Icons.verified_outlined,
-                                              'Email Verified',
-                                              _userProfile!['emailVerified'] == true
-                                                  ? 'Yes'
-                                                  : 'No',
-                                              valueColor:
-                                                  _userProfile!['emailVerified'] == true
-                                                      ? AppConstants.successColor
-                                                      : AppConstants.mutedGray,
-                                            ),
-                                            _buildDivider(),
-                                            _buildInfoRow(
-                                              Icons.verified_user_outlined,
-                                              'Phone Verified',
-                                              _userProfile!['phoneVerified'] == true
-                                                  ? 'Yes'
-                                                  : 'No',
-                                              valueColor:
-                                                  _userProfile!['phoneVerified'] == true
-                                                      ? AppConstants.successColor
-                                                      : AppConstants.mutedGray,
-                                            ),
-                                            _buildDivider(),
-                                            // Online Status Toggle
-                                            Padding(
-                                              padding: const EdgeInsets.symmetric(
-                                                  vertical: 12.0),
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.spaceBetween,
-                                                children: [
-                                                  Row(
-                                                    children: [
-                                                      Container(
-                                                        padding: const EdgeInsets.all(8),
-                                                        decoration: BoxDecoration(
-                                                          color: AppConstants.accentColor
-                                                              .withOpacity(0.2),
-                                                          borderRadius:
-                                                              BorderRadius.circular(8),
-                                                        ),
-                                                        child: Icon(
-                                                          Icons.wifi,
-                                                          color: AppConstants.accentColor,
-                                                          size: 20,
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 12),
-                                                      const Text(
-                                                        'Online Status',
-                                                        style: TextStyle(
-                                                          fontSize: 16,
-                                                          color: AppConstants.softWhite,
-                                                          fontWeight: FontWeight.w500,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  Switch(
-                                                    value: _isOnline,
-                                                    onChanged: (value) {
-                                                      _updateOnlineStatus(value);
-                                                    },
-                                                    activeColor: AppConstants.accentColor,
-                                                    activeTrackColor: AppConstants
-                                                        .accentColor
-                                                        .withOpacity(0.5),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Column(
+                      children: [
+                        _buildMenuItem(
+                          icon: Icons.person_outline,
+                          title: 'Profile',
+                          subtitle: 'Personal information & status',
+                          onTap: () {
+                            if (_userProfile != null) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ProfileDetailsScreen(
+                                    userProfile: _userProfile!,
+                                    isOnline: _isOnline,
+                                    isEditable: true,
+                                    onStatusChanged: (status) async {
+                                      setState(() {
+                                        _isOnline = status;
+                                        if (_userProfile != null) {
+                                          _userProfile!['isActive'] = status;
+                                          _userProfile!['is_active'] = status;
+                                        }
+                                      });
                                       
-                                      const SizedBox(height: 24),
-                                      
-                                      // Edit Profile Button
-                                      _buildGradientButton(
-                                        text: 'Edit Profile',
-                                        icon: Icons.edit_outlined,
-                                        onPressed: () {
-                                          Navigator.pushNamed(
-                                            context,
-                                            Routes.editProfile,
-                                            arguments: {
-                                              'initialData': _userProfile,
-                                              'profileImage': _profileImage,
-                                            },
-                                          ).then((_) {
-                                            _fetchUserProfile();
-                                            setState(() {
-                                              _profileImage = null;
-                                            });
-                                          });
-                                        },
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            AppConstants.primaryColor,
-                                            AppConstants.secondaryColor,
-                                          ],
-                                        ),
-                                      ),
-                                      
-                                      const SizedBox(height: 16),
-                                      
-                                      // Logout Button
-                                      _buildGradientButton(
-                                        text: 'Logout',
-                                        icon: Icons.logout_outlined,
-                                        onPressed: _logout,
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            AppConstants.secondaryColor,
-                                            AppConstants.errorColor,
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : const Center(
-                                    child: Text(
-                                      'No profile data available.',
-                                      style: TextStyle(
-                                        color: AppConstants.softWhite,
-                                        fontSize: 16,
-                                      ),
-                                    ),
+                                      // Update cache
+                                      final prefs = await SharedPreferences.getInstance();
+                                      if (_userProfile != null) {
+                                        await prefs.setString(
+                                          AppConstants.userProfileKey, 
+                                          jsonEncode(_userProfile)
+                                        );
+                                      }
+                                    },
                                   ),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        _buildMenuItem(
+                          icon: Icons.home_outlined,
+                          title: 'BNBs',
+                          subtitle: 'Browse available places',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const BnBsBrowseScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        _buildMenuItem(
+                          icon: Icons.shopping_bag_outlined,
+                          title: 'Orders',
+                          subtitle: 'View your bookings',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const OrdersScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        _buildMenuItem(
+                          icon: Icons.account_balance_wallet_outlined,
+                          title: 'Wallet',
+                          subtitle: 'Manage earnings & withdrawals',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const WalletScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 32),
+                        _buildGradientButton(
+                          text: 'Logout',
+                          icon: Icons.logout_outlined,
+                          onPressed: _logout,
+                          gradient: LinearGradient(
+                            colors: [
+                              AppConstants.secondaryColor,
+                              AppConstants.errorColor,
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -704,147 +597,122 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
     );
   }
 
-  Widget _buildGlassmorphicCard({required Widget child}) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: LinearGradient(
-          colors: [
-            AppConstants.deepPurple.withOpacity(0.7),
-            AppConstants.surfaceColor.withOpacity(0.5),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        border: Border.all(
-          width: 1.5,
-          color: AppConstants.primaryColor.withOpacity(0.3),
-        ),
-        boxShadow: [
-          BoxShadow(
+  Widget _buildMenuItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppConstants.surfaceColor.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
             color: AppConstants.primaryColor.withOpacity(0.2),
-            blurRadius: 20,
-            spreadRadius: 2,
-            offset: const Offset(0, 4),
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: child,
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(IconData icon, String label, String value,
-      {Color? valueColor}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppConstants.primaryColor.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            child: Icon(
-              icon,
-              color: AppConstants.primaryColor,
-              size: 20,
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppConstants.primaryColor.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: AppConstants.primaryColor,
+                size: 24,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppConstants.mutedGray,
-                    fontWeight: FontWeight.w500,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: AppConstants.softWhite,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: valueColor ?? AppConstants.softWhite,
-                    fontWeight: FontWeight.w600,
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: AppConstants.mutedGray,
+                      fontSize: 12,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+            Icon(
+              Icons.arrow_forward_ios,
+              color: AppConstants.mutedGray.withOpacity(0.5),
+              size: 16,
+            ),
+          ],
+        ),
       ),
-    );
-  }
-
-  Widget _buildDivider() {
-    return Divider(
-      color: AppConstants.mutedGray.withOpacity(0.2),
-      thickness: 1,
-      height: 1,
     );
   }
 
   Widget _buildGradientButton({
     required String text,
+    IconData? icon,
     required VoidCallback onPressed,
     required Gradient gradient,
-    IconData? icon,
+    double width = double.infinity,
+    double height = 50,
   }) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(
+            color: gradient.colors.first.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-        ),
-        onPressed: onPressed,
-        child: Ink(
-          decoration: BoxDecoration(
-            gradient: gradient,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: AppConstants.primaryColor.withOpacity(0.4),
-                blurRadius: 15,
-                spreadRadius: 1,
-                offset: const Offset(0, 4),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(25),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, color: Colors.white),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                text,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
-          ),
-          child: Container(
-            alignment: Alignment.center,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (icon != null) ...[
-                  Icon(icon, color: AppConstants.softWhite, size: 22),
-                  const SizedBox(width: 8),
-                ],
-                Text(
-                  text,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppConstants.softWhite,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       ),
