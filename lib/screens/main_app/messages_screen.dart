@@ -139,7 +139,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       if (_userId == null) {
         final refreshToken = await StorageService.getRefreshToken();
         if (refreshToken != null) {
-          final newToken = await TokenUtils.refreshToken(refreshToken);
+          final newToken = await Tokenlogger.RefreshToken(refreshToken);
           if (newToken != null) {
             await StorageService.saveAuthToken(newToken);
             _userId = await TokenUtils.extractUserId(newToken);
@@ -241,7 +241,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       if (JwtDecoder.isExpired(currentToken)) {
         final refreshToken = await StorageService.getRefreshToken();
         if (refreshToken != null) {
-          final newToken = await TokenUtils.refreshToken(refreshToken);
+          final newToken = await Tokenlogger.RefreshToken(refreshToken);
           if (newToken != null) {
             await StorageService.saveAuthToken(newToken);
             currentToken = newToken;
