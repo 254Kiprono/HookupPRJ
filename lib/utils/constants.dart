@@ -4,28 +4,30 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class AppConstants {
-  static const String appName = 'HookUp';
+  static const String appName = 'CloseBy';
 
-  // Colors - Bold & Seductive Dating App Palette
+  // Colors - CloseBy (Calm, Trustworthy, Discreet)
   // Primary Colors
-  static const Color primaryColor = Color(0xFFFF6B9D); // Rose Pink (main accent)
-  static const Color secondaryColor = Color(0xFFFF1744); // Neon Pink (secondary accent)
-  static const Color accentColor = Color(0xFF00E5FF); // Soft Neon Blue (tertiary accent)
-  
+  static const Color primaryColor = Color(0xFF0F766E); // Teal
+  static const Color secondaryColor = Color(0xFF0B1220); // Deep Navy
+  static const Color accentColor = Color(0xFF99F6E4); // Mint Accent
+
   // Background Colors
-  static const Color darkBackground = Color(0xFF121212); // Deep Charcoal
-  static const Color midnightPurple = Color(0xFF1A0B2E); // Midnight Purple (primary dark)
-  static const Color deepPurple = Color(0xFF2D1B4E); // Deep Purple (surface)
-  static const Color lightBackground = Color(0xFFF5F5F5); // Soft White
-  static const Color surfaceColor = Color(0xFF2D1B4E); // Deep Purple for cards
-  
+  static const Color darkBackground = Color(0xFF0B1220); // Deep Navy
+  static const Color midnightPurple =
+      Color(0xFF0B1220); // Alias for legacy usage
+  static const Color deepPurple = Color(0xFF0F172A); // Dark Slate
+  static const Color lightBackground = Color(0xFFF7F9FA); // Soft Light
+  static const Color surfaceColor = Color(0xFF111827); // Surface for cards
+
   // Support Colors
-  static const Color softRose = Color(0xFFFFC1E3); // Light rose for highlights
-  static const Color neonGlow = Color(0xFFFF1744); // Neon red for emphasis
-  static const Color mutedGray = Color(0xFF8B8B8B); // Muted gray for secondary text
-  static const Color errorColor = Color(0xFFFF1744); // Neon pink for errors
-  static const Color successColor = Color(0xFF00E5FF); // Neon blue for success
-  static const Color softWhite = Color(0xFFF5F5F5); // Text on dark backgrounds
+  static const Color softRose = Color(0xFFCCFBF1); // Soft mint highlight
+  static const Color neonGlow = Color(0xFF0F766E); // Teal emphasis
+  static const Color mutedGray =
+      Color(0xFF94A3B8); // Muted gray for secondary text
+  static const Color errorColor = Color(0xFFEF4444); // Error red
+  static const Color successColor = Color(0xFF10B981); // Success green
+  static const Color softWhite = Color(0xFFF7F9FA); // Text on dark backgrounds
 
   // Assets
   static const String logoPath = 'assets/images/logo.png';
@@ -35,10 +37,11 @@ class AppConstants {
       'https://hk-userservice.devsinkenya.com';
   static const String messagingServiceBaseUrl =
       'https://message-service.devsinkenya.com';
-  static const String bnbServiceBaseUrl =
-      'https://bnb-service.devsinkenya.com';
+  static const String bnbServiceBaseUrl = 'https://bnb-service.devsinkenya.com';
   static const String bookingServiceBaseUrl =
       'https://booking-service.devsinkenya.com';
+  static const String paymentServiceBaseUrl =
+      'https://payment-service.devsinkenya.com';
   static const String apiVersion = '/v1';
 
   // Authentication Endpoints (User Service)
@@ -48,18 +51,31 @@ class AppConstants {
       '$userServiceBaseUrl$apiVersion/auth/request-passreset';
   static const String verifyOTP =
       '$userServiceBaseUrl$apiVersion/auth/verify-otp';
-  static const String googleSignUp = '$userServiceBaseUrl$apiVersion/auth/google-signup';
-  static const String googleSignIn = '$userServiceBaseUrl$apiVersion/auth/google-signin';
+  static const String verifyEmail =
+      '$userServiceBaseUrl$apiVersion/auth/verify-email';
+  static const String verifyPhone =
+      '$userServiceBaseUrl$apiVersion/auth/verify-phone';
+  static const String sendEmailVerification =
+      '$userServiceBaseUrl$apiVersion/auth/send-email-verification';
+  static const String sendPhoneVerification =
+      '$userServiceBaseUrl$apiVersion/auth/send-phone-verification';
+  static const String googleSignUp =
+      '$userServiceBaseUrl$apiVersion/auth/google-signup';
+  static const String googleSignIn =
+      '$userServiceBaseUrl$apiVersion/auth/google-signin';
   static const String logout = '$userServiceBaseUrl$apiVersion/auth/logout';
-  static const String updateLocation = '$userServiceBaseUrl$apiVersion/auth/update-location';
-  static const String searchNearbyUsers = '$userServiceBaseUrl$apiVersion/users/search-nearby';
+  static const String updateLocation =
+      '$userServiceBaseUrl$apiVersion/auth/update-location';
+  static const String searchNearbyUsers =
+      '$userServiceBaseUrl$apiVersion/users/search-nearby';
   static const String resetPassword =
       '$userServiceBaseUrl$apiVersion/auth/reset-password';
+  static const String verifyResetCode =
+      '$userServiceBaseUrl$apiVersion/auth/verify-reset-code';
   static const String resendOTP =
       '$userServiceBaseUrl$apiVersion/auth/request-passreset';
   static const String getuserprofile =
       '$userServiceBaseUrl$apiVersion/auth/get-userprofile';
-
 
   // User Service Search Endpoints
   static const String searchProviders =
@@ -67,19 +83,30 @@ class AppConstants {
   static const String searchBnBs = '$userServiceBaseUrl$apiVersion/bnbs/search';
 
   // BnB Service Endpoints
-  static const String registerBnB = '$bnbServiceBaseUrl$apiVersion/bnb/register';
-  static const String updateBnB = '$bnbServiceBaseUrl$apiVersion/bnb'; // + /{bnb_id}
-  static const String getBnBsByLocation = '$bnbServiceBaseUrl$apiVersion/bnb/location'; // + /{location}
-  static const String getBnBDetails = '$bnbServiceBaseUrl$apiVersion/bnb'; // + /{bnb_id}
-  static const String deleteBnB = '$bnbServiceBaseUrl$apiVersion/bnb'; // + /{bnb_id}
-  static const String getBnBsByOwner = '$bnbServiceBaseUrl$apiVersion/bnb/owner'; // + /{owner_id}
+  static const String registerBnB =
+      '$bnbServiceBaseUrl$apiVersion/bnb/register';
+  static const String updateBnB =
+      '$bnbServiceBaseUrl$apiVersion/bnb'; // + /{bnb_id}
+  static const String getBnBsByLocation =
+      '$bnbServiceBaseUrl$apiVersion/bnb/location'; // + /{location}
+  static const String getBnBDetails =
+      '$bnbServiceBaseUrl$apiVersion/bnb'; // + /{bnb_id}
+  static const String deleteBnB =
+      '$bnbServiceBaseUrl$apiVersion/bnb'; // + /{bnb_id}
+  static const String getBnBsByOwner =
+      '$bnbServiceBaseUrl$apiVersion/bnb/owner'; // + /{owner_id}
 
   // Booking Service Endpoints
-  static const String createBooking = '$bookingServiceBaseUrl$apiVersion/bookings';
-  static const String updateBookingStatus = '$bookingServiceBaseUrl$apiVersion/bookings'; // + /{booking_id}
-  static const String getBooking = '$bookingServiceBaseUrl$apiVersion/bookings'; // + /{booking_id}
-  static const String listBookings = '$bookingServiceBaseUrl$apiVersion/bookings';
-  static const String getBookingsByBnbOwner = '$bookingServiceBaseUrl$apiVersion/bnb/bookings';
+  static const String createBooking =
+      '$bookingServiceBaseUrl$apiVersion/bookings';
+  static const String updateBookingStatus =
+      '$bookingServiceBaseUrl$apiVersion/bookings'; // + /{booking_id}
+  static const String getBooking =
+      '$bookingServiceBaseUrl$apiVersion/bookings'; // + /{booking_id}
+  static const String listBookings =
+      '$bookingServiceBaseUrl$apiVersion/bookings';
+  static const String getBookingsByBnbOwner =
+      '$bookingServiceBaseUrl$apiVersion/bnb/bookings';
 
   // Messaging Endpoints (Messaging Service) - Aligned with .proto
   static const String conversations =
@@ -100,12 +127,20 @@ class AppConstants {
       '$messagingServiceBaseUrl$apiVersion/bookings/history';
 
   // Wallet Service Endpoints
-  static const String walletServiceBaseUrl = 'https://wallet-service.devsinkenya.com';
-  static const String getWalletBalance = '$walletServiceBaseUrl$apiVersion/wallet'; // + /{user_id}/balance
-  static const String withdraw = '$walletServiceBaseUrl$apiVersion/wallet/withdraw';
-  static const String getWithdrawHistory = '$walletServiceBaseUrl$apiVersion/wallet'; // + /{user_id}/withdrawals
-  static const String getPaymentHistory = '$walletServiceBaseUrl$apiVersion/wallet'; // + /{user_id}/payment-history
-
+  static const String walletServiceBaseUrl =
+      'https://wallet-service.devsinkenya.com';
+  static const String getWalletBalance =
+      '$walletServiceBaseUrl$apiVersion/wallet'; // + /{user_id}/balance
+  static const String withdraw =
+      '$walletServiceBaseUrl$apiVersion/wallet/withdraw';
+  static const String getWithdrawHistory =
+      '$walletServiceBaseUrl$apiVersion/wallet'; // + /{user_id}/withdrawals
+  static const String getPaymentHistory =
+      '$walletServiceBaseUrl$apiVersion/wallet'; // + /{user_id}/payment-history
+  
+  // Payment Service Endpoints
+  static const String initiatePayment = '$paymentServiceBaseUrl/pyts/send-request';
+  
   // WebSocket Endpoint
   static const String websocketUrl =
       'wss://message-service.devsinkenya.com/v1/stream';
@@ -122,7 +157,6 @@ class AppConstants {
   static const int bnbOwnerRoleId = 4;
   static const int regularUserRoleId = 1; // Adjust based on your backend
   static const int customerCareRoleId = 3; // Customer Care role
-
 }
 
 class TokenUtils {
@@ -132,7 +166,6 @@ class TokenUtils {
       if (JwtDecoder.isExpired(token)) return null;
 
       final decoded = JwtDecoder.decode(token);
-
 
       // Try multiple possible user ID claims (priority order)
       final dynamic id = decoded['user_id'] ?? // Matches your Go backend
@@ -144,7 +177,6 @@ class TokenUtils {
       if (id is String) return int.tryParse(id);
       return null;
     } catch (e) {
-
       return null;
     }
   }
@@ -163,7 +195,6 @@ class TokenUtils {
       }
       return null;
     } catch (e) {
-
       return null;
     }
   }

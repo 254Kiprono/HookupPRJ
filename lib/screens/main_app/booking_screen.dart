@@ -7,6 +7,7 @@ import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/services/api_service.dart';
 import 'package:hook_app/models/bnb.dart';
 import 'package:hook_app/models/bnb_session.dart';
+import 'package:hook_app/utils/responsive.dart';
 
 class BookingScreen extends StatefulWidget {
   final int providerId;
@@ -60,7 +61,10 @@ class _BookingScreenState extends State<BookingScreen> {
       final userId = await StorageService.getUserId();
       
       setState(() {
-        _userFullName = data['fullName'] ?? 'User';
+        _userFullName = data['fullName'] ??
+            data['full_name'] ??
+            data['name'] ??
+            'User';
         _userPhone = data['phone'] ?? 'N/A';
         _userId = userId != null ? int.tryParse(userId) : null;
         _isLoading = false;
@@ -170,17 +174,19 @@ class _BookingScreenState extends State<BookingScreen> {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(),
-              Expanded(
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _errorMessage != null
-                        ? _buildErrorWidget()
-                        : _buildBookingContent(),
-              ),
-            ],
+          child: ResponsivePage(
+            child: Column(
+              children: [
+                _buildHeader(),
+                Expanded(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _errorMessage != null
+                          ? _buildErrorWidget()
+                          : _buildBookingContent(),
+                ),
+              ],
+            ),
           ),
         ),
       ),

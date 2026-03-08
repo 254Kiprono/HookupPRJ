@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 // Import for navigation
 import 'package:hook_app/utils/constants.dart'; // Import for base URL
+import 'package:hook_app/services/storage_service.dart';
+import 'package:hook_app/app/routes.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -23,7 +25,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   String? _selectedGender; // 'MALE', 'FEMALE', 'OTHER'
-  bool _agreeTerms = true;
+  bool _agreeTerms = false;
   bool _isLoading = false;
   DateTime? _selectedDate;
 
@@ -78,12 +80,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         if (response.statusCode == 200 || response.statusCode == 201) {
           final responseData = jsonDecode(response.body);
+          await StorageService.setOnboardingSeen(true);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
                 content: Text(
                     responseData['message'] ?? 'Registration successful!')),
           );
-          Navigator.pop(context); // Go back to the login screen
+          Navigator.pushReplacementNamed(context, Routes.safetyNotice);
         } else {
           final errorData = jsonDecode(response.body);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -101,7 +104,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               content:
                   Text('Failed to connect to the server. Please try again.')),
         );
-
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -122,7 +124,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             children: [
               const AuthHeader(
                 title: 'Create Account',
-                subtitle: 'Join our community',
+                subtitle: 'Create your CloseBy account',
               ),
               Padding(
                 padding: const EdgeInsets.all(20.0),
@@ -304,7 +306,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const Expanded(
                           child: Text(
-                            'I agree to the Terms of Service and Privacy Policy',
+                            'I agree to the Terms, Privacy Policy, and confirm I am 18+.',
                             style: TextStyle(fontSize: 12),
                           ),
                         ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/bnb_service.dart';
 import 'package:hook_app/models/bnb.dart';
+import 'package:hook_app/utils/responsive.dart';
 
 class BnBsBrowseScreen extends StatefulWidget {
   const BnBsBrowseScreen({super.key});
@@ -117,27 +118,28 @@ class _BnBsBrowseScreenState extends State<BnBsBrowseScreen> {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Text(
-                  'Browse BnBs',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: AppConstants.softWhite,
-                    shadows: [
-                      Shadow(
-                        blurRadius: 10.0,
-                        color: AppConstants.primaryColor.withOpacity(0.5),
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+          child: ResponsivePage(
+            child: Column(
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Text(
+                    'Browse BnBs',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppConstants.softWhite,
+                      shadows: [
+                        Shadow(
+                          blurRadius: 10.0,
+                          color: AppConstants.primaryColor.withOpacity(0.5),
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
 
               // Search bar
               Padding(
@@ -216,22 +218,23 @@ class _BnBsBrowseScreenState extends State<BnBsBrowseScreen> {
               ],
 
               // Content
-              Expanded(
-                child: _isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                          color: AppConstants.primaryColor,
-                        ),
-                      )
-                    : _error != null
-                        ? _buildErrorWidget()
-                        : _filteredBnbs.isEmpty && _bnbs.isEmpty
-                            ? _buildEmptyWidget()
-                            : _filteredBnbs.isEmpty
-                                ? _buildNoResultsWidget()
-                                : _buildBnBList(),
-              ),
-            ],
+                Expanded(
+                  child: _isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: AppConstants.primaryColor,
+                          ),
+                        )
+                      : _error != null
+                          ? _buildErrorWidget()
+                          : _filteredBnbs.isEmpty && _bnbs.isEmpty
+                              ? _buildEmptyWidget()
+                              : _filteredBnbs.isEmpty
+                                  ? _buildNoResultsWidget()
+                                  : _buildBnBList(),
+                ),
+              ],
+            ),
           ),
         ),
       ),

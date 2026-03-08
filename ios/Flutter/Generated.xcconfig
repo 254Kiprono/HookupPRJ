@@ -1,6 +1,6 @@
 // This is a generated file; do not edit or check into version control.
-FLUTTER_ROOT=/home/benbera/snap/flutter/common/flutter
-FLUTTER_APPLICATION_PATH=/home/benbera/BEARLEX/Hook-Up/HookupPRJ
+FLUTTER_ROOT=/home/kiprono-alex/snap/flutter/common/flutter
+FLUTTER_APPLICATION_PATH=/home/kiprono-alex/Projects/HooK-UP/HookupPRJ
 COCOAPODS_PARALLEL_CODE_SIGN=true
 FLUTTER_TARGET=lib/main.dart
 FLUTTER_BUILD_DIR=build

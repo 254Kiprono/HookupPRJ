@@ -7,6 +7,7 @@ import 'package:hook_app/services/user_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:hook_app/utils/responsive.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -21,6 +22,8 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
   List<dynamic> _providers = [];
   bool _isLoading = false;
   String? _errorMessage;
+  bool _hasSearched = false;
+  String? _lastQuery;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   bool _isFocused = false;
@@ -58,6 +61,8 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
       _isLoading = true;
       _errorMessage = null;
       _providers = [];
+      _hasSearched = true;
+      _lastQuery = region?.trim().isEmpty == true ? null : region?.trim();
     });
 
     try {
@@ -129,7 +134,7 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
           ),
         ),
         child: SafeArea(
-          child: Padding(
+          child: ResponsivePage(
             padding: const EdgeInsets.all(20.0),
             child: Column(
               children: [
@@ -220,6 +225,8 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                                 setState(() {
                                   _providers = [];
                                   _errorMessage = null;
+                                  _hasSearched = false;
+                                  _lastQuery = null;
                                 });
                               },
                             )
@@ -393,7 +400,9 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                                       ),
                                       const SizedBox(height: 16),
                                       Text(
-                                        'Search for providers by location',
+                                        _hasSearched
+                                            ? 'No providers found${_lastQuery != null ? ' in $_lastQuery' : ''}'
+                                            : 'Search for providers by location',
                                         style: TextStyle(
                                           color: AppConstants.softWhite.withOpacity(0.6),
                                           fontSize: 16,
@@ -401,7 +410,9 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
-                                        'Enter a city or neighborhood above',
+                                        _hasSearched
+                                            ? 'Try a different location or widen your radius'
+                                            : 'Enter a city or neighborhood above',
                                         style: TextStyle(
                                           color: AppConstants.mutedGray.withOpacity(0.5),
                                           fontSize: 14,

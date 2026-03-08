@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class ForgotPasswordScreen extends StatefulWidget {
-  final String? contactInfo; // Optional pre-filled contact
+  final String? contactInfo;
 
   const ForgotPasswordScreen({super.key, this.contactInfo});
 
@@ -23,7 +23,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   void initState() {
     super.initState();
-    // Pre-fill contact if provided
     if (widget.contactInfo != null) {
       _contactController.text = widget.contactInfo!;
       _isEmail = widget.contactInfo!.contains('@');
@@ -33,17 +32,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   String _formatPhoneForBackend(String phone) {
     phone = phone.trim();
     if (phone.startsWith('0') && phone.length == 10) {
-      return '254${phone.substring(1)}'; // Convert 0712345678 to 254712345678
+      return '254${phone.substring(1)}';
     }
-    return phone; // Fallback for unexpected formats (though validator ensures correct format)
+    return phone;
   }
 
   Future<void> _sendResetRequest() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final String formattedContact = _isEmail
@@ -53,34 +50,50 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       final response = await http.post(
         Uri.parse(AppConstants.forgotPassword),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email_or_phone': formattedContact,
-        }),
+        body: jsonEncode({'email_or_phone': formattedContact}),
       );
 
       if (!mounted) return;
+      setState(() => _isLoading = false);
 
-      if (response.statusCode == 200) {
-        Navigator.pushNamed(
+      String? message;
+      try {
+        final body = jsonDecode(response.body);
+        message = body['message']?.toString();
+      } catch (_) {}
+
+      final bool isSuccessStatus =
+          response.statusCode >= 200 && response.statusCode < 300;
+      final bool isSuccessMessage = message != null &&
+          message.toLowerCase().contains('password reset request sent');
+
+      if (isSuccessStatus || isSuccessMessage) {
+        Navigator.pushReplacementNamed(
           context,
-          Routes.resetPassword,
-          arguments: _contactController.text,
+          Routes.verifyResetCode,
+          arguments: _contactController.text.trim(),
         );
       } else {
-        final error = jsonDecode(response.body)['message'] ??
-            'Failed to send reset request';
+        String error = 'Failed to send reset code';
+        if (message != null && message.isNotEmpty) {
+          error = message;
+        } else {
+          try {
+            final body = jsonDecode(response.body);
+            error = body['message'] ?? body['error'] ?? error;
+          } catch (_) {}
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error)),
+          SnackBar(
+            content: Text('${error.toString()} (HTTP ${response.statusCode})'),
+          ),
         );
       }
     } catch (e) {
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Network error: ${e.toString()}')),
       );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
@@ -119,7 +132,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: AppConstants.accentColor,
+                            color: AppConstants.primaryColor,
                             width: 2,
                           ),
                         ),
@@ -134,26 +147,24 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         final phoneRegex = RegExp(r'^0\d{9}$');
                         if (!emailRegex.hasMatch(value) &&
                             !phoneRegex.hasMatch(value)) {
-                          return 'Please enter a valid email or phone number (e.g., 0712345678)';
+                          return 'Please enter a valid email or phone (e.g. 0712345678)';
                         }
                         return null;
                       },
-                      onChanged: (value) {
-                        setState(() {
-                          _isEmail = value.contains('@');
-                        });
-                      },
+                      onChanged: (value) =>
+                          setState(() => _isEmail = value.contains('@')),
                     ),
                     const SizedBox(height: 32),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                            backgroundColor: AppConstants.primaryColor,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            )),
+                          backgroundColor: AppConstants.primaryColor,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                         onPressed: _isLoading ? null : _sendResetRequest,
                         child: _isLoading
                             ? const CircularProgressIndicator(
@@ -170,9 +181,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ),
                     const SizedBox(height: 24),
                     TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
+                      onPressed: () => Navigator.pop(context),
                       child: const Text(
                         'Back to Account',
                         style: TextStyle(

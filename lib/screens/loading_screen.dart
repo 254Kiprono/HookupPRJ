@@ -36,15 +36,24 @@ class _LoadingScreenState extends State<LoadingScreen>
     if (!_isCheckingAuth) return;
 
     // Don't set _isCheckingAuth = false here, wait until done
-    
+
     final String? authToken = await StorageService.getAuthToken();
     final String? userId = await StorageService.getUserId();
     print('🔐 [LOADING] Auth token present: ${authToken != null}');
     print('👤 [LOADING] User ID present: ${userId != null}');
 
     if (authToken == null || authToken.isEmpty) {
-      await StorageService.clearAll();
-      print('❌ [LOADING] No auth token, redirecting to login');
+      // Don't clearAll() - we need onboarding_seen and safety_accepted to persist
+      // (clearAll is only for explicit logout)
+      print('❌ [LOADING] No auth token');
+
+      final bool onboardingSeen = await StorageService.isOnboardingSeen();
+      if (!onboardingSeen) {
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, Routes.onboarding);
+        }
+        return;
+      }
       if (mounted) {
         Navigator.pushReplacementNamed(context, Routes.login);
       }
@@ -52,16 +61,16 @@ class _LoadingScreenState extends State<LoadingScreen>
     }
 
     try {
-      // Skip fetching profile here to avoid 403 error loop. 
+      // Skip fetching profile here to avoid 403 error loop.
       // Trust the token we just got.
       print('⚠️ [LOADING] Skipping getUserProfile check to unblock login');
-      
+
       final roleId = await StorageService.getRoleId();
       final roleString = await StorageService.getUserRole();
-      
+
       print('👤 [LOADING] Role ID (parsed): $roleId');
       print('👤 [LOADING] Role String (raw): "$roleString"');
-      
+
       if (mounted) {
         if (roleId == AppConstants.bnbOwnerRoleId) {
           print('🏠 [LOADING] ➡️ Navigating to BnB Dashboard');
@@ -107,11 +116,15 @@ class _LoadingScreenState extends State<LoadingScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.error_outline, color: Colors.white, size: 48),
+                      const Icon(Icons.error_outline,
+                          color: Colors.white, size: 48),
                       const SizedBox(height: 16),
                       Text(
                         'Authentication Failed',
-                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -135,10 +148,12 @@ class _LoadingScreenState extends State<LoadingScreen>
                         onPressed: () async {
                           await StorageService.clearAll();
                           if (mounted) {
-                            Navigator.pushReplacementNamed(context, Routes.login);
+                            Navigator.pushReplacementNamed(
+                                context, Routes.login);
                           }
                         },
-                        child: const Text('Go to Login', style: TextStyle(color: Colors.white)),
+                        child: const Text('Go to Login',
+                            style: TextStyle(color: Colors.white)),
                       ),
                     ],
                   ),
@@ -162,7 +177,7 @@ class _LoadingScreenState extends State<LoadingScreen>
                           borderRadius: BorderRadius.circular(60),
                         ),
                         child: const Icon(
-                          Icons.favorite,
+                          Icons.location_on,
                           color: AppConstants.primaryColor,
                           size: 48,
                         ),
@@ -170,7 +185,7 @@ class _LoadingScreenState extends State<LoadingScreen>
                     ),
                     const SizedBox(height: 24),
                     const Text(
-                      'HookUp',
+                      'CloseBy',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 32,

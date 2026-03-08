@@ -5,6 +5,7 @@ import 'package:hook_app/app/routes.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:hook_app/services/storage_service.dart';
+import 'package:hook_app/utils/responsive.dart';
 
 class BookingsScreen extends StatefulWidget {
   const BookingsScreen({super.key});
@@ -75,7 +76,8 @@ class _BookingsScreenState extends State<BookingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _isLoading
+      body: ResponsivePage(
+        child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
               ? Center(
@@ -134,6 +136,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                         );
                       },
                     ),
+      ),
     );
   }
 }

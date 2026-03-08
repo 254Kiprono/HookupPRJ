@@ -105,13 +105,16 @@ class BnBService {
       },
     ).timeout(const Duration(seconds: 30));
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 404) {
+      if (response.body.isEmpty) {
+        return [];
+      }
       final data = jsonDecode(response.body);
       final bnbsList = data['bnbs'] as List<dynamic>? ?? [];
       return bnbsList.map((json) => BnB.fromJson(json as Map<String, dynamic>)).toList();
-    } else {
-      throw Exception('Failed to fetch BnBs: ${response.statusCode} - ${response.body}');
     }
+
+    throw Exception('Failed to fetch BnBs: ${response.statusCode} - ${response.body}');
   }
 
   /// Get BnB details by ID

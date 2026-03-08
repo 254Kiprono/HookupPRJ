@@ -13,6 +13,7 @@ import 'package:hook_app/services/api_service.dart';
 import 'package:hook_app/services/dummy_data_service.dart';
 import 'package:hook_app/services/location_service.dart';
 import 'package:hook_app/models/active_user.dart';
+import 'package:hook_app/utils/responsive.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 
@@ -26,10 +27,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   String? _userFullName;
   String? _userGender;
+  String? _userLocation;
   bool _isLoading = true;
   String? _errorMessage;
   int _selectedIndex = 0;
-  
+
   // Map and location state
   List<ActiveUser> _activeUsers = [];
   Position? _currentPosition;
@@ -44,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize pulse animation for markers
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1500),
@@ -52,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     )..repeat(reverse: true);
 
     // _pages initialization removed from here
-    
+
     _checkLoginAndFetchProfile();
   }
 
@@ -64,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Future<void> _checkLoginAndFetchProfile() async {
     print('🔍 [HOME] Starting _checkLoginAndFetchProfile');
-    
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -79,6 +81,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       setState(() {
         _userFullName = 'Guest User';
         _userGender = 'male';
+        _userLocation = 'Nairobi';
         _isLoading = false;
       });
       await _loadActiveUsers();
@@ -95,29 +98,38 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           return {'fullName': 'User', 'gender': 'male'};
         },
       );
-      
-      print('✅ [HOME] Profile received: ${data['fullName']}, gender: ${data['gender']}');
-      
+
+      final String fullName =
+          (data['fullName'] ?? data['full_name'] ?? data['name'] ?? 'User')
+              .toString()
+              .trim();
+      final String firstName =
+          fullName.isEmpty ? 'User' : fullName.split(' ').first;
+
+      print(
+          '✅ [HOME] Profile received: $fullName, gender: ${data['gender'] ?? data['gender']}');
+
       setState(() {
-        _userFullName = data['fullName'] ?? 'User';
-        _userGender = data['gender'] ?? 'male';
+        _userFullName = firstName;
+        _userGender = data['gender'] ?? data['gender'] ?? 'male';
+        _userLocation = data['location'] ?? data['region'] ?? 'Nairobi';
         _isLoading = false;
       });
-      
+
       print('🔍 [HOME] Loading active users...');
       await _loadActiveUsers();
       print('✅ [HOME] All data loaded successfully!');
-      
     } catch (error) {
       print('❌ [HOME] Profile API error: $error');
       print('🔍 [HOME] Loading dummy data as fallback...');
-      
+
       setState(() {
         _userFullName = 'User';
         _userGender = 'male';
+        _userLocation = 'Nairobi';
         _isLoading = false;
       });
-      
+
       await _loadActiveUsers();
       print('✅ [HOME] Fallback data loaded');
     }
@@ -125,31 +137,69 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Future<void> _loadActiveUsers() async {
     print('Loading active users...');
-    
-    // Always use default Nairobi location for now (faster loading)
-    final position = LocationService.getDefaultLocation();
-    
-    print('Using location: ${position.latitude}, ${position.longitude}');
 
-    setState(() {
-      _currentPosition = position;
-    });
+    Position? position;
+    try {
+      final hasPermission =
+          await LocationService.requestLocationPermission();
+      if (hasPermission) {
+        position = await LocationService.getCurrentLocation();
+      }
+    } catch (_) {}
+    position ??= LocationService.getDefaultLocation();
+    if (mounted) {
+      setState(() {
+        _currentPosition = position;
+      });
+    }
 
-    // Generate dummy active users based on gender
-    print('Generating dummy users for gender: ${_userGender ?? 'male'}');
+    final region = _userLocation ?? 'Nairobi';
+
+    try {
+      // Try real provider search first
+      final loc = position ?? LocationService.getDefaultLocation();
+      final providers = await ApiService.searchProviders(region);
+      final users = providers.map((p) {
+        return ActiveUser(
+          id: p.id,
+          name: p.name,
+          age: 25,
+          gender: 'female',
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          profileImage: 'https://via.placeholder.com/300',
+          bio: 'Verified host on CloseBy',
+          distance:
+              double.tryParse(p.distance.replaceAll(RegExp(r'[^0-9.]'), '')) ??
+                  2.0,
+          isOnline: p.isActive,
+          lastActive: DateTime.now(),
+        );
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _activeUsers = users;
+        });
+      }
+      return;
+    } catch (e) {
+      // Fallback to dummy data
+    }
+
+    final loc = position ?? LocationService.getDefaultLocation();
     final users = DummyDataService.generateActiveUsers(
       userGender: _userGender ?? 'male',
-      centerLat: position.latitude,
-      centerLon: position.longitude,
+      centerLat: loc.latitude,
+      centerLon: loc.longitude,
       count: 20,
     );
 
-    print('Generated ${users.length} users');
-    setState(() {
-      _activeUsers = users;
-    });
-    
-    print('Active users loaded successfully');
+    if (mounted) {
+      setState(() {
+        _activeUsers = users;
+      });
+    }
   }
 
   List<ActiveUser> get _filteredUsers {
@@ -186,16 +236,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           end: Alignment.bottomRight,
         ),
       ),
-      child: Column(
-        children: [
-          // Filter chips
-          _buildFilterChips(),
-          
-          // Map placeholder with user grid
-          Expanded(
-            child: _buildUserGrid(filteredUsers),
-          ),
-        ],
+      child: ResponsivePage(
+        child: Column(
+          children: [
+            // Filter chips
+            _buildFilterChips(),
+
+            // Map placeholder with user grid
+            Expanded(
+              child: _buildUserGrid(filteredUsers),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -322,13 +374,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       );
     }
 
+    final crossAxisCount = Responsive.gridCount(
+      context,
+      mobile: 2,
+      tablet: 3,
+      desktop: 4,
+    );
+    final aspectRatio = Responsive.isDesktop(context) ? 0.85 : 0.75;
+
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+      padding: EdgeInsets.symmetric(
+        horizontal: Responsive.isDesktop(context) ? 24 : 16,
+        vertical: 16,
+      ),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: 0.75,
+        childAspectRatio: aspectRatio,
       ),
       itemCount: users.length,
       itemBuilder: (context, index) {
@@ -342,7 +405,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       animation: _pulseController,
       builder: (context, child) {
         final pulseValue = _pulseController.value;
-        
+
         return GestureDetector(
           onTap: () {
             setState(() {
@@ -364,13 +427,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               border: Border.all(
                 width: 2,
                 color: user.isOnline
-                    ? AppConstants.primaryColor.withOpacity(0.5 + pulseValue * 0.5)
+                    ? AppConstants.primaryColor
+                        .withOpacity(0.5 + pulseValue * 0.5)
                     : AppConstants.mutedGray.withOpacity(0.3),
               ),
               boxShadow: user.isOnline
                   ? [
                       BoxShadow(
-                        color: AppConstants.primaryColor.withOpacity(0.3 + pulseValue * 0.3),
+                        color: AppConstants.primaryColor
+                            .withOpacity(0.3 + pulseValue * 0.3),
                         blurRadius: 15 + pulseValue * 10,
                         spreadRadius: 2 + pulseValue * 3,
                       ),
@@ -398,7 +463,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       },
                     ),
                   ),
-                  
+
                   // Gradient overlay
                   Positioned.fill(
                     child: Container(
@@ -415,7 +480,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                     ),
                   ),
-                  
+
                   // Online indicator
                   if (user.isOnline)
                     Positioned(
@@ -437,7 +502,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         ),
                       ),
                     ),
-                  
+
                   // User info
                   Positioned(
                     bottom: 0,
@@ -471,7 +536,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               Text(
                                 '${user.distance} km away',
                                 style: TextStyle(
-                                  color: AppConstants.softWhite.withOpacity(0.8),
+                                  color:
+                                      AppConstants.softWhite.withOpacity(0.8),
                                   fontSize: 12,
                                 ),
                               ),
@@ -524,7 +590,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            
+
             // Profile image
             Container(
               margin: const EdgeInsets.all(20),
@@ -552,7 +618,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ),
             ),
-            
+
             // User info
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -572,7 +638,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       const SizedBox(width: 8),
                       if (user.isOnline)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: AppConstants.successColor,
                             borderRadius: BorderRadius.circular(12),
@@ -616,7 +683,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Action buttons
                   Row(
                     children: [
@@ -624,7 +691,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         child: ElevatedButton(
                           onPressed: () {
                             Navigator.pop(context);
-                            // Navigate to profile
+                            Navigator.pushNamed(context, Routes.providerDetail,
+                                arguments: {
+                                  'providerId': user.id,
+                                  'name': user.name,
+                                  'age': user.age,
+                                  'distanceKm': user.distance,
+                                  'price': 0.0,
+                                  'imageUrl': user.profileImage,
+                                  'bio': user.bio,
+                                  'isOnline': user.isOnline,
+                                });
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppConstants.deepPurple,
@@ -632,7 +709,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                               side: BorderSide(
-                                color: AppConstants.primaryColor.withOpacity(0.5),
+                                color:
+                                    AppConstants.primaryColor.withOpacity(0.5),
                                 width: 1.5,
                               ),
                             ),
@@ -662,7 +740,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           child: ElevatedButton(
                             onPressed: () {
                               Navigator.pop(context);
-                              // Navigate to messages
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Chat unlocks after booking is accepted. Request a booking from the profile.',
+                                  ),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                              Navigator.pushNamed(context, Routes.providerDetail,
+                                  arguments: {
+                                    'providerId': user.id,
+                                    'name': user.name,
+                                    'age': user.age,
+                                    'distanceKm': user.distance,
+                                    'price': 0.0,
+                                    'imageUrl': user.profileImage,
+                                    'bio': user.bio,
+                                    'isOnline': user.isOnline,
+                                  });
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,
@@ -675,7 +771,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.message, size: 18, color: AppConstants.softWhite),
+                                Icon(Icons.message,
+                                    size: 18, color: AppConstants.softWhite),
                                 SizedBox(width: 8),
                                 Text(
                                   'Message',
@@ -748,7 +845,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppConstants.primaryColor,
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -812,7 +910,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppConstants.primaryColor,
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -848,7 +947,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
                 child: CustomAppBar(
                   title: 'Hello, ${_userFullName ?? 'User'}',
-                  subtitle: 'Find your perfect match nearby',
+                  subtitle: 'Find trusted services nearby',
                   showProfile: true,
                   primaryColor: Theme.of(context).primaryColor,
                   secondaryColor: Theme.of(context).colorScheme.secondary,

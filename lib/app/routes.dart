@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:hook_app/auth/login_user.dart'; 
+import 'package:hook_app/auth/login_user.dart';
 import 'package:hook_app/screens/auth/register_screen.dart';
 import 'package:hook_app/screens/auth/forgot_password_screen.dart';
+import 'package:hook_app/screens/auth/verify_reset_code_screen.dart';
 import 'package:hook_app/screens/auth/reset_password_screen.dart';
 import 'package:hook_app/screens/loading_screen.dart';
+import 'package:hook_app/screens/main_app/subscription_screen.dart';
+import 'package:hook_app/screens/main_app/safety_center_screen.dart';
+import 'package:hook_app/screens/auth/safety_notice_screen.dart';
+import 'package:hook_app/screens/auth/onboarding_screen.dart';
 import 'package:hook_app/screens/main_app/home_screen.dart';
 import 'package:hook_app/screens/main_app/search_screen.dart';
 import 'package:hook_app/screens/main_app/provider_detail_screen.dart';
-import 'package:hook_app/screens/main_app/booking_screen.dart'; 
-import 'package:hook_app/screens/main_app/bookings_screen.dart'; 
+import 'package:hook_app/screens/main_app/booking_screen.dart';
+import 'package:hook_app/screens/main_app/bookings_screen.dart';
 import 'package:hook_app/screens/main_app/messages_screen.dart';
-import 'package:hook_app/screens/main_app/account_screen.dart'; 
-import 'package:hook_app/screens/main_app/edit_profile_screen.dart'; 
+import 'package:hook_app/screens/main_app/account_screen.dart';
+import 'package:hook_app/screens/main_app/edit_profile_screen.dart';
 import 'package:hook_app/screens/bnb_owner/bnb_owner_dashboard_screen.dart';
 import 'package:hook_app/screens/bnb_owner/register_bnb_screen.dart';
 import 'package:hook_app/screens/bnb_owner/manage_bnb_screen.dart';
@@ -22,18 +27,23 @@ import 'package:hook_app/models/bnb.dart';
 
 class Routes {
   static const String loading = '/';
+  static const String onboarding = '/onboarding';
+  static const String safetyNotice = '/safety-notice';
   static const String login = '/login';
   static const String register = '/register';
   static const String forgotPassword = '/forgot-password';
+  static const String verifyResetCode = '/verify-reset-code';
   static const String resetPassword = '/reset-password';
   static const String home = '/home';
   static const String search = '/search';
   static const String providerDetail = '/provider-detail';
-  static const String booking = '/booking'; 
-  static const String bookings = '/bookings'; 
+  static const String booking = '/booking';
+  static const String bookings = '/bookings';
   static const String messages = '/messages';
   static const String account = '/account';
-  static const String editProfile = '/edit-profile'; 
+  static const String editProfile = '/edit-profile';
+  static const String safetyCenter = '/safety-center';
+  static const String subscription = '/subscription';
 
   // BnB Owner Routes
   static const String bnbOwnerLogin = '/bnb-owner-login';
@@ -47,6 +57,10 @@ class Routes {
     switch (settings.name) {
       case loading:
         return MaterialPageRoute(builder: (_) => const LoadingScreen());
+      case onboarding:
+        return MaterialPageRoute(builder: (_) => const OnboardingScreen());
+      case safetyNotice:
+        return MaterialPageRoute(builder: (_) => const SafetyNoticeScreen());
       case login:
         return MaterialPageRoute(builder: (_) => const LoginScreen());
       case register:
@@ -56,23 +70,61 @@ class Routes {
         return MaterialPageRoute(
           builder: (_) => ForgotPasswordScreen(contactInfo: args),
         );
-      case resetPassword:
+      case verifyResetCode:
         if (settings.arguments == null || settings.arguments is! String) {
+          return MaterialPageRoute(
+            builder: (_) => const Scaffold(
+              body: Center(child: Text('Invalid arguments for verify code')),
+            ),
+          );
+        }
+        final String contactInfo = settings.arguments as String;
+        return MaterialPageRoute(
+          builder: (_) => VerifyResetCodeScreen(contactInfo: contactInfo),
+        );
+      case resetPassword:
+        if (settings.arguments == null ||
+            settings.arguments is! Map<String, dynamic>) {
           return MaterialPageRoute(
             builder: (_) => const Scaffold(
               body: Center(child: Text('Invalid arguments for reset password')),
             ),
           );
         }
-        final String contactInfo = settings.arguments as String;
+        final args = settings.arguments as Map<String, dynamic>;
+        final String? contactInfo = args['contactInfo'] as String?;
+        final String? resetCode = args['resetCode'] as String?;
+        if (contactInfo == null || resetCode == null) {
+          return MaterialPageRoute(
+            builder: (_) => const Scaffold(
+              body: Center(child: Text('Invalid arguments for reset password')),
+            ),
+          );
+        }
         return MaterialPageRoute(
-          builder: (_) => ResetPasswordScreen(contactInfo: contactInfo),
+          builder: (_) => ResetPasswordScreen(
+              contactInfo: contactInfo, resetCode: resetCode),
         );
       case home:
         return MaterialPageRoute(builder: (_) => const HomeScreen());
       case search:
         return MaterialPageRoute(builder: (_) => const SearchScreen());
       case providerDetail:
+        if (settings.arguments is Map<String, dynamic>) {
+          final args = settings.arguments as Map<String, dynamic>;
+          return MaterialPageRoute(
+            builder: (_) => ProviderDetailScreen(
+              providerId: args['providerId'] as int?,
+              name: args['name'] as String?,
+              age: args['age'] as int?,
+              distanceKm: args['distanceKm'] as double?,
+              price: args['price'] as double?,
+              imageUrl: args['imageUrl'] as String?,
+              bio: args['bio'] as String?,
+              isOnline: args['isOnline'] as bool? ?? false,
+            ),
+          );
+        }
         return MaterialPageRoute(builder: (_) => const ProviderDetailScreen());
       case booking:
         if (settings.arguments == null ||
@@ -116,8 +168,7 @@ class Routes {
         }
         final args = settings.arguments as Map<String, dynamic>;
         final otherUserId = args['otherUserId'] as int?;
-        final otherUserName =
-            args['otherUserName'] as String?; 
+        final otherUserName = args['otherUserName'] as String?;
         if (otherUserId == null) {
           return MaterialPageRoute(
             builder: (_) => const Scaffold(
@@ -129,12 +180,15 @@ class Routes {
         return MaterialPageRoute(
           builder: (_) => MessagesScreen(
             otherUserId: otherUserId,
-            otherUserName:
-                otherUserName ?? 'Unknown', 
+            otherUserName: otherUserName ?? 'Unknown',
           ),
         );
       case account:
         return MaterialPageRoute(builder: (_) => const AccountScreen());
+      case safetyCenter:
+        return MaterialPageRoute(builder: (_) => const SafetyCenterScreen());
+      case subscription:
+        return MaterialPageRoute(builder: (_) => const SubscriptionScreen());
       case editProfile:
         if (settings.arguments == null ||
             settings.arguments is! Map<String, dynamic>) {
@@ -149,25 +203,28 @@ class Routes {
         return MaterialPageRoute(
           builder: (_) => EditProfileScreen(arguments: args),
         );
-      
+
       // BnB Owner Routes
       case bnbDashboard:
-        return MaterialPageRoute(builder: (_) => const BnBOwnerDashboardScreen());
-      
+        return MaterialPageRoute(
+            builder: (_) => const BnBOwnerDashboardScreen());
+
       case registerBnB:
         return MaterialPageRoute(builder: (_) => const RegisterBnBScreen());
-      
+
       case registerBnBOwner:
-        return MaterialPageRoute(builder: (_) => const RegisterBnBOwnerScreen());
-      
+        return MaterialPageRoute(
+            builder: (_) => const RegisterBnBOwnerScreen());
+
       case bnbOwnerLogin:
         return MaterialPageRoute(builder: (_) => const BnBOwnerLoginScreen());
-      
+
       case manageBnB:
         if (settings.arguments == null || settings.arguments is! BnB) {
           return MaterialPageRoute(
             builder: (_) => const Scaffold(
-              body: Center(child: Text('Invalid arguments for ManageBnBScreen')),
+              body:
+                  Center(child: Text('Invalid arguments for ManageBnBScreen')),
             ),
           );
         }
@@ -175,10 +232,11 @@ class Routes {
         return MaterialPageRoute(
           builder: (_) => ManageBnBScreen(bnb: bnb),
         );
-      
+
       case bnbBookingHistory:
-        return MaterialPageRoute(builder: (_) => const BnBBookingHistoryScreen());
-      
+        return MaterialPageRoute(
+            builder: (_) => const BnBBookingHistoryScreen());
+
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

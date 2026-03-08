@@ -3,6 +3,7 @@ import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/booking_service.dart';
 import 'package:hook_app/models/booking.dart';
 import 'package:intl/intl.dart';
+import 'package:hook_app/utils/responsive.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -88,8 +89,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
+          child: ResponsivePage(
+            child: Column(
+              children: [
               // Header
               Padding(
                 padding: const EdgeInsets.all(20.0),
@@ -154,7 +156,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             ? _buildEmptyWidget()
                             : _buildBookingsList(),
               ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

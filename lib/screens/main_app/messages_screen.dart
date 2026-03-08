@@ -5,6 +5,7 @@ import 'package:web_socket_channel/io.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/storage_service.dart';
+import 'package:hook_app/utils/responsive.dart';
 
 class Message {
   final String id;
@@ -139,7 +140,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       if (_userId == null) {
         final refreshToken = await StorageService.getRefreshToken();
         if (refreshToken != null) {
-          final newToken = await Tokenlogger.RefreshToken(refreshToken);
+          final newToken = await TokenUtils.refreshToken(refreshToken);
           if (newToken != null) {
             await StorageService.saveAuthToken(newToken);
             _userId = await TokenUtils.extractUserId(newToken);
@@ -241,7 +242,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       if (JwtDecoder.isExpired(currentToken)) {
         final refreshToken = await StorageService.getRefreshToken();
         if (refreshToken != null) {
-          final newToken = await Tokenlogger.RefreshToken(refreshToken);
+          final newToken = await TokenUtils.refreshToken(refreshToken);
           if (newToken != null) {
             await StorageService.saveAuthToken(newToken);
             currentToken = newToken;
@@ -514,7 +515,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               _initiateBooking();
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF40C4FF),
+              backgroundColor: AppConstants.primaryColor,
             ),
             child: const Text(
               'Send Proposal',
@@ -541,7 +542,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF40C4FF),
+        backgroundColor: AppConstants.primaryColor,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -564,54 +565,56 @@ class _MessagesScreenState extends State<MessagesScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _errorMessage != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              _errorMessage!,
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontSize: 16,
+      body: ResponsivePage(
+        child: Column(
+          children: [
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _errorMessage != null
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                _errorMessage!,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 16,
+                                ),
+                                textAlign: TextAlign.center,
                               ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: _initAndFetchUserId,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF40C4FF),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: _initAndFetchUserId,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppConstants.primaryColor,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Retry',
+                                  style: TextStyle(color: Colors.white),
                                 ),
                               ),
-                              child: const Text(
-                                'Retry',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.all(8),
+                          itemCount: _messages.length,
+                          itemBuilder: (context, index) {
+                            final message = _messages[index];
+                            final isSentByUser = message.senderId == _userId;
+                            return _buildMessageBubble(message, isSentByUser);
+                          },
                         ),
-                      )
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.all(8),
-                        itemCount: _messages.length,
-                        itemBuilder: (context, index) {
-                          final message = _messages[index];
-                          final isSentByUser = message.senderId == _userId;
-                          return _buildMessageBubble(message, isSentByUser);
-                        },
-                      ),
-          ),
-          _buildMessageInput(),
-        ],
+            ),
+            _buildMessageInput(),
+          ],
+        ),
       ),
     );
   }
@@ -626,7 +629,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: isSentByUser ? const Color(0xFF40C4FF) : Colors.grey[200],
+            color: isSentByUser ? AppConstants.primaryColor : Colors.grey[200],
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
@@ -649,10 +652,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
                     border: const Border(
-                      top: BorderSide(color: Color(0xFF40C4FF)),
-                      left: BorderSide(color: Color(0xFF40C4FF)),
-                      right: BorderSide(color: Color(0xFF40C4FF)),
-                      bottom: BorderSide(color: Color(0xFF40C4FF)),
+                      top: BorderSide(color: AppConstants.primaryColor),
+                      left: BorderSide(color: AppConstants.primaryColor),
+                      right: BorderSide(color: AppConstants.primaryColor),
+                      bottom: BorderSide(color: AppConstants.primaryColor),
                     ),
                   ),
                   child: Column(
@@ -662,7 +665,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                         'Booking Proposal',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF40C4FF),
+                          color: AppConstants.primaryColor,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -754,7 +757,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
           ),
           const SizedBox(width: 8),
           CircleAvatar(
-            backgroundColor: const Color(0xFF40C4FF),
+            backgroundColor: AppConstants.primaryColor,
             child: IconButton(
               icon: const Icon(
                 Icons.send,

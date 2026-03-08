@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hook_app/utils/constants.dart';
 
 class OTPInput extends StatefulWidget {
   final ValueChanged<String>? onCompleted;
@@ -62,16 +63,16 @@ class _OTPInputState extends State<OTPInput> {
           contentPadding:
               const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             borderSide: const BorderSide(
-              color: Color(0xFF6E48AA),
+              color: AppConstants.primaryColor,
               width: 2,
             ),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             borderSide: const BorderSide(
-              color: Color(0xFF6E48AA),
+              color: AppConstants.primaryColor,
               width: 2,
             ),
           ),

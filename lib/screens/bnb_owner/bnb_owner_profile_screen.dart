@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hook_app/utils/constants.dart';
-import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/services/user_service.dart';
 import 'package:hook_app/screens/bnb_owner/edit_profile_screen.dart';
 
@@ -379,7 +378,7 @@ class _BnBOwnerProfileScreenState extends State<BnBOwnerProfileScreen> {
         const SizedBox(height: 16),
         _buildGradientButton(
           onPressed: () async {
-            await StorageService.clearAll();
+            await UserService.logout();
             if (mounted) {
               Navigator.pushNamedAndRemoveUntil(
                 context, 

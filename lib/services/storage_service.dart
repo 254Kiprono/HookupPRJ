@@ -7,6 +7,9 @@ class StorageService {
   static const String _refreshTokenKey = 'refresh_token';
   static const String _userIdKey = 'user_id';
   static const String _userRoleKey = 'user_role';
+  static const String _onboardingSeenKey = 'onboarding_seen';
+  static const String _safetyAcceptedKey = 'safety_accepted';
+  static const String _referralCodeKey = 'referral_code';
 
   static Future<void> saveAuthToken(String token) async {
     await _storage.write(key: _authTokenKey, value: token);
@@ -44,6 +47,37 @@ class StorageService {
     final role = await _storage.read(key: _userRoleKey);
     if (role == null) return null;
     return int.tryParse(role);
+  }
+
+  static Future<void> setOnboardingSeen(bool seen) async {
+    await _storage.write(key: _onboardingSeenKey, value: seen ? '1' : '0');
+  }
+
+  static Future<bool> isOnboardingSeen() async {
+    final v = await _storage.read(key: _onboardingSeenKey);
+    return v == '1';
+  }
+
+  static Future<void> setSafetyAccepted(bool accepted) async {
+    await _storage.write(key: _safetyAcceptedKey, value: accepted ? '1' : '0');
+  }
+
+  static Future<bool> isSafetyAccepted() async {
+    final v = await _storage.read(key: _safetyAcceptedKey);
+    return v == '1';
+  }
+
+  static Future<void> saveReferralCode(String code) async {
+    if (code.trim().isEmpty) return;
+    await _storage.write(key: _referralCodeKey, value: code.trim());
+  }
+
+  static Future<String?> getReferralCode() async {
+    return await _storage.read(key: _referralCodeKey);
+  }
+
+  static Future<void> clearReferralCode() async {
+    await _storage.delete(key: _referralCodeKey);
   }
 
   static Future<void> clearAll() async {

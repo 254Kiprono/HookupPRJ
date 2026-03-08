@@ -93,16 +93,15 @@ class WalletService {
         },
       ).timeout(const Duration(seconds: 30));
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 404) {
+        if (response.body.isEmpty) return [];
         final data = jsonDecode(response.body);
         final transactionsList = data['transactions'] as List<dynamic>? ?? [];
         return transactionsList
             .map((json) => WalletTransaction.fromJson(json as Map<String, dynamic>))
             .toList();
-      } else {
-        // If endpoint doesn't exist yet, return empty list
-        return [];
       }
+      return [];
     } catch (e) {
       // Endpoint might not exist yet, return empty list
       return [];
@@ -271,7 +270,6 @@ class WalletService {
     return earnings;
   }
 }
-
 
 
 

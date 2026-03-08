@@ -44,9 +44,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
     try {
       final String url = widget.verificationType == 'email'
-          ? AppConstants.verifyOTP // Use pre-defined constant
-          : AppConstants
-              .verifyOTP; // Note: Currently same endpoint; adjust if different
+          ? AppConstants.verifyEmail
+          : AppConstants.verifyPhone;
       final response = await http
           .post(
             Uri.parse(url),
@@ -69,7 +68,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
               content: Text(data['message'] ?? 'Verification successful!')),
         );
         widget.onVerified();
-        Navigator.pop(context);
+        if (!mounted) return;
+        // Return response so caller can update UI immediately
+        Navigator.pop(context, data);
       } else {
         final errorData = jsonDecode(response.body);
         setState(() {

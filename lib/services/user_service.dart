@@ -10,14 +10,15 @@ class UserService {
   static Future<Map<String, dynamic>> getUserProfile() async {
     final token = await StorageService.getAuthToken();
     final roleId = await StorageService.getRoleId();
-    
+
     if (token == null) throw Exception('No auth token found');
 
     print('🔍 [USER_SERVICE] Fetching profile - RoleID: $roleId');
-    print('🔍 [USER_SERVICE] Using POST method (endpoint requires POST, backend extracts userID/roleID from JWT token)');
+    print(
+        '🔍 [USER_SERVICE] Using POST method (endpoint requires POST, backend extracts userID/roleID from JWT token)');
 
     final userId = await StorageService.getUserId();
-    
+
     // Use POST method (endpoint requires POST per gRPC-Gateway)
     // Sending user_id explicitly to resolve potential extraction issues on backend
     // The backend error 'invalid value for string field userId: 1' indicates it expects a STRING value.
@@ -26,24 +27,40 @@ class UserService {
       body['user_id'] = userId; // Send as string, do NOT parse to int
     }
 
-    final response = await http.post(
-      Uri.parse('${AppConstants.userServiceBaseUrl}/v1/auth/get-userprofile'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode(body),
-    ).timeout(const Duration(seconds: 30));
+    final response = await http
+        .post(
+          Uri.parse(
+              '${AppConstants.userServiceBaseUrl}/v1/auth/get-userprofile'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode(body),
+        )
+        .timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {
       print('✅ [USER_SERVICE] Profile fetched successfully');
       return jsonDecode(response.body) as Map<String, dynamic>;
-    } else {
-      final errorBody = response.body;
-      print('❌ [USER_SERVICE] Profile fetch failed: ${response.statusCode} - $errorBody');
-      throw Exception('Failed to fetch user profile: ${response.statusCode} - $errorBody');
     }
+
+    // Some gateways return 404 even when the body contains a valid profile.
+    try {
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      if (body.containsKey('userId') || body.containsKey('user_id')) {
+        print(
+            '⚠️ [USER_SERVICE] Non-200 status with valid body (${response.statusCode}). Treating as success.');
+        return body;
+      }
+    } catch (_) {}
+
+    final errorBody = response.body;
+    print(
+        '❌ [USER_SERVICE] Profile fetch failed: ${response.statusCode} - $errorBody');
+    throw Exception(
+        'Failed to fetch user profile: ${response.statusCode} - $errorBody');
   }
+
   /// Update user profile
   static Future<Map<String, dynamic>> updateUserProfile({
     String? fullName,
@@ -56,7 +73,7 @@ class UserService {
   }) async {
     final token = await StorageService.getAuthToken();
     final userId = await StorageService.getUserId();
-    
+
     if (token == null) throw Exception('No auth token found');
 
     final Map<String, dynamic> body = {
@@ -71,19 +88,23 @@ class UserService {
     if (address != null) body['address'] = address;
     if (profileImage != null) body['profile_image'] = profileImage;
 
-    final response = await http.patch(
-      Uri.parse('${AppConstants.userServiceBaseUrl}/v1/auth/update-userprofile'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode(body),
-    ).timeout(const Duration(seconds: 30));
+    final response = await http
+        .patch(
+          Uri.parse(
+              '${AppConstants.userServiceBaseUrl}/v1/auth/update-userprofile'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode(body),
+        )
+        .timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
     } else {
-      throw Exception('Failed to update profile: ${response.statusCode} - ${response.body}');
+      throw Exception(
+          'Failed to update profile: ${response.statusCode} - ${response.body}');
     }
   }
 
@@ -91,47 +112,56 @@ class UserService {
   static Future<Map<String, dynamic>> updateActiveStatus(bool isActive) async {
     final token = await StorageService.getAuthToken();
     final userId = await StorageService.getUserId();
-    
+
     if (token == null) throw Exception('No auth token found');
 
-    final response = await http.patch(
-      Uri.parse('${AppConstants.userServiceBaseUrl}/v1/auth/update-userprofile'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'user_id': userId,
-        'is_active': isActive,
-      }),
-    ).timeout(const Duration(seconds: 30));
+    final response = await http
+        .patch(
+          Uri.parse(
+              '${AppConstants.userServiceBaseUrl}/v1/auth/update-userprofile'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({
+            'user_id': userId,
+            'is_active': isActive,
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
     } else {
-      throw Exception('Failed to update active status: ${response.statusCode} - ${response.body}');
+      throw Exception(
+          'Failed to update active status: ${response.statusCode} - ${response.body}');
     }
   }
+
   /// Update user location
-  static Future<void> updateUserLocation(double latitude, double longitude, {String? county}) async {
+  static Future<void> updateUserLocation(double latitude, double longitude,
+      {String? county}) async {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
-    final response = await http.post(
-      Uri.parse(AppConstants.updateLocation),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'latitude': latitude,
-        'longitude': longitude,
-        if (county != null) 'county': county,
-      }),
-    ).timeout(const Duration(seconds: 30));
+    final response = await http
+        .post(
+          Uri.parse(AppConstants.updateLocation),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({
+            'latitude': latitude,
+            'longitude': longitude,
+            if (county != null) 'county': county,
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
 
     if (response.statusCode != 200) {
-      throw Exception('Failed to update location: ${response.statusCode} - ${response.body}');
+      throw Exception(
+          'Failed to update location: ${response.statusCode} - ${response.body}');
     }
   }
 
@@ -161,24 +191,37 @@ class UserService {
     if (page != null) body['page'] = page;
     if (limit != null) body['limit'] = limit;
 
-    final response = await http.post(
-      Uri.parse(AppConstants.searchNearbyUsers),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode(body),
-    ).timeout(const Duration(seconds: 30));
+    final response = await http
+        .post(
+          Uri.parse(AppConstants.searchNearbyUsers),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode(body),
+        )
+        .timeout(const Duration(seconds: 30));
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
-    } else {
-      throw Exception('Failed to search users: ${response.statusCode} - ${response.body}');
+    if (response.statusCode == 200 || response.statusCode == 404) {
+      if (response.body.isEmpty) {
+        return {'users': [], 'totalCount': 0};
+      }
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        decoded.putIfAbsent('users', () => []);
+        decoded.putIfAbsent('totalCount', () => 0);
+        return decoded;
+      }
+      return {'users': [], 'totalCount': 0};
     }
+
+    throw Exception(
+        'Failed to search users: ${response.statusCode} - ${response.body}');
   }
 
   /// Google Sign Up
-  static Future<Map<String, dynamic>> googleSignUp(String idToken, {
+  static Future<Map<String, dynamic>> googleSignUp(
+    String idToken, {
     String? location,
     String? bio,
     String? interests,
@@ -194,31 +237,37 @@ class UserService {
     if (address != null) body['address'] = address;
     if (role != null) body['role'] = role;
 
-    final response = await http.post(
-      Uri.parse(AppConstants.googleSignUp),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(body),
-    ).timeout(const Duration(seconds: 30));
+    final response = await http
+        .post(
+          Uri.parse(AppConstants.googleSignUp),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(body),
+        )
+        .timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
     } else {
-      throw Exception('Failed to sign up with Google: ${response.statusCode} - ${response.body}');
+      throw Exception(
+          'Failed to sign up with Google: ${response.statusCode} - ${response.body}');
     }
   }
 
   /// Google Sign In
   static Future<Map<String, dynamic>> googleSignIn(String idToken) async {
-    final response = await http.post(
-      Uri.parse(AppConstants.googleSignIn),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'id_token': idToken}),
-    ).timeout(const Duration(seconds: 30));
+    final response = await http
+        .post(
+          Uri.parse(AppConstants.googleSignIn),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'id_token': idToken}),
+        )
+        .timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
     } else {
-      throw Exception('Failed to sign in with Google: ${response.statusCode} - ${response.body}');
+      throw Exception(
+          'Failed to sign in with Google: ${response.statusCode} - ${response.body}');
     }
   }
 
@@ -228,6 +277,10 @@ class UserService {
     if (token == null) return;
 
     try {
+      try {
+        await updateActiveStatus(false);
+      } catch (_) {}
+
       await http.post(
         Uri.parse(AppConstants.logout),
         headers: {

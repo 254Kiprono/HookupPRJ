@@ -1,7 +1,6 @@
 // lib/widgets/common/provider_card.dart
 import 'package:flutter/material.dart';
-
-const Color amber400 = Color(0xFFFFD54F); // Defined as a constant here
+import 'package:hook_app/utils/constants.dart';
 
 class ProviderCard extends StatelessWidget {
   final String name;
@@ -30,7 +29,8 @@ class ProviderCard extends StatelessWidget {
           Stack(
             children: [
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(16)),
                 child: Image.network(
                   imageUrl,
                   height: 120,
@@ -49,7 +49,9 @@ class ProviderCard extends StatelessWidget {
                   ),
                   child: Icon(
                     isFavorite ? Icons.favorite : Icons.favorite_border,
-                    color: isFavorite ? Colors.red : Colors.grey,
+                    color: isFavorite
+                        ? AppConstants.errorColor
+                        : AppConstants.mutedGray,
                     size: 16,
                   ),
                 ),
@@ -65,7 +67,8 @@ class ProviderCard extends StatelessWidget {
                   children: [
                     const CircleAvatar(
                       radius: 12,
-                      backgroundImage: NetworkImage('https://via.placeholder.com/50'),
+                      backgroundImage:
+                          NetworkImage('https://via.placeholder.com/50'),
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -80,18 +83,24 @@ class ProviderCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.star, color: amber400, size: 14),
-                    const Icon(Icons.star, color: amber400, size: 14),
-                    const Icon(Icons.star, color: amber400, size: 14),
-                    const Icon(Icons.star, color: amber400, size: 14),
+                    const Icon(Icons.star,
+                        color: AppConstants.accentColor, size: 14),
+                    const Icon(Icons.star,
+                        color: AppConstants.accentColor, size: 14),
+                    const Icon(Icons.star,
+                        color: AppConstants.accentColor, size: 14),
+                    const Icon(Icons.star,
+                        color: AppConstants.accentColor, size: 14),
                     rating >= 4.5
-                        ? const Icon(Icons.star, color: amber400, size: 14)
-                        : const Icon(Icons.star_half, color: amber400, size: 14),
+                        ? Icon(Icons.star,
+                            color: Colors.amber.shade400, size: 14)
+                        : const Icon(Icons.star_half,
+                            color: AppConstants.accentColor, size: 14),
                     const SizedBox(width: 4),
                     Text(
                       '(${rating.toStringAsFixed(0)})',
                       style: TextStyle(
-                        color: Colors.grey[600],
+                        color: AppConstants.mutedGray,
                         fontSize: 12,
                       ),
                     ),
@@ -104,7 +113,7 @@ class ProviderCard extends StatelessWidget {
                     Text(
                       distance,
                       style: TextStyle(
-                        color: Colors.grey[600],
+                        color: AppConstants.mutedGray,
                         fontSize: 12,
                       ),
                     ),
@@ -112,7 +121,7 @@ class ProviderCard extends StatelessWidget {
                       price,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.purple,
+                        color: AppConstants.primaryColor,
                         fontSize: 14,
                       ),
                     ),

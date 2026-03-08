@@ -7,10 +7,12 @@ import 'dart:convert';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String contactInfo;
+  final String resetCode;
 
   const ResetPasswordScreen({
     super.key,
     required this.contactInfo,
+    required this.resetCode,
   });
 
   @override
@@ -18,25 +20,10 @@ class ResetPasswordScreen extends StatefulWidget {
 }
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
-  final TextEditingController _otpController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
   bool _isLoading = false;
-  bool _isEmail = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _isEmail = widget.contactInfo.contains('@');
-  }
-
-  String _formatPhoneForDisplay(String phone) {
-    if (phone.startsWith('254') && phone.length == 12) {
-      return '0${phone.substring(3)}';
-    }
-    return phone;
-  }
 
   String _formatPhoneForBackend(String phone) {
     phone = phone.trim();
@@ -54,19 +41,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       return;
     }
 
-    if (_otpController.text.length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid 6-digit code')),
-      );
-      return;
-    }
-
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final String formattedContact = _isEmail
+      final bool isEmail = widget.contactInfo.contains('@');
+      final String formattedContact = isEmail
           ? widget.contactInfo
           : _formatPhoneForBackend(widget.contactInfo);
 
@@ -75,65 +56,23 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'email_or_phone': formattedContact,
-          'reset_code': _otpController.text,
+          'reset_code': widget.resetCode,
           'new_password': _passwordController.text,
         }),
       );
 
       if (!mounted) return;
 
-      if (response.statusCode == 200) {
+      if (response.statusCode >= 200 && response.statusCode < 300) {
         Navigator.pushReplacementNamed(context, Routes.login);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Password reset successfully')),
         );
       } else {
-        final error =
-            json.decode(response.body)['message'] ?? 'Failed to reset password';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error)),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Network error: ${e.toString()}')),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _resendCode() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final String formattedContact = _isEmail
-          ? widget.contactInfo
-          : _formatPhoneForBackend(widget.contactInfo);
-
-      final response = await http.post(
-        Uri.parse(AppConstants.forgotPassword),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'contact': formattedContact,
-          'isEmail': _isEmail,
-        }),
-      );
-
-      if (!mounted) return;
-
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Verification code resent successfully')),
-        );
-      } else {
-        final error =
-            json.decode(response.body)['message'] ?? 'Failed to resend code';
+        String error = 'Failed to reset password';
+        try {
+          error = json.decode(response.body)['message'] ?? error;
+        } catch (_) {}
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(error)),
         );
@@ -150,76 +89,26 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   }
 
   @override
+  void dispose() {
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
         children: [
           AuthHeader(
             title: 'Reset Password',
-            subtitle:
-                'Enter the verification code sent to your ${_isEmail ? 'email' : 'phone'}',
+            subtitle: 'Set your new password',
           ),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  const SizedBox(height: 32),
-                  const Text(
-                    'We sent a 6-digit code to',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _isEmail
-                        ? widget.contactInfo
-                        : _formatPhoneForDisplay(widget.contactInfo),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  TextFormField(
-                    controller: _otpController,
-                    decoration: InputDecoration(
-                      labelText: 'Verification Code',
-                      hintText: '123456',
-                      prefixIcon: const Icon(Icons.vpn_key),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                          color: Color(0xFF6E48AA),
-                          width: 2,
-                        ),
-                      ),
-                    ),
-                    keyboardType: TextInputType.number,
-                    maxLength: 6,
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Didn\'t receive code?',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: _isLoading ? null : _resendCode,
-                    child: const Text(
-                      'Resend Code',
-                      style: TextStyle(
-                        color: Color(0xFF6E48AA),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
                   const SizedBox(height: 32),
                   TextFormField(
                     controller: _passwordController,
@@ -257,7 +146,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6E48AA),
+                        backgroundColor: AppConstants.primaryColor,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),

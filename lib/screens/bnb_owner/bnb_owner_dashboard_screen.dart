@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/bnb_service.dart';
 import 'package:hook_app/services/storage_service.dart';
+import 'package:hook_app/services/user_service.dart';
 import 'package:hook_app/models/bnb.dart';
 import 'package:hook_app/app/routes.dart';
 import 'package:hook_app/screens/bnb_owner/manage_bnb_screen.dart';
@@ -244,7 +245,7 @@ class _BnBOwnerDashboardScreenState extends State<BnBOwnerDashboardScreen> {
             leading: const Icon(Icons.logout, color: AppConstants.errorColor),
             title: const Text('Logout', style: TextStyle(color: AppConstants.errorColor)),
             onTap: () async {
-              await StorageService.clearAll();
+              await UserService.logout();
               if (mounted) {
                 Navigator.pushNamedAndRemoveUntil(
                   context, 

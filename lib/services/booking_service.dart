@@ -147,6 +147,17 @@ class BookingService {
       final data = jsonDecode(response.body);
       final bookingsList = data['bookings'] as List<dynamic>? ?? [];
       return bookingsList.map((json) => Booking.fromJson(json as Map<String, dynamic>)).toList();
+    } else if (response.statusCode == 404) {
+      // Handle 404 gracefully if it's just an empty list
+      try {
+        final data = jsonDecode(response.body);
+        if (data is Map<String, dynamic> && (data['bookings'] == null || (data['bookings'] is List && (data['bookings'] as List).isEmpty))) {
+          return [];
+        }
+      } catch (_) {
+        // Fall through to error
+      }
+      throw Exception('Failed to fetch bookings: ${response.statusCode} - ${response.body}');
     } else {
       throw Exception('Failed to fetch bookings: ${response.statusCode} - ${response.body}');
     }
@@ -177,6 +188,17 @@ class BookingService {
         // Backend returns ListBookingsResponse with 'bookings' array
         final bookingsList = data['bookings'] as List<dynamic>? ?? [];
         return bookingsList.map((json) => Booking.fromJson(json as Map<String, dynamic>)).toList();
+      } else if (response.statusCode == 404) {
+        // Handle 404 gracefully if it's just an empty list
+        try {
+          final data = jsonDecode(response.body);
+          if (data is Map<String, dynamic> && (data['bookings'] == null || (data['bookings'] is List && (data['bookings'] as List).isEmpty))) {
+            return [];
+          }
+        } catch (_) {
+          // Fall through to error
+        }
+        throw Exception('Failed to fetch BnB bookings: ${response.statusCode} - ${response.body}');
       } else {
         // Try to parse error response
         String errorMessage = 'Failed to fetch BnB bookings';

@@ -142,29 +142,32 @@ class _LoginScreenState extends State<LoginScreen> {
         // === DECODE JWT TOKEN TO EXTRACT ROLE ===
         Map<String, dynamic> decodedToken = JwtDecoder.decode(authToken);
         int? roleId = decodedToken['role_id'] as int?;
-        String? userId = decodedToken['user_id']?.toString() ?? 
-                        decodedToken['userId']?.toString() ??
-                        decodedToken['id']?.toString() ??
-                        decodedToken['sub']?.toString();
-        
+        String? userId = decodedToken['user_id']?.toString() ??
+            decodedToken['userId']?.toString() ??
+            decodedToken['id']?.toString() ??
+            decodedToken['sub']?.toString();
+
         print('🔑 [LOGIN] Decoded token: $decodedToken');
         print('🔑 [LOGIN] Role from token: $roleId');
-        print('🔑 [LOGIN] Expected BnB Owner roleID: ${AppConstants.bnbOwnerRoleId}');
-        
+        print(
+            '🔑 [LOGIN] Expected BnB Owner roleID: ${AppConstants.bnbOwnerRoleId}');
+
         // Block BnB owners from using regular login
         if (roleId == AppConstants.bnbOwnerRoleId) {
-          print('🚫 [LOGIN] Blocking BnB owner (roleID=$roleId) from regular login');
+          print(
+              '🚫 [LOGIN] Blocking BnB owner (roleID=$roleId) from regular login');
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('BnB owners must use the BnB Owner Login button below.'),
+              content:
+                  Text('BnB owners must use the BnB Owner Login button below.'),
               backgroundColor: AppConstants.errorColor,
               duration: Duration(seconds: 4),
             ),
           );
           return;
         }
-        
+
         print('✅ [LOGIN] Role check passed, user is not a BnB owner');
 
         // Now save credentials
@@ -173,11 +176,11 @@ class _LoginScreenState extends State<LoginScreen> {
         if (refreshToken != null && refreshToken.isNotEmpty) {
           await StorageService.saveRefreshToken(refreshToken);
         }
-        
+
         if (roleId != null) {
           await StorageService.saveUserRole(roleId.toString());
         }
-        
+
         if (userId != null && userId.isNotEmpty) {
           print('👤 [LOGIN] Saving userId: "$userId"');
           await StorageService.saveUserId(userId);
@@ -197,8 +200,8 @@ class _LoginScreenState extends State<LoginScreen> {
         final errorData = jsonDecode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errorData['message'] ??
-                'Login failed. Invalid credentials.'),
+            content: Text(
+                errorData['message'] ?? 'Login failed. Invalid credentials.'),
             backgroundColor: AppConstants.errorColor,
           ),
         );
@@ -356,9 +359,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Color(0xFF2C0E18), // Darker Wine
-                  AppConstants.primaryColor, // Deep Wine
-                  Color(0xFF121212), // Dark Charcoal
+                  AppConstants.secondaryColor,
+                  AppConstants.primaryColor,
+                  AppConstants.darkBackground,
                 ],
               ),
             ),
@@ -378,7 +381,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Icon(
                     Icons.favorite_rounded,
                     size: 64,
-                    color: AppConstants.secondaryColor,
+                    color: AppConstants.primaryColor,
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -391,7 +394,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Premium Social Discovery',
+                    'Local Services Marketplace',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Colors.white70,
                           letterSpacing: 1.0,
@@ -425,7 +428,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   labelStyle:
                                       const TextStyle(color: Colors.white70),
                                   prefixIcon: const Icon(Icons.person_outline,
-                                      color: AppConstants.secondaryColor),
+                                      color: AppConstants.primaryColor),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                     borderSide: BorderSide(
@@ -434,7 +437,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                     borderSide: const BorderSide(
-                                        color: AppConstants.secondaryColor),
+                                        color: AppConstants.primaryColor),
                                   ),
                                   filled: true,
                                   fillColor: Colors.black.withOpacity(0.2),
@@ -456,7 +459,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   labelStyle:
                                       const TextStyle(color: Colors.white70),
                                   prefixIcon: const Icon(Icons.lock_outline,
-                                      color: AppConstants.secondaryColor),
+                                      color: AppConstants.primaryColor),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                     borderSide: BorderSide(
@@ -465,7 +468,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                     borderSide: const BorderSide(
-                                        color: AppConstants.secondaryColor),
+                                        color: AppConstants.primaryColor),
                                   ),
                                   filled: true,
                                   fillColor: Colors.black.withOpacity(0.2),
@@ -488,7 +491,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   child: const Text(
                                     'Forgot Password?',
                                     style: TextStyle(
-                                      color: AppConstants.secondaryColor,
+                                      color: AppConstants.primaryColor,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -499,7 +502,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 width: double.infinity,
                                 child: ElevatedButton(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppConstants.secondaryColor,
+                                    backgroundColor: AppConstants.primaryColor,
                                     foregroundColor: Colors.black87,
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 16),
@@ -507,7 +510,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     elevation: 8,
-                                    shadowColor: AppConstants.secondaryColor
+                                    shadowColor: AppConstants.primaryColor
                                         .withOpacity(0.5),
                                   ),
                                   onPressed: _isLoading
@@ -587,7 +590,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: const Text(
                           'Sign Up',
                           style: TextStyle(
-                            color: AppConstants.secondaryColor,
+                            color: AppConstants.primaryColor,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -601,9 +604,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       Navigator.pushNamed(context, Routes.bnbOwnerLogin);
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 12, horizontal: 24),
                       decoration: BoxDecoration(
-                        border: Border.all(color: AppConstants.accentColor.withOpacity(0.5), width: 1.5),
+                        border: Border.all(
+                            color: AppConstants.accentColor.withOpacity(0.5),
+                            width: 1.5),
                         borderRadius: BorderRadius.circular(12),
                         gradient: LinearGradient(
                           colors: [
@@ -615,7 +621,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.home_work, color: AppConstants.accentColor, size: 20),
+                          const Icon(Icons.home_work,
+                              color: AppConstants.accentColor, size: 20),
                           const SizedBox(width: 8),
                           Text(
                             'BnB Owner Login',

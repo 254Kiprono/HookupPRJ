@@ -9,9 +9,13 @@ import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/services/user_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:hook_app/screens/main_app/bnbs_browse_screen.dart';
 import 'package:hook_app/screens/main_app/orders_screen.dart';
 import 'package:hook_app/screens/main_app/wallet_screen.dart';
+import 'package:hook_app/screens/main_app/safety_center_screen.dart';
+import 'package:hook_app/screens/main_app/subscription_screen.dart';
+import 'package:hook_app/screens/bnb_owner/bnb_owner_dashboard_screen.dart';
+import 'package:hook_app/screens/bnb_owner/bnb_bookings_screen.dart';
+import 'package:hook_app/utils/responsive.dart';
 
 import 'package:hook_app/screens/main_app/profile_details_screen.dart';
 
@@ -22,13 +26,15 @@ class AccountScreen extends StatefulWidget {
   State<AccountScreen> createState() => _AccountScreenState();
 }
 
-class _AccountScreenState extends State<AccountScreen> with TickerProviderStateMixin {
+class _AccountScreenState extends State<AccountScreen>
+    with TickerProviderStateMixin {
   Map<String, dynamic>? _userProfile;
   bool _isLoading = true;
   String? _errorMessage;
   File? _profileImage;
   final ImagePicker _picker = ImagePicker();
   bool _isOnline = false;
+  bool _isBnBOwner = false;
   late AnimationController _pulseController;
   late AnimationController _fadeController;
   late Animation<double> _pulseAnimation;
@@ -37,26 +43,26 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize animations
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     )..repeat(reverse: true);
-    
+
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
+
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeIn),
     );
-    
+
     _loadCachedProfile();
     _fetchUserProfile();
   }
@@ -78,6 +84,8 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
         setState(() {
           _userProfile = data;
           _isOnline = (data['isActive'] ?? data['is_active']) == true;
+          final roleStr = (data['role'] ?? data['roleName'] ?? '').toString();
+          _isBnBOwner = roleStr == 'ROLE_BNB_OWNER';
           _isLoading = false;
         });
         _fadeController.forward();
@@ -108,19 +116,30 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
     try {
       print('🔍 [ACCOUNT] Fetching user profile...');
       final response = await UserService.getUserProfile();
-      
+
       // Extract user data from response (backend returns {user: {...}})
       final data = response['user'] ?? response;
-      
+      if (data is Map<String, dynamic>) {
+        final String fullName =
+            (data['fullName'] ?? data['full_name'] ?? data['name'] ?? '')
+                .toString()
+                .trim();
+        if (fullName.isNotEmpty && data['fullName'] == null) {
+          data['fullName'] = fullName;
+        }
+      }
+
       print('✅ [ACCOUNT] Profile fetched successfully');
-      
+
       // Cache the profile data
       await prefs.setString(AppConstants.userProfileKey, jsonEncode(data));
-      
+
       if (mounted) {
         setState(() {
           _userProfile = data;
           _isOnline = (data['isActive'] ?? data['is_active']) == true;
+          final roleStr = (data['role'] ?? data['roleName'] ?? '').toString();
+          _isBnBOwner = roleStr == 'ROLE_BNB_OWNER';
           _isLoading = false;
           _errorMessage = null;
         });
@@ -130,17 +149,21 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
       print('❌ [ACCOUNT] Profile fetch error: $e');
       final roleId = await StorageService.getRoleId();
       print('👤 [ACCOUNT] Current role ID: $roleId');
-      
+
       if (mounted) {
         setState(() {
           _isLoading = false;
           // Show a more helpful error message based on error type
-          if (e.toString().contains('403') || e.toString().contains('insufficient privileges')) {
-            _errorMessage = 'Permission denied (Role ID: $roleId). Profile features may be limited.';
-          } else if (e.toString().contains('501') || e.toString().contains('Method Not Allowed')) {
+          if (e.toString().contains('403') ||
+              e.toString().contains('insufficient privileges')) {
+            _errorMessage =
+                'Permission denied (Role ID: $roleId). Profile features may be limited.';
+          } else if (e.toString().contains('501') ||
+              e.toString().contains('Method Not Allowed')) {
             _errorMessage = 'API method error. Please try again.';
           } else {
-            _errorMessage = 'Failed to load profile. Menu items are still available.';
+            _errorMessage =
+                'Failed to load profile. Menu items are still available.';
           }
         });
         // Ensure menu items are visible even if profile fetch fails
@@ -155,7 +178,7 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
     try {
       // Use the UserService method instead of direct HTTP call
       final response = await UserService.updateActiveStatus(isOnline);
-      
+
       // Update local profile cache
       if (_userProfile != null) {
         _userProfile!['isActive'] = isOnline;
@@ -209,7 +232,7 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
   }
 
   Future<void> _logout() async {
-    await StorageService.clearAll();
+    await UserService.logout();
     if (mounted) {
       Navigator.pushNamedAndRemoveUntil(
         context,
@@ -272,12 +295,14 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: Column(
-                children: [
+          child: ResponsivePage(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: Column(
+                  children: [
                   // Header Section
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 24.0),
@@ -297,7 +322,7 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                       ),
                     ),
                   ),
-                  
+
                   // Avatar Section
                   SizedBox(
                     height: 200,
@@ -315,7 +340,8 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppConstants.accentColor.withOpacity(0.6),
+                                    color: AppConstants.accentColor
+                                        .withOpacity(0.6),
                                     blurRadius: 30,
                                     spreadRadius: 5,
                                   ),
@@ -323,7 +349,7 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                               ),
                             ),
                           ),
-                        
+
                         // Avatar with border
                         GestureDetector(
                           onTap: _pickProfileImage,
@@ -342,7 +368,8 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppConstants.primaryColor.withOpacity(0.5),
+                                  color: AppConstants.primaryColor
+                                      .withOpacity(0.5),
                                   blurRadius: 20,
                                   spreadRadius: 2,
                                 ),
@@ -367,7 +394,8 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                                         ? Image.network(
                                             _userProfile!['profileImage'],
                                             fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) {
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
                                               return const Icon(
                                                 Icons.person,
                                                 size: 60,
@@ -384,7 +412,7 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                             ),
                           ),
                         ),
-                        
+
                         // Camera icon
                         Positioned(
                           bottom: 40,
@@ -401,7 +429,8 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppConstants.primaryColor.withOpacity(0.5),
+                                  color: AppConstants.primaryColor
+                                      .withOpacity(0.5),
                                   blurRadius: 10,
                                   spreadRadius: 1,
                                 ),
@@ -414,7 +443,7 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                             ),
                           ),
                         ),
-                        
+
                         // Online indicator
                         if (_isOnline)
                           Positioned(
@@ -434,7 +463,8 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppConstants.accentColor.withOpacity(0.8),
+                                      color: AppConstants.accentColor
+                                          .withOpacity(0.8),
                                       blurRadius: 15,
                                       spreadRadius: 2,
                                     ),
@@ -446,7 +476,7 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                       ],
                     ),
                   ),
-                  
+
                   // Name or Error Message
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -454,7 +484,11 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                       children: [
                         if (_userProfile != null)
                           Text(
-                            _userProfile!['fullName'] ?? 'N/A',
+                            (_userProfile!['fullName'] ??
+                                    _userProfile!['full_name'] ??
+                                    _userProfile!['name'] ??
+                                    'User')
+                                .toString(),
                             style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
@@ -462,7 +496,8 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                               shadows: [
                                 Shadow(
                                   blurRadius: 8.0,
-                                  color: AppConstants.primaryColor.withOpacity(0.3),
+                                  color: AppConstants.primaryColor
+                                      .withOpacity(0.3),
                                   offset: const Offset(0, 2),
                                 ),
                               ],
@@ -485,9 +520,9 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(height: 32),
-                  
+
                   // Menu List
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -514,14 +549,14 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                                           _userProfile!['is_active'] = status;
                                         }
                                       });
-                                      
+
                                       // Update cache
-                                      final prefs = await SharedPreferences.getInstance();
+                                      final prefs =
+                                          await SharedPreferences.getInstance();
                                       if (_userProfile != null) {
                                         await prefs.setString(
-                                          AppConstants.userProfileKey, 
-                                          jsonEncode(_userProfile)
-                                        );
+                                            AppConstants.userProfileKey,
+                                            jsonEncode(_userProfile));
                                       }
                                     },
                                   ),
@@ -531,20 +566,37 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                           },
                         ),
                         const SizedBox(height: 16),
-                        _buildMenuItem(
-                          icon: Icons.home_outlined,
-                          title: 'BNBs',
-                          subtitle: 'Browse available places',
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const BnBsBrowseScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 16),
+                        if (_isBnBOwner) ...[
+                          _buildMenuItem(
+                            icon: Icons.home_work_outlined,
+                            title: 'My BnBs',
+                            subtitle: 'Manage your BnB listings',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const BnBOwnerDashboardScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          _buildMenuItem(
+                            icon: Icons.receipt_long_outlined,
+                            title: 'BnB Orders',
+                            subtitle: 'View BnB bookings and history',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const BnBBookingsScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                        ],
                         _buildMenuItem(
                           icon: Icons.shopping_bag_outlined,
                           title: 'Orders',
@@ -572,12 +624,42 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                             );
                           },
                         ),
+                        const SizedBox(height: 16),
+                        _buildMenuItem(
+                          icon: Icons.verified_user_outlined,
+                          title: 'Subscription',
+                          subtitle: 'Get verified and unlock benefits',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const SubscriptionScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        _buildMenuItem(
+                          icon: Icons.shield_outlined,
+                          title: 'Safety Center',
+                          subtitle: 'Reports, block list, safety tips',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const SafetyCenterScreen(),
+                              ),
+                            );
+                          },
+                        ),
                         const SizedBox(height: 32),
                         _buildGradientButton(
                           text: 'Logout',
                           icon: Icons.logout_outlined,
                           onPressed: _logout,
-                          gradient: LinearGradient(
+                          gradient: const LinearGradient(
                             colors: [
                               AppConstants.secondaryColor,
                               AppConstants.errorColor,
@@ -588,7 +670,8 @@ class _AccountScreenState extends State<AccountScreen> with TickerProviderStateM
                       ],
                     ),
                   ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

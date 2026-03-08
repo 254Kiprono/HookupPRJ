@@ -3,6 +3,7 @@ import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/wallet_service.dart';
 import 'package:hook_app/models/wallet_transaction.dart';
 import 'package:intl/intl.dart';
+import 'package:hook_app/utils/responsive.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -18,13 +19,14 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
   List<WalletTransaction> _earnings = [];
   List<WalletTransaction> _withdrawals = [];
   List<WalletTransaction> _pending = [];
+  List<WalletTransaction> _subscriptions = [];
   bool _isLoading = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _loadWalletData();
   }
 
@@ -48,14 +50,23 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
       setState(() {
         _balance = (balanceData['balance'] as num?)?.toDouble() ?? 0.0;
         _allTransactions = transactions;
+
+        final upperCategory = (WalletTransaction t) =>
+            (t.category ?? '').toUpperCase();
         
         // Filter transactions
         _earnings = transactions.where((t) => 
-          t.type == TransactionType.earning && t.status == TransactionStatus.completed
+          t.type == TransactionType.earning &&
+          t.status == TransactionStatus.completed &&
+          upperCategory(t) != 'SUBSCRIPTION'
         ).toList();
         
         _withdrawals = transactions.where((t) => 
           t.type == TransactionType.withdrawal
+        ).toList();
+
+        _subscriptions = transactions.where((t) =>
+          upperCategory(t) == 'SUBSCRIPTION'
         ).toList();
         
         _pending = transactions.where((t) => 
@@ -205,8 +216,9 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
+          child: ResponsivePage(
+            child: Column(
+              children: [
               // Header with balance
               Padding(
                 padding: const EdgeInsets.all(20.0),
@@ -318,6 +330,7 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
                   tabs: const [
                     Tab(text: 'All'),
                     Tab(text: 'Earnings'),
+                    Tab(text: 'Subscriptions'),
                     Tab(text: 'Withdrawals'),
                     Tab(text: 'Pending'),
                   ],
@@ -341,12 +354,14 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
                             children: [
                               _buildTransactionList(_allTransactions),
                               _buildTransactionList(_earnings),
+                              _buildTransactionList(_subscriptions),
                               _buildTransactionList(_withdrawals),
                               _buildTransactionList(_pending),
                             ],
                           ),
               ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

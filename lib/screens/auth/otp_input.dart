@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hook_app/utils/constants.dart';
 
 class OTPInput extends StatelessWidget {
   final TextEditingController controller;
@@ -39,7 +40,7 @@ class OTPInput extends StatelessWidget {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide:
-                    const BorderSide(color: Color(0xFF6E48AA), width: 2),
+                    const BorderSide(color: AppConstants.primaryColor, width: 2),
               ),
               counterText: '',
             ),

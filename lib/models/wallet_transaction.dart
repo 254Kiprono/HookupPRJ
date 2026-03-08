@@ -17,6 +17,7 @@ class WalletTransaction {
   final DateTime timestamp;
   final String? reference;
   final String? description;
+  final String? category;
   
   // For earnings
   final String? bnbId;
@@ -36,6 +37,7 @@ class WalletTransaction {
     required this.timestamp,
     this.reference,
     this.description,
+    this.category,
     this.bnbId,
     this.bnbName,
     this.clientName,
@@ -45,9 +47,12 @@ class WalletTransaction {
   });
 
   factory WalletTransaction.fromJson(Map<String, dynamic> json) {
+    final rawType = json['type']?.toString() ??
+        json['transaction_type']?.toString() ??
+        '';
     return WalletTransaction(
       transactionId: json['transaction_id']?.toString() ?? json['id']?.toString() ?? '',
-      type: _typeFromString(json['type']?.toString() ?? ''),
+      type: _typeFromString(rawType),
       amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
       status: _statusFromString(json['status']?.toString() ?? ''),
       timestamp: json['timestamp'] != null
@@ -57,6 +62,7 @@ class WalletTransaction {
               : DateTime.now(),
       reference: json['reference']?.toString(),
       description: json['description']?.toString(),
+      category: json['category']?.toString(),
       bnbId: json['bnb_id']?.toString(),
       bnbName: json['bnb_name']?.toString(),
       clientName: json['client_name']?.toString(),
@@ -75,6 +81,7 @@ class WalletTransaction {
       'timestamp': timestamp.toIso8601String(),
       'reference': reference,
       'description': description,
+      'category': category,
       'bnb_id': bnbId,
       'bnb_name': bnbName,
       'client_name': clientName,
@@ -86,10 +93,15 @@ class WalletTransaction {
 
   static TransactionType _typeFromString(String type) {
     switch (type.toLowerCase()) {
+      case 'credit':
+      case 'deposit':
+      case 'topup':
       case 'earning':
       case 'earnings':
       case 'income':
         return TransactionType.earning;
+      case 'debit':
+      case 'payment':
       case 'withdrawal':
       case 'withdraw':
       case 'payout':
@@ -123,6 +135,10 @@ class WalletTransaction {
   String get displayDescription {
     if (description != null && description!.isNotEmpty) {
       return description!;
+    }
+
+    if (category != null && category!.toUpperCase() == 'SUBSCRIPTION') {
+      return 'Subscription payment';
     }
     
     if (type == TransactionType.earning) {
@@ -160,7 +176,6 @@ class WalletTransaction {
     }
   }
 }
-
 
 
 
