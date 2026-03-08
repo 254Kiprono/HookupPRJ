@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:hook_app/services/storage_service.dart';
+import 'package:hook_app/utils/responsive.dart';
 import 'dart:ui'; // For BackdropFilter
 
 class LoginScreen extends StatefulWidget {
@@ -371,10 +372,13 @@ class _LoginScreenState extends State<LoginScreen> {
             color: Colors.black.withOpacity(0.3),
           ),
           // Content
-          Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
+          ResponsivePage(
+            padding: const EdgeInsets.all(24.0),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: SingleChildScrollView(
+                  child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Logo / Branding
@@ -637,6 +641,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ],
+                  ),
+                ),
               ),
             ),
           ),

@@ -8,6 +8,9 @@ import 'package:hook_app/screens/main_app/search_screen.dart';
 import 'package:hook_app/screens/main_app/bnbs_browse_screen.dart';
 import 'package:hook_app/screens/sms/conversations_screen.dart';
 import 'package:hook_app/screens/main_app/account_screen.dart';
+import 'package:hook_app/screens/main_app/subscription_screen.dart';
+import 'package:hook_app/screens/main_app/wallet_screen.dart';
+import 'package:hook_app/screens/main_app/safety_center_screen.dart';
 import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/services/api_service.dart';
 import 'package:hook_app/services/dummy_data_service.dart';
@@ -22,6 +25,14 @@ class HomeScreen extends StatefulWidget {
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _NavItem {
+  final String label;
+  final IconData icon;
+  final int index;
+
+  _NavItem(this.label, this.icon, this.index);
 }
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
@@ -378,9 +389,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       context,
       mobile: 2,
       tablet: 3,
-      desktop: 4,
+      desktop: 5,
     );
-    final aspectRatio = Responsive.isDesktop(context) ? 0.85 : 0.75;
+    final aspectRatio = Responsive.isDesktop(context) ? 0.8 : 0.75;
 
     return GridView.builder(
       padding: EdgeInsets.symmetric(
@@ -930,6 +941,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    if (Responsive.isDesktop(context)) {
+      return _buildDesktopScaffold();
+    }
+
     return Scaffold(
       appBar: _selectedIndex == 0 && !_isLoading && _errorMessage == null
           ? PreferredSize(
@@ -1034,6 +1049,320 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         unselectedColor: Colors.grey,
         onTap: _onItemTapped,
       ),
+    );
+  }
+
+  Widget _buildDesktopScaffold() {
+    return Scaffold(
+      backgroundColor: AppConstants.darkBackground,
+      body: Row(
+        children: [
+          _buildDesktopNav(),
+          Expanded(
+            child: Column(
+              children: [
+                _buildDesktopTopBar(),
+                Expanded(
+                  child: _buildPageContent(_selectedIndex),
+                ),
+              ],
+            ),
+          ),
+          _buildDesktopSidePanel(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopNav() {
+    final items = [
+      _NavItem('Home', Icons.home_rounded, 0),
+      _NavItem('Search', Icons.search_rounded, 1),
+      _NavItem('BnBs', Icons.home_work_rounded, 2),
+      _NavItem('Messages', Icons.chat_bubble_rounded, 3),
+      _NavItem('Profile', Icons.person_rounded, 4),
+    ];
+
+    return Container(
+      width: 220,
+      decoration: BoxDecoration(
+        color: AppConstants.surfaceColor.withOpacity(0.85),
+        border: Border(
+          right: BorderSide(color: Colors.white.withOpacity(0.06)),
+        ),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.favorite_rounded, color: AppConstants.primaryColor),
+              const SizedBox(width: 8),
+              Text(
+                AppConstants.appName,
+                style: const TextStyle(
+                  color: AppConstants.softWhite,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  letterSpacing: 1.1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+          ...items.map((item) => _buildNavItem(item)).toList(),
+          const Spacer(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: OutlinedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _selectedIndex = 4;
+                });
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppConstants.softWhite,
+                side: BorderSide(color: Colors.white.withOpacity(0.15)),
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              ),
+              icon: const Icon(Icons.settings, size: 18),
+              label: const Text('Settings'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem(_NavItem item) {
+    final active = _selectedIndex == item.index;
+    return InkWell(
+      onTap: () => setState(() => _selectedIndex = item.index),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: active
+              ? AppConstants.primaryColor.withOpacity(0.18)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: active
+                ? AppConstants.primaryColor.withOpacity(0.35)
+                : Colors.transparent,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              item.icon,
+              color: active ? AppConstants.primaryColor : AppConstants.mutedGray,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              item.label,
+              style: TextStyle(
+                color: active ? AppConstants.softWhite : AppConstants.mutedGray,
+                fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopTopBar() {
+    return Container(
+      height: 72,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: BoxDecoration(
+        color: AppConstants.darkBackground,
+        border: Border(
+          bottom: BorderSide(color: Colors.white.withOpacity(0.06)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Text(
+            _selectedIndex == 0
+                ? 'Discover'
+                : _selectedIndex == 1
+                    ? 'Search'
+                    : _selectedIndex == 2
+                        ? 'BnBs'
+                        : _selectedIndex == 3
+                            ? 'Messages'
+                            : 'Profile',
+            style: const TextStyle(
+              color: AppConstants.softWhite,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppConstants.primaryColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.circle, color: AppConstants.successColor, size: 8),
+                const SizedBox(width: 6),
+                Text(
+                  'Active',
+                  style: TextStyle(
+                    color: AppConstants.softWhite.withOpacity(0.9),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopSidePanel() {
+    return Container(
+      width: 280,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppConstants.surfaceColor.withOpacity(0.9),
+        border: Border(
+          left: BorderSide(color: Colors.white.withOpacity(0.06)),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: AppConstants.primaryColor.withOpacity(0.2),
+                child: const Icon(Icons.person, color: AppConstants.softWhite),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _userFullName ?? 'User',
+                      style: const TextStyle(
+                        color: AppConstants.softWhite,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      'Account overview',
+                      style: TextStyle(
+                        color: AppConstants.mutedGray,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _sideAction(
+            title: 'Subscription',
+            subtitle: 'Manage plan',
+            icon: Icons.workspace_premium_rounded,
+            onTap: () => _openSidePanelPage(const SubscriptionScreen()),
+          ),
+          _sideAction(
+            title: 'Wallet',
+            subtitle: 'Balance & payouts',
+            icon: Icons.account_balance_wallet_rounded,
+            onTap: () => _openSidePanelPage(const WalletScreen()),
+          ),
+          _sideAction(
+            title: 'Safety Center',
+            subtitle: 'Reports & help',
+            icon: Icons.shield_rounded,
+            onTap: () => _openSidePanelPage(const SafetyCenterScreen()),
+          ),
+          const Spacer(),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppConstants.primaryColor.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Text(
+              'Tip: Use filters to narrow results faster.',
+              style: TextStyle(
+                color: AppConstants.softWhite,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sideAction({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppConstants.darkBackground.withOpacity(0.6),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: AppConstants.primaryColor),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: AppConstants.softWhite,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: AppConstants.mutedGray,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppConstants.mutedGray),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openSidePanelPage(Widget page) async {
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => page),
     );
   }
 

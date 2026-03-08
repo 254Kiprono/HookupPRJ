@@ -14,9 +14,9 @@ class Responsive {
 
   static double maxContentWidth(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    if (w >= 1400) return 1200;
-    if (w >= 1200) return 1100;
-    if (w >= 1024) return 980;
+    if (w >= 1600) return 1200;
+    if (w >= 1200) return 1000;
+    if (w >= 1024) return 920;
     if (w >= 900) return 860;
     return double.infinity;
   }

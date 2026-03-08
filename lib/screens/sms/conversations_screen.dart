@@ -4,6 +4,7 @@ import 'package:hook_app/services/messaging_service.dart';
 import 'package:hook_app/models/message_models.dart';
 import 'package:hook_app/screens/main_app/messages_screen.dart' as messages;
 import 'package:hook_app/utils/constants.dart';
+import 'package:hook_app/utils/responsive.dart';
 
 class ConversationsScreen extends StatefulWidget {
   const ConversationsScreen({super.key});
@@ -83,8 +84,9 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
+          child: ResponsivePage(
+            child: Column(
+              children: [
               // Header
               Padding(
                 padding: const EdgeInsets.all(20.0),
@@ -223,7 +225,8 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                                 ),
                               ),
               ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

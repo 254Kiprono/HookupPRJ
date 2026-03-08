@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'package:hook_app/utils/constants.dart'; // Import for base URL
 import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/app/routes.dart';
+import 'package:hook_app/utils/responsive.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -117,10 +118,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
+      body: ResponsivePage(
+        padding: const EdgeInsets.all(20.0),
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
+              child: Column(
             children: [
               const AuthHeader(
                 title: 'Create Account',
@@ -337,6 +342,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
             ],
+              ),
+            ),
           ),
         ),
       ),

@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:hook_app/services/storage_service.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'dart:ui';
+import 'package:hook_app/utils/responsive.dart';
 
 class BnBOwnerLoginScreen extends StatefulWidget {
   const BnBOwnerLoginScreen({super.key});
@@ -188,16 +189,19 @@ class _BnBOwnerLoginScreenState extends State<BnBOwnerLoginScreen> {
                 ),
                 // Form
                 Expanded(
-                  child: Center(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(24),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(24),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: Container(
-                            padding: const EdgeInsets.all(32),
-                            decoration: BoxDecoration(
+                  child: ResponsivePage(
+                    padding: const EdgeInsets.all(24),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 560),
+                        child: SingleChildScrollView(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                              child: Container(
+                                padding: const EdgeInsets.all(32),
+                                decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(24),
                               border: Border.all(color: Colors.white.withOpacity(0.2)),
@@ -303,6 +307,8 @@ class _BnBOwnerLoginScreenState extends State<BnBOwnerLoginScreen> {
                                     ),
                                   ),
                                 ],
+                              ),
+                            ),
                               ),
                             ),
                           ),
