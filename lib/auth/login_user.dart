@@ -147,15 +147,15 @@ class _LoginScreenState extends State<LoginScreen> {
             decodedToken['id']?.toString() ??
             decodedToken['sub']?.toString();
 
-        print('🔑 [LOGIN] Decoded token: $decodedToken');
-        print('🔑 [LOGIN] Role from token: $roleId');
+        print('[LOGIN] Decoded token: $decodedToken');
+        print('[LOGIN] Role from token: $roleId');
         print(
-            '🔑 [LOGIN] Expected BnB Owner roleID: ${AppConstants.bnbOwnerRoleId}');
+            '[LOGIN] Expected BnB Owner roleID: ${AppConstants.bnbOwnerRoleId}');
 
         // Block BnB owners from using regular login
         if (roleId == AppConstants.bnbOwnerRoleId) {
           print(
-              '🚫 [LOGIN] Blocking BnB owner (roleID=$roleId) from regular login');
+              '[LOGIN] Blocking BnB owner (roleID=$roleId) from regular login');
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -168,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
           return;
         }
 
-        print('✅ [LOGIN] Role check passed, user is not a BnB owner');
+        print('[LOGIN] Role check passed, user is not a BnB owner');
 
         // Now save credentials
         await StorageService.saveAuthToken(authToken);
@@ -182,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
         }
 
         if (userId != null && userId.isNotEmpty) {
-          print('👤 [LOGIN] Saving userId: "$userId"');
+          print('[LOGIN] Saving userId: "$userId"');
           await StorageService.saveUserId(userId);
         }
 

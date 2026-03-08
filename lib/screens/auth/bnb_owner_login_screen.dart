@@ -66,14 +66,14 @@ class _BnBOwnerLoginScreenState extends State<BnBOwnerLoginScreen> {
                         decodedToken['id']?.toString() ??
                         decodedToken['sub']?.toString();
         
-        print('🏠 [BNB LOGIN] Decoded token: $decodedToken');
-        print('🏠 [BNB LOGIN] Role from token: $roleId');
-        print('🏠 [BNB LOGIN] Expected BnB Owner roleID: ${AppConstants.bnbOwnerRoleId}');
-        print('🏠 [BNB LOGIN] Is BnB Owner: ${roleId == AppConstants.bnbOwnerRoleId}');
+        print('[BNB LOGIN] Decoded token: $decodedToken');
+        print('[BNB LOGIN] Role from token: $roleId');
+        print('[BNB LOGIN] Expected BnB Owner roleID: ${AppConstants.bnbOwnerRoleId}');
+        print('[BNB LOGIN] Is BnB Owner: ${roleId == AppConstants.bnbOwnerRoleId}');
         
         // Validate that user is a BnB owner BEFORE saving credentials
         if (roleId != AppConstants.bnbOwnerRoleId) {
-          print('❌ [BNB LOGIN] REJECTING - Not a BnB owner (roleID=$roleId)');
+          print('[BNB LOGIN] REJECTING - Not a BnB owner (roleID=$roleId)');
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('This login is for BnB owners only. Please use the regular login.'),
@@ -84,7 +84,7 @@ class _BnBOwnerLoginScreenState extends State<BnBOwnerLoginScreen> {
           return;
         }
 
-        print('✅ [BNB LOGIN] ACCEPTING - User is a BnB owner');
+        print('[BNB LOGIN] ACCEPTING - User is a BnB owner');
         
         // Save credentials only after validation passes
         await StorageService.saveAuthToken(authToken);
