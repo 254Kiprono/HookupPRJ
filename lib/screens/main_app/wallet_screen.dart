@@ -225,21 +225,26 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
                 child: Column(
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'My Wallet',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: AppConstants.softWhite,
-                            shadows: [
-                              Shadow(
-                                blurRadius: 10.0,
-                                color: AppConstants.primaryColor.withOpacity(0.5),
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios, color: AppConstants.softWhite),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        Expanded(
+                          child: Text(
+                            'My Wallet',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: AppConstants.softWhite,
+                              shadows: [
+                                Shadow(
+                                  blurRadius: 10.0,
+                                  color: AppConstants.primaryColor.withOpacity(0.5),
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                         IconButton(
@@ -349,15 +354,19 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
                       )
                     : _error != null
                         ? _buildErrorWidget()
-                        : TabBarView(
-                            controller: _tabController,
-                            children: [
-                              _buildTransactionList(_allTransactions),
-                              _buildTransactionList(_earnings),
-                              _buildTransactionList(_subscriptions),
-                              _buildTransactionList(_withdrawals),
-                              _buildTransactionList(_pending),
-                            ],
+                        : NotificationListener<ScrollNotification>(
+                            onNotification: (notification) => true,
+                            child: TabBarView(
+                              controller: _tabController,
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: [
+                                _buildTransactionList(_allTransactions),
+                                _buildTransactionList(_earnings),
+                                _buildTransactionList(_subscriptions),
+                                _buildTransactionList(_withdrawals),
+                                _buildTransactionList(_pending),
+                              ],
+                            ),
                           ),
               ),
               ],
