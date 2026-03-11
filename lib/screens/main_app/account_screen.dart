@@ -640,6 +640,24 @@ class _AccountScreenState extends State<AccountScreen>
                           },
                         ),
                         const SizedBox(height: 16),
+                          _buildMenuItem(
+                            icon: Icons.auto_awesome_motion_outlined,
+                            title: 'Gallery & Video',
+                            subtitle: 'Manage your photos & profile video',
+                            onTap: () {
+                              if (_userProfile != null) {
+                                Navigator.pushNamed(
+                                  context,
+                                  Routes.editProfile,
+                                  arguments: {
+                                    'initialData': _userProfile,
+                                    'profileImage': null,
+                                  },
+                                ).then((_) => _fetchUserProfile());
+                              }
+                            },
+                          ),
+                        const SizedBox(height: 16),
                         _buildMenuItem(
                           icon: Icons.shield_outlined,
                           title: 'Safety Center',

@@ -61,7 +61,6 @@ class UserService {
         'Failed to fetch user profile: ${response.statusCode} - $errorBody');
   }
 
-  /// Update user profile
   static Future<Map<String, dynamic>> updateUserProfile({
     String? fullName,
     String? email,
@@ -70,6 +69,14 @@ class UserService {
     String? location,
     String? address,
     String? profileImage,
+    List<String>? photoGallery,
+    String? profileVideoUrl,
+    String? bio,
+    String? interests,
+    String? gender,
+    bool? isActive,
+    double? hourlyRate,
+    String? fcmToken,
   }) async {
     final token = await StorageService.getAuthToken();
     final userId = await StorageService.getUserId();
@@ -87,6 +94,14 @@ class UserService {
     if (location != null) body['location'] = location;
     if (address != null) body['address'] = address;
     if (profileImage != null) body['profile_image'] = profileImage;
+    if (photoGallery != null) body['photo_gallery'] = photoGallery;
+    if (profileVideoUrl != null) body['profile_video_url'] = profileVideoUrl;
+    if (bio != null) body['bio'] = bio;
+    if (interests != null) body['interests'] = interests;
+    if (gender != null) body['gender'] = gender;
+    if (isActive != null) body['is_active'] = isActive;
+    if (hourlyRate != null) body['hourly_rate'] = hourlyRate;
+    if (fcmToken != null) body['fcm_token'] = fcmToken;
 
     final response = await http
         .patch(

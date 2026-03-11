@@ -63,13 +63,7 @@ class WalletService {
       };
     } catch (e) {
       print('❌ [WALLET] Error fetching balance: $e');
-      // If endpoint fails, return zero balance
-      return {
-        'user_id': userId,
-        'balance': 0.0,
-        'last_updated': null,
-        'error': e.toString(),
-      };
+      rethrow;
     }
   }
 
@@ -102,9 +96,12 @@ class WalletService {
             .toList();
       }
       return [];
+    } on http.ClientException catch (e) {
+      print('❌ [WALLET] Transactions network error: $e');
+      throw Exception('Network error: ${e.message}');
     } catch (e) {
-      // Endpoint might not exist yet, return empty list
-      return [];
+      print('❌ [WALLET] Error getting transactions: $e');
+      rethrow;
     }
   }
 

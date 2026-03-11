@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:hook_app/services/user_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final Map<String, dynamic> arguments;
@@ -33,6 +34,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  // Gallery and Video state
+  List<String> _galleryUrls = [];
+  List<File> _galleryFiles = [];
+  String? _videoUrl;
+  File? _videoFile;
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +55,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _bioController = TextEditingController(text: initialData?['bio'] ?? '');
     _interestsController =
         TextEditingController(text: initialData?['interests'] ?? '');
+
+    // Initialize gallery and video from initialData
+    if (initialData?['photoGallery'] != null) {
+      if (initialData!['photoGallery'] is List) {
+        _galleryUrls = List<String>.from(initialData!['photoGallery']);
+      } else if (initialData!['photoGallery'] is String) {
+        try {
+          _galleryUrls =
+              List<String>.from(jsonDecode(initialData!['photoGallery']));
+        } catch (e) {
+          _galleryUrls = [];
+        }
+      }
+    }
+    _videoUrl = initialData?['profileVideoUrl'];
   }
 
   @override
@@ -71,36 +93,64 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  Future<String?> _uploadProfileImage(File image) async {
+  Future<void> _pickGalleryImages() async {
+    final List<XFile> images = await _picker.pickMultiImage();
+    if (images.isNotEmpty) {
+      setState(() {
+        // Limit to 6 total including existing
+        int remaining = 6 - _galleryFiles.length - _galleryUrls.length;
+        if (remaining > 0) {
+          _galleryFiles.addAll(
+            images.take(remaining).map((xfile) => File(xfile.path)),
+          );
+        }
+      });
+    }
+  }
+
+  Future<void> _pickVideo() async {
+    final XFile? video = await _picker.pickVideo(
+      source: ImageSource.gallery,
+      maxDuration: const Duration(seconds: 30),
+    );
+    if (video != null) {
+      setState(() {
+        _videoFile = File(video.path);
+      });
+    }
+  }
+
+  Future<String?> _uploadMedia(File file, String type) async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? authToken = prefs.getString(AppConstants.authTokenKey);
+
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse(
-            'https://api.cloudinary.com/v1_1/your-cloud-name/image/upload'), // Replace with your Cloudinary URL
+        Uri.parse('${AppConstants.mediaUpload}?type=$type'),
       );
-      request.fields['upload_preset'] =
-          'your-upload-preset'; // Replace with your Cloudinary preset
+      request.headers['Authorization'] = 'Bearer $authToken';
+      
       request.files.add(await http.MultipartFile.fromPath(
         'file',
-        image.path,
-        contentType: MediaType('image', 'jpeg'),
+        file.path,
+        contentType: type == 'video' 
+          ? MediaType('video', 'mp4')
+          : MediaType('image', 'jpeg'),
       ));
-
 
       final streamedResponse = await request.send();
       final responseBody = await streamedResponse.stream.bytesToString();
 
       if (streamedResponse.statusCode == 200) {
         final data = jsonDecode(responseBody);
-        final imageUrl = data['secure_url'] as String?;
-
-        return imageUrl;
+        return data['url'] as String?;
       } else {
-
+        debugPrint('Upload failed: $responseBody');
         return null;
       }
     } catch (error) {
-
+      debugPrint('Upload error: $error');
       return null;
     }
   }
@@ -124,76 +174,53 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     try {
-      // Prepare the updated data
-      final updatedData = {
-        'fullName': _fullNameController.text,
-        'email': _emailController.text,
-        'phone': _phoneController.text,
-        'dob': _dobController.text,
-        'location': _locationController.text,
-        'bio': _bioController.text,
-        'interests': _interestsController.text,
-      };
-
-      // Optionally include userID if required by the server
-      final String? userId = prefs.getString(AppConstants.userIdKey);
-      if (userId != null) {
-        updatedData['user_id'] = userId;
-      }
-
-      // Handle dob format explicitly
-      if (updatedData['dob'] != null && updatedData['dob'] is String) {
-        final dob = updatedData['dob'] as String;
-        if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(dob)) {
-          throw Exception('Invalid dob format. Use YYYY-MM-DD');
-        }
-      }
-
-      // Handle profile image upload if present
+      String? profileImageUrl;
       if (_profileImage != null) {
-        final imageUrl = await _uploadProfileImage(_profileImage!);
-        if (imageUrl != null) {
-          updatedData['profileImage'] = imageUrl;
-        } else {
-          throw Exception('Failed to upload profile image');
+        profileImageUrl = await _uploadMedia(_profileImage!, 'profile');
+        if (profileImageUrl == null) throw Exception('Failed to upload profile image');
+      }
+
+      // Handle Gallery Uploads
+      List<String> finalGallery = List.from(_galleryUrls);
+      for (var file in _galleryFiles) {
+        final url = await _uploadMedia(file, 'gallery');
+        if (url != null) {
+          finalGallery.add(url);
         }
       }
 
+      // Handle Video Upload
+      String? finalVideoUrl = _videoUrl;
+      if (_videoFile != null) {
+        finalVideoUrl = await _uploadMedia(_videoFile!, 'video');
+        if (finalVideoUrl == null) throw Exception('Failed to upload profile video');
+      }
 
-      final url = Uri.parse(
-          '${AppConstants.userServiceBaseUrl}${AppConstants.apiVersion}/auth/update-userprofile');
-      final response = await http
-          .patch(
-            url,
-            headers: {
-              'Authorization': 'Bearer $authToken',
-              'Content-Type': 'application/json',
-            },
-            body: jsonEncode(updatedData),
-          )
-          .timeout(const Duration(seconds: 30));
+      await UserService.updateUserProfile(
+        fullName: _fullNameController.text,
+        email: _emailController.text,
+        phone: _phoneController.text,
+        dob: _dobController.text,
+        location: _locationController.text,
+        bio: _bioController.text,
+        interests: _interestsController.text,
+        profileImage: profileImageUrl,
+        photoGallery: finalGallery,
+        profileVideoUrl: finalVideoUrl,
+      );
 
       if (!mounted) return;
 
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully')),
-        );
-        Navigator.pop(context); // Return to account screen
-      } else {
-        setState(() {
-          _isLoading = false;
-          _errorMessage =
-              'Failed to update profile: ${response.statusCode} - ${response.body}';
-        });
-
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated successfully')),
+      );
+      Navigator.pop(context); // Return to account screen
     } catch (error) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Failed to connect to the server: $error';
+        _errorMessage = 'Failed to update profile: $error';
       });
-
     }
   }
 
@@ -397,6 +424,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                         : null,
                               ),
                               const SizedBox(height: 20),
+                              _buildGalleryPicker(),
+                              const SizedBox(height: 20),
+                              _buildVideoPicker(),
+                              const SizedBox(height: 20),
                               ElevatedButton.icon(
                                 onPressed: _updateProfile,
                                 icon: const Icon(Icons.favorite,
@@ -426,6 +457,139 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildGalleryPicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Photo Gallery (Max 6)',
+          style: TextStyle(
+              color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 10),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+          ),
+          itemCount: (_galleryUrls.length + _galleryFiles.length + 1).clamp(0, 7),
+          itemBuilder: (context, index) {
+            if (index < _galleryUrls.length) {
+              return _buildMediaItem(
+                image: NetworkImage(_galleryUrls[index]),
+                onDelete: () => setState(() => _galleryUrls.removeAt(index)),
+              );
+            }
+            int fileIndex = index - _galleryUrls.length;
+            if (fileIndex < _galleryFiles.length) {
+              return _buildMediaItem(
+                image: FileImage(_galleryFiles[fileIndex]),
+                onDelete: () => setState(() => _galleryFiles.removeAt(fileIndex)),
+              );
+            }
+            if (_galleryUrls.length + _galleryFiles.length < 6) {
+              return GestureDetector(
+                onTap: _pickGalleryImages,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: const Icon(Icons.add_a_photo, color: Colors.white, size: 40),
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVideoPicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Profile Video (30s max)',
+          style: TextStyle(
+              color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 10),
+        GestureDetector(
+          onTap: _pickVideo,
+          child: Container(
+            height: 150,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+            child: _videoFile != null
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.video_library, color: Colors.white, size: 50),
+                      Text(
+                        _videoFile!.path.split('/').last,
+                        style: const TextStyle(color: Colors.white),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      TextButton(
+                        onPressed: () => setState(() => _videoFile = null),
+                        child: const Text('Remove', style: TextStyle(color: Colors.redAccent)),
+                      )
+                    ],
+                  )
+                : _videoUrl != null
+                    ? Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.check_circle, color: Colors.greenAccent, size: 50),
+                          const Text('Video Uploaded', style: TextStyle(color: Colors.white)),
+                          TextButton(
+                            onPressed: () => setState(() => _videoUrl = null),
+                            child: const Text('Change', style: TextStyle(color: Colors.white60)),
+                          )
+                        ],
+                      )
+                    : const Icon(Icons.video_call, color: Colors.white, size: 50),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMediaItem({required ImageProvider image, required VoidCallback onDelete}) {
+    return Stack(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            image: DecorationImage(image: image, fit: BoxFit.cover),
+          ),
+        ),
+        Positioned(
+          top: 0,
+          right: 0,
+          child: GestureDetector(
+            onTap: onDelete,
+            child: const CircleAvatar(
+              radius: 12,
+              backgroundColor: Colors.red,
+              child: Icon(Icons.close, size: 16, color: Colors.white),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

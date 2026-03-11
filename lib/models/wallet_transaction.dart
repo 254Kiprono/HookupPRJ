@@ -49,26 +49,27 @@ class WalletTransaction {
   factory WalletTransaction.fromJson(Map<String, dynamic> json) {
     final rawType = json['type']?.toString() ??
         json['transaction_type']?.toString() ??
+        json['transactionType']?.toString() ??
         '';
     return WalletTransaction(
-      transactionId: json['transaction_id']?.toString() ?? json['id']?.toString() ?? '',
+      transactionId: (json['transaction_id'] ?? json['transactionId'] ?? json['id'])?.toString() ?? '',
       type: _typeFromString(rawType),
       amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
       status: _statusFromString(json['status']?.toString() ?? ''),
       timestamp: json['timestamp'] != null
           ? DateTime.tryParse(json['timestamp'].toString()) ?? DateTime.now()
-          : json['created_at'] != null
-              ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
+          : (json['created_at'] ?? json['createdAt']) != null
+              ? DateTime.tryParse((json['created_at'] ?? json['createdAt']).toString()) ?? DateTime.now()
               : DateTime.now(),
       reference: json['reference']?.toString(),
       description: json['description']?.toString(),
-      category: json['category']?.toString(),
-      bnbId: json['bnb_id']?.toString(),
-      bnbName: json['bnb_name']?.toString(),
-      clientName: json['client_name']?.toString(),
-      bookingId: json['booking_id']?.toString(),
-      withdrawalMethod: json['withdrawal_method']?.toString(),
-      accountDetails: json['account_details']?.toString(),
+      category: (json['category'] ?? json['category'])?.toString(),
+      bnbId: (json['bnb_id'] ?? json['bnbId'])?.toString(),
+      bnbName: (json['bnb_name'] ?? json['bnbName'])?.toString(),
+      clientName: (json['client_name'] ?? json['clientName'] ?? json['payer_name'] ?? json['payerName'])?.toString(),
+      bookingId: (json['booking_id'] ?? json['bookingId'])?.toString(),
+      withdrawalMethod: (json['withdrawal_method'] ?? json['withdrawalMethod'])?.toString(),
+      accountDetails: (json['account_details'] ?? json['accountDetails'])?.toString(),
     );
   }
 

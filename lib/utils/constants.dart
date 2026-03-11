@@ -76,6 +76,8 @@ class AppConstants {
       '$userServiceBaseUrl$apiVersion/auth/request-passreset';
   static const String getuserprofile =
       '$userServiceBaseUrl$apiVersion/auth/get-userprofile';
+  static const String mediaUpload =
+      '$userServiceBaseUrl$apiVersion/media/upload';
 
   // User Service Search Endpoints
   static const String searchProviders =
@@ -155,8 +157,8 @@ class AppConstants {
 
   // Role Constants
   static const int bnbOwnerRoleId = 4;
-  static const int regularUserRoleId = 1; // Adjust based on your backend
-  static const int customerCareRoleId = 3; // Customer Care role
+  static const int regularUserRoleId = 1; 
+  static const int customerCareRoleId = 3; 
 }
 
 class TokenUtils {
@@ -167,12 +169,12 @@ class TokenUtils {
 
       final decoded = JwtDecoder.decode(token);
 
-      // Try multiple possible user ID claims (priority order)
-      final dynamic id = decoded['user_id'] ?? // Matches your Go backend
-          decoded['userId'] ?? // Alternative camelCase
-          decoded['sub']; // Standard JWT claim
+      // Try multiple possible user
+      final dynamic id = decoded['user_id'] ?? 
+          decoded['userId'] ?? 
+          decoded['sub']; 
 
-      // Handle both int and string user IDs
+      // Handle both 
       if (id is int) return id;
       if (id is String) return int.tryParse(id);
       return null;
@@ -184,7 +186,7 @@ class TokenUtils {
   static Future<String?> refreshToken(String refreshToken) async {
     try {
       final response = await http.post(
-        Uri.parse(AppConstants.login), // Use your refresh endpoint if available
+        Uri.parse(AppConstants.login),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'refresh_token': refreshToken}),
       );
