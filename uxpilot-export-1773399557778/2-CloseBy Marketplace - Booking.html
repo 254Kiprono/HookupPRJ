@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>::-webkit-scrollbar { display: none;}</style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'deep-navy': '#0B1220',
+                        'teal': '#0F766E',
+                        'teal-light': '#14B8A6',
+                        'teal-dark': '#0D5F58',
+                    },
+                    fontFamily: {
+                        'sora': ['Sora', 'sans-serif'],
+                        'inter': ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-deep-navy font-inter antialiased">
+
+<main id="booking-main" class="flex flex-col min-h-screen">
+    
+    <header id="header" class="bg-deep-navy border-b border-gray-800 px-4 py-4 sm:px-6">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <button class="p-2 -ml-2">
+                    <i class="fa-solid fa-arrow-left text-white text-lg"></i>
+                </button>
+                <span class="font-sora font-medium text-white text-lg">Book Service</span>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <button class="p-2 rounded-lg bg-[#1A2332] border border-gray-700">
+                    <i class="fa-solid fa-question text-gray-300 text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div id="provider-summary" class="bg-gradient-to-br from-teal/10 to-teal-dark/10 px-4 py-4 sm:px-6 border-b border-gray-800">
+        <div class="flex items-center space-x-3">
+            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" 
+                 alt="Alex T." 
+                 class="w-12 h-12 rounded-full object-cover border-2 border-teal">
+            <div class="flex-1">
+                <h3 class="font-sora font-semibold text-white">Alex T.</h3>
+                <div class="flex items-center space-x-2">
+                    <div class="flex items-center space-x-1">
+                        <i class="fa-solid fa-star text-yellow-400 text-xs"></i>
+                        <span class="text-white text-sm">4.9</span>
+                    </div>
+                    <span class="text-gray-400 text-sm">•</span>
+                    <span class="text-gray-400 text-sm">0.3 mi away</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="booking-content" class="flex-1 pb-24">
+        
+        <section id="service-selection" class="px-4 py-5 sm:px-6 border-b border-gray-800">
+            <h2 class="font-sora font-semibold text-white text-lg mb-4">Select Service</h2>
+            
+            <div class="space-y-3">
+                <div class="bg-teal/20 border-2 border-teal rounded-lg p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-medium text-white">Standard Cleaning</h3>
+                        <span class="text-teal font-semibold">$45/hour</span>
+                    </div>
+                    <p class="text-gray-300 text-sm mb-3">Deep clean of all rooms, kitchen, bathrooms</p>
+                    <div class="flex items-center space-x-2 text-xs">
+                        <span class="bg-teal/30 text-teal px-2 py-1 rounded-full">2-4 hours</span>
+                        <span class="bg-gray-700 text-gray-300 px-2 py-1 rounded-full">Most Popular</span>
+                    </div>
+                </div>
+
+                <div class="bg-[#1A2332] border border-gray-700 rounded-lg p-4 opacity-70">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-medium text-white">Deep Cleaning</h3>
+                        <span class="text-gray-300 font-semibold">$65/hour</span>
+                    </div>
+                    <p class="text-gray-400 text-sm">Intensive cleaning with appliances, windows</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="datetime-selection" class="px-4 py-5 sm:px-6 border-b border-gray-800">
+            <h2 class="font-sora font-semibold text-white text-lg mb-4">Date & Time</h2>
+            
+            <div class="bg-[#1A2332] border border-gray-700 rounded-lg p-4 mb-4">
+                <div class="grid grid-cols-7 gap-2 mb-4">
+                    <div class="text-center">
+                        <div class="text-gray-400 text-xs mb-1">S</div>
+                        <div class="w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center text-gray-400 text-sm">15</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-gray-400 text-xs mb-1">M</div>
+                        <div class="w-8 h-8 rounded-lg bg-teal flex items-center justify-center text-white text-sm">16</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-gray-400 text-xs mb-1">T</div>
+                        <div class="w-8 h-8 rounded-lg bg-[#2A3441] border border-gray-600 flex items-center justify-center text-white text-sm">17</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-gray-400 text-xs mb-1">W</div>
+                        <div class="w-8 h-8 rounded-lg bg-[#2A3441] border border-gray-600 flex items-center justify-center text-white text-sm">18</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-gray-400 text-xs mb-1">T</div>
+                        <div class="w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center text-gray-400 text-sm">19</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-gray-400 text-xs mb-1">F</div>
+                        <div class="w-8 h-8 rounded-lg bg-[#2A3441] border border-gray-600 flex items-center justify-center text-white text-sm">20</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-gray-400 text-xs mb-1">S</div>
+                        <div class="w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center text-gray-400 text-sm">21</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-300 text-sm font-medium mb-2">Preferred Start Time</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button class="py-2 px-3 bg-[#1A2332] border border-gray-700 rounded-lg text-gray-300 text-sm">9:00 AM</button>
+                    <button class="py-2 px-3 bg-teal/20 border-2 border-teal rounded-lg text-teal text-sm">2:00 PM</button>
+                    <button class="py-2 px-3 bg-[#1A2332] border border-gray-700 rounded-lg text-gray-300 text-sm">5:00 PM</button>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-gray-300 text-sm font-medium mb-2">Estimated Duration</label>
+                <select class="w-full bg-[#1A2332] border border-gray-700 rounded-lg px-3 py-2 text-white">
+                    <option>2 hours ($90)</option>
+                    <option>3 hours ($135)</option>
+                    <option>4 hours ($180)</option>
+                </select>
+            </div>
+        </section>
+
+        <section id="address-section" class="px-4 py-5 sm:px-6 border-b border-gray-800">
+            <h2 class="font-sora font-semibold text-white text-lg mb-4">Service Address</h2>
+            
+            <div class="space-y-3">
+                <div>
+                    <input type="text" placeholder="Street address" 
+                           class="w-full bg-[#1A2332] border border-gray-700 rounded-lg px-3 py-3 text-white placeholder-gray-400">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="text" placeholder="City" 
+                           class="bg-[#1A2332] border border-gray-700 rounded-lg px-3 py-3 text-white placeholder-gray-400">
+                    <input type="text" placeholder="ZIP" 
+                           class="bg-[#1A2332] border border-gray-700 rounded-lg px-3 py-3 text-white placeholder-gray-400">
+                </div>
+                <textarea placeholder="Special instructions (optional)" 
+                          rows="3"
+                          class="w-full bg-[#1A2332] border border-gray-700 rounded-lg px-3 py-3 text-white placeholder-gray-400 resize-none"></textarea>
+            </div>
+        </section>
+
+        <section id="addons-section" class="px-4 py-5 sm:px-6 border-b border-gray-800">
+            <h2 class="font-sora font-semibold text-white text-lg mb-4">Add-ons</h2>
+            
+            <div class="space-y-3">
+                <div class="flex items-center justify-between bg-[#1A2332] border border-gray-700 rounded-lg p-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-5 h-5 border-2 border-teal rounded bg-teal flex items-center justify-center">
+                            <i class="fa-solid fa-check text-white text-xs"></i>
+                        </div>
+                        <div>
+                            <span class="text-white font-medium text-sm">Inside Oven</span>
+                            <p class="text-gray-400 text-xs">Deep clean oven interior</p>
+                        </div>
+                    </div>
+                    <span class="text-teal font-semibold text-sm">+$25</span>
+                </div>
+
+                <div class="flex items-center justify-between bg-[#1A2332] border border-gray-700 rounded-lg p-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-5 h-5 border-2 border-gray-600 rounded"></div>
+                        <div>
+                            <span class="text-white font-medium text-sm">Inside Refrigerator</span>
+                            <p class="text-gray-400 text-xs">Clean fridge interior</p>
+                        </div>
+                    </div>
+                    <span class="text-gray-300 font-semibold text-sm">+$20</span>
+                </div>
+
+                <div class="flex items-center justify-between bg-[#1A2332] border border-gray-700 rounded-lg p-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-5 h-5 border-2 border-gray-600 rounded"></div>
+                        <div>
+                            <span class="text-white font-medium text-sm">Window Cleaning</span>
+                            <p class="text-gray-400 text-xs">Interior windows only</p>
+                        </div>
+                    </div>
+                    <span class="text-gray-300 font-semibold text-sm">+$35</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="pricing-breakdown" class="px-4 py-5 sm:px-6 border-b border-gray-800">
+            <h2 class="font-sora font-semibold text-white text-lg mb-4">Pricing Breakdown</h2>
+            
+            <div class="bg-[#1A2332] border border-gray-700 rounded-lg p-4">
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-300">Standard Cleaning (2 hours)</span>
+                        <span class="text-white">$90.00</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-300">Inside Oven</span>
+                        <span class="text-white">$25.00</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-300">Service Fee</span>
+                        <span class="text-white">$8.50</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-300">Tax</span>
+                        <span class="text-white">$9.86</span>
+                    </div>
+                    <div class="border-t border-gray-600 pt-3">
+                        <div class="flex justify-between">
+                            <span class="text-white font-semibold">Total</span>
+                            <span class="text-teal font-bold text-lg">$133.36</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="payment-method" class="px-4 py-5 sm:px-6 border-b border-gray-800">
+            <h2 class="font-sora font-semibold text-white text-lg mb-4">Payment Method</h2>
+            
+            <div class="space-y-3">
+                <div class="bg-teal/20 border-2 border-teal rounded-lg p-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-5 h-5 border-2 border-teal rounded-full bg-teal flex items-center justify-center">
+                            <div class="w-2 h-2 bg-white rounded-full"></div>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-2">
+                                <i class="fa-brands fa-cc-visa text-white text-lg"></i>
+                                <span class="text-white font-medium">•••• 4242</span>
+                            </div>
+                            <span class="text-gray-300 text-sm">Expires 12/26</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-[#1A2332] border border-gray-700 rounded-lg p-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-5 h-5 border-2 border-gray-600 rounded-full"></div>
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-2">
+                                <i class="fa-solid fa-wallet text-gray-300 text-lg"></i>
+                                <span class="text-white font-medium">Wallet Balance</span>
+                            </div>
+                            <span class="text-gray-300 text-sm">$87.50 available</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="cancellation-policy" class="px-4 py-5 sm:px-6 border-b border-gray-800">
+            <h2 class="font-sora font-semibold text-white text-lg mb-4">Cancellation Policy</h2>
+            
+            <div class="bg-[#1A2332] border border-gray-700 rounded-lg p-4">
+                <div class="space-y-2">
+                    <div class="flex items-start space-x-2">
+                        <i class="fa-solid fa-check text-teal text-sm mt-0.5"></i>
+                        <span class="text-gray-300 text-sm">Free cancellation up to 24 hours before service</span>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <i class="fa-solid fa-exclamation-triangle text-yellow-400 text-sm mt-0.5"></i>
+                        <span class="text-gray-300 text-sm">50% charge for cancellations within 24 hours</span>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <i class="fa-solid fa-times text-red-400 text-sm mt-0.5"></i>
+                        <span class="text-gray-300 text-sm">No refund for no-shows</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <div id="booking-cta" class="fixed bottom-20 left-0 right-0 bg-[#1A2332] border-t border-gray-700 px-4 py-4 sm:px-6">
+        <button class="w-full bg-teal text-white py-4 rounded-lg font-sora font-semibold text-lg">
+            Confirm Booking - $133.36
+        </button>
+        <p class="text-center text-gray-400 text-xs mt-2">
+            By booking, you agree to our Terms of Service
+        </p>
+    </div>
+
+    <nav id="bottom-navigation" class="fixed bottom-0 left-0 right-0 bg-[#1A2332] border-t border-gray-700 px-4 py-2">
+        <div class="flex items-center justify-around">
+            <button class="flex flex-col items-center space-y-1 py-2 px-3">
+                <i class="fa-solid fa-house text-gray-400 text-lg"></i>
+                <span class="text-gray-400 text-xs">Discovery</span>
+            </button>
+            
+            <button class="flex flex-col items-center space-y-1 py-2 px-3">
+                <i class="fa-solid fa-bed text-gray-400 text-lg"></i>
+                <span class="text-gray-400 text-xs">BnB Browse</span>
+            </button>
+            
+            <button class="flex flex-col items-center space-y-1 py-2 px-3">
+                <i class="fa-regular fa-message text-gray-400 text-lg"></i>
+                <span class="text-gray-400 text-xs">Messaging</span>
+            </button>
+            
+            <button class="flex flex-col items-center space-y-1 py-2 px-3">
+                <i class="fa-solid fa-wallet text-gray-400 text-lg"></i>
+                <span class="text-gray-400 text-xs">Wallet</span>
+            </button>
+            
+            <button class="flex flex-col items-center space-y-1 py-2 px-3">
+                <i class="fa-regular fa-user text-gray-400 text-lg"></i>
+                <span class="text-gray-400 text-xs">Profile</span>
+            </button>
+        </div>
+    </nav>
+
+</main>
+
+<div id="booking-success-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-[#1A2332] border border-gray-700 rounded-xl p-6 w-full max-w-sm">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-teal/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-check text-teal text-2xl"></i>
+                </div>
+                <h3 class="font-sora font-semibold text-white text-xl mb-2">Booking Confirmed!</h3>
+                <p class="text-gray-300 text-sm mb-6">Your cleaning service is scheduled for Monday, Dec 16 at 2:00 PM</p>
+                
+                <div class="space-y-3">
+                    <button class="w-full bg-teal text-white py-3 rounded-lg font-medium">
+                        <i class="fa-regular fa-calendar-plus mr-2"></i>
+                        Add to Calendar
+                    </button>
+                    <button class="w-full bg-[#2A3441] border border-gray-600 text-white py-3 rounded-lg font-medium">
+                        <i class="fa-regular fa-comment mr-2"></i>
+                        Message Provider
+                    </button>
+                    <button class="w-full text-gray-400 py-2">
+                        View Booking Details
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+window.addEventListener('load', function() {
+    const confirmBtn = document.querySelector('#booking-cta button');
+    const modal = document.getElementById('booking-success-modal');
+    
+    if (confirmBtn && modal) {
+        confirmBtn.addEventListener('click', function() {
+            modal.classList.remove('hidden');
+        });
+        
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+            }
+        });
+    }
+    
+    const addOnCheckboxes = document.querySelectorAll('#addons-section .flex');
+    addOnCheckboxes.forEach(item => {
+        item.addEventListener('click', function() {
+            const checkbox = this.querySelector('div div');
+            const isChecked = checkbox.classList.contains('bg-teal');
+            
+            if (isChecked) {
+                checkbox.classList.remove('bg-teal', 'border-teal');
+                checkbox.classList.add('border-gray-600');
+                checkbox.innerHTML = '';
+            } else {
+                checkbox.classList.add('bg-teal', 'border-teal');
+                checkbox.classList.remove('border-gray-600');
+                checkbox.innerHTML = '<i class="fa-solid fa-check text-white text-xs"></i>';
+            }
+        });
+    });
+    
+    const timeSlots = document.querySelectorAll('#datetime-selection .grid button');
+    timeSlots.forEach(btn => {
+        btn.addEventListener('click', function() {
+            timeSlots.forEach(b => {
+                b.classList.remove('bg-teal/20', 'border-teal', 'text-teal');
+                b.classList.add('bg-[#1A2332]', 'border-gray-700', 'text-gray-300');
+            });
+            this.classList.add('bg-teal/20', 'border-teal', 'text-teal');
+            this.classList.remove('bg-[#1A2332]', 'border-gray-700', 'text-gray-300');
+        });
+    });
+    
+    const paymentMethods = document.querySelectorAll('#payment-method .bg-');
+    paymentMethods.forEach(method => {
+        method.addEventListener('click', function() {
+            paymentMethods.forEach(m => {
+                const radio = m.querySelector('.w-5');
+                radio.classList.remove('bg-teal', 'border-teal');
+                radio.classList.add('border-gray-600');
+                radio.innerHTML = '';
+                m.classList.remove('bg-teal/20', 'border-teal');
+                m.classList.add('bg-[#1A2332]', 'border-gray-700');
+            });
+            
+            const radio = this.querySelector('.w-5');
+            radio.classList.add('bg-teal', 'border-teal');
+            radio.classList.remove('border-gray-600');
+            radio.innerHTML = '<div class="w-2 h-2 bg-white rounded-full"></div>';
+            this.classList.add('bg-teal/20', 'border-teal');
+            this.classList.remove('bg-[#1A2332]', 'border-gray-700');
+        });
+    });
+});
+</script>
+
+</body>
+</html>

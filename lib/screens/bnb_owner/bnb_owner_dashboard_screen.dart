@@ -9,6 +9,7 @@ import 'package:hook_app/screens/bnb_owner/manage_bnb_screen.dart';
 import 'package:hook_app/screens/bnb_owner/bnb_owner_profile_screen.dart';
 import 'package:hook_app/screens/bnb_owner/bnb_wallet_screen.dart';
 import 'package:hook_app/screens/bnb_owner/bnb_bookings_screen.dart';
+import 'package:hook_app/utils/nav.dart';
 
 class BnBOwnerDashboardScreen extends StatefulWidget {
   const BnBOwnerDashboardScreen({super.key});
@@ -205,13 +206,13 @@ class _BnBOwnerDashboardScreenState extends State<BnBOwnerDashboardScreen> {
           ListTile(
             leading: const Icon(Icons.dashboard, color: AppConstants.softWhite),
             title: const Text('Dashboard', style: TextStyle(color: AppConstants.softWhite)),
-            onTap: () => Navigator.pop(context),
+            onTap: () => Nav.safePop(context),
           ),
           ListTile(
             leading: const Icon(Icons.account_balance_wallet, color: AppConstants.softWhite),
             title: const Text('My Wallet', style: TextStyle(color: AppConstants.softWhite)),
             onTap: () {
-              Navigator.pop(context);
+              Nav.safePop(context);
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const BnBWalletScreen()),
@@ -222,7 +223,7 @@ class _BnBOwnerDashboardScreenState extends State<BnBOwnerDashboardScreen> {
             leading: const Icon(Icons.calendar_today, color: AppConstants.softWhite),
             title: const Text('My Bookings', style: TextStyle(color: AppConstants.softWhite)),
             onTap: () {
-              Navigator.pop(context);
+              Nav.safePop(context);
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const BnBBookingsScreen()),
@@ -233,7 +234,7 @@ class _BnBOwnerDashboardScreenState extends State<BnBOwnerDashboardScreen> {
             leading: const Icon(Icons.person, color: AppConstants.softWhite),
             title: const Text('Profile', style: TextStyle(color: AppConstants.softWhite)),
             onTap: () {
-              Navigator.pop(context);
+              Nav.safePop(context);
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const BnBOwnerProfileScreen()),

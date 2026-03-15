@@ -4,6 +4,7 @@ import 'package:hook_app/app/routes.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:ui';
+import 'package:hook_app/utils/nav.dart';
 
 class RegisterBnBOwnerScreen extends StatefulWidget {
   const RegisterBnBOwnerScreen({super.key});
@@ -146,7 +147,7 @@ class _RegisterBnBOwnerScreenState extends State<RegisterBnBOwnerScreen> {
                   child: Row(
                     children: [
                       IconButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () => Nav.safePop(context),
                         icon: const Icon(
                           Icons.arrow_back,
                           color: AppConstants.softWhite,

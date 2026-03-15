@@ -102,7 +102,7 @@ class DummyDataService {
         gender: oppositeGender,
         latitude: lat,
         longitude: lon,
-        profileImage: 'https://i.pravatar.cc/300?img=${i + 1}',
+        profileImage: '',
         bio: _bios[i % _bios.length],
         distance: double.parse(distance.toStringAsFixed(1)),
         isOnline: isOnline,

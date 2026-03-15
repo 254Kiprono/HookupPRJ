@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messaging</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>::-webkit-scrollbar { display: none;}</style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'deep-navy': '#0B1220',
+                        'teal': '#0F766E',
+                        'teal-light': '#14B8A6',
+                        'teal-dark': '#0D5F58',
+                    },
+                    fontFamily: {
+                        'sora': ['Sora', 'sans-serif'],
+                        'inter': ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-deep-navy font-inter antialiased">
+
+<main id="messaging-main" class="flex flex-col h-screen">
+    
+    <header id="header" class="bg-deep-navy border-b border-gray-800 px-4 py-4 sm:px-6">
+        <div class="flex items-center justify-between">
+            <h1 class="font-sora font-semibold text-white text-xl">Messages</h1>
+            
+            <div class="flex items-center space-x-3">
+                <button id="filter-btn" class="p-2 rounded-lg bg-[#1A2332] border border-gray-700">
+                    <i class="fa-solid fa-filter text-gray-300 text-sm"></i>
+                </button>
+                <button class="p-2 rounded-lg bg-[#1A2332] border border-gray-700">
+                    <i class="fa-solid fa-ellipsis-vertical text-gray-300 text-sm"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <div class="relative">
+                <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input type="text" placeholder="Search conversations..." 
+                       class="w-full bg-[#1A2332] border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-white placeholder-gray-400 text-sm">
+            </div>
+        </div>
+    </header>
+
+    <div id="filter-tabs" class="bg-deep-navy border-b border-gray-800 px-4 py-2 flex items-center space-x-2 overflow-x-auto">
+        <button class="px-3 py-1.5 bg-teal/20 border border-teal rounded-full text-teal text-xs font-medium whitespace-nowrap">
+            All (8)
+        </button>
+        <button class="px-3 py-1.5 bg-[#1A2332] border border-gray-700 rounded-full text-gray-300 text-xs font-medium whitespace-nowrap">
+            Unread (3)
+        </button>
+        <button class="px-3 py-1.5 bg-[#1A2332] border border-gray-700 rounded-full text-gray-300 text-xs font-medium whitespace-nowrap">
+            Providers
+        </button>
+        <button class="px-3 py-1.5 bg-[#1A2332] border border-gray-700 rounded-full text-gray-300 text-xs font-medium whitespace-nowrap">
+            BnB Hosts
+        </button>
+    </div>
+
+    <div id="conversations-list" class="flex-1 overflow-y-auto pb-20">
+        
+        <div id="thread-1" class="border-b border-gray-800 px-4 py-4 bg-teal/5 cursor-pointer">
+            <div class="flex items-start space-x-3">
+                <div class="relative">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" 
+                         alt="Alex T." 
+                         class="w-12 h-12 rounded-full object-cover">
+                    <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-teal-light border-2 border-deep-navy rounded-full"></div>
+                </div>
+                
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between mb-1">
+                        <div class="flex items-center space-x-2">
+                            <h3 class="font-medium text-white text-sm">Alex T.</h3>
+                            <span class="px-1.5 py-0.5 bg-gray-700 text-gray-300 text-xs rounded">Provider</span>
+                        </div>
+                        <span class="text-gray-400 text-xs whitespace-nowrap ml-2">2m ago</span>
+                    </div>
+                    <p class="text-gray-300 text-sm mb-1 truncate">Perfect! I'll bring all the cleaning supplies. See you Monday at 2pm.</p>
+                    <div class="flex items-center space-x-2">
+                        <span class="px-2 py-0.5 bg-teal/20 text-teal text-xs rounded-full">Booking: Dec 16</span>
+                        <div class="w-2 h-2 bg-teal rounded-full"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="thread-2" class="border-b border-gray-800 px-4 py-4 cursor-pointer">
+            <div class="flex items-start space-x-3">
+                <div class="relative">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-5.jpg" 
+                         alt="Sarah M." 
+                         class="w-12 h-12 rounded-full object-cover">
+                    <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-gray-500 border-2 border-deep-navy rounded-full"></div>
+                </div>
+                
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between mb-1">
+                        <div class="flex items-center space-x-2">
+                            <h3 class="font-medium text-white text-sm">Sarah M.</h3>
+                            <span class="px-1.5 py-0.5 bg-gray-700 text-gray-300 text-xs rounded">BnB Host</span>
+                        </div>
+                        <span class="text-gray-400 text-xs whitespace-nowrap ml-2">1h ago</span>
+                    </div>
+                    <p class="text-gray-300 text-sm mb-1 truncate">Check-in instructions sent! The code is 4829. Parking is in the back.</p>
+                    <div class="flex items-center space-x-2">
+                        <span class="px-2 py-0.5 bg-gray-700 text-gray-300 text-xs rounded-full">Stay: Dec 18-20</span>
+                        <div class="w-2 h-2 bg-teal rounded-full"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="thread-3" class="border-b border-gray-800 px-4 py-4 bg-teal/5 cursor-pointer">
+            <div class="flex items-start space-x-3">
+                <div class="relative">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-8.jpg" 
+                         alt="Marcus D." 
+                         class="w-12 h-12 rounded-full object-cover">
+                    <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-teal-light border-2 border-deep-navy rounded-full"></div>
+                </div>
+                
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between mb-1">
+                        <div class="flex items-center space-x-2">
+                            <h3 class="font-medium text-white text-sm">Marcus D.</h3>
+                            <span class="px-1.5 py-0.5 bg-gray-700 text-gray-300 text-xs rounded">Provider</span>
+                        </div>
+                        <span class="text-gray-400 text-xs whitespace-nowrap ml-2">3h ago</span>
+                    </div>
+                    <p class="text-gray-300 text-sm mb-1 truncate">Can you confirm the address for tomorrow's session?</p>
+                    <div class="flex items-center space-x-2">
+                        <span class="px-2 py-0.5 bg-teal/20 text-teal text-xs rounded-full">Booking: Dec 15</span>
+                        <div class="w-2 h-2 bg-teal rounded-full"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="thread-4" class="border-b border-gray-800 px-4 py-4 cursor-pointer">
+            <div class="flex items-start space-x-3">
+                <div class="relative">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-1.jpg" 
+                         alt="Jessica L." 
+                         class="w-12 h-12 rounded-full object-cover">
+                    <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-teal-light border-2 border-deep-navy rounded-full"></div>
+                </div>
+                
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between mb-1">
+                        <div class="flex items-center space-x-2">
+                            <h3 class="font-medium text-white text-sm">Jessica L.</h3>
+                            <span class="px-1.5 py-0.5 bg-gray-700 text-gray-300 text-xs rounded">Provider</span>
+                        </div>
+                        <span class="text-gray-400 text-xs whitespace-nowrap ml-2">Yesterday</span>
+                    </div>
+                    <p class="text-gray-400 text-sm mb-1 truncate">Thanks for the great review! Hope to work with you again soon.</p>
+                    <div class="flex items-center space-x-2">
+                        <span class="px-2 py-0.5 bg-gray-700 text-gray-300 text-xs rounded-full">Completed</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="thread-5" class="border-b border-gray-800 px-4 py-4 cursor-pointer">
+            <div class="flex items-start space-x-3">
+                <div class="relative">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-6.jpg" 
+                         alt="Olivia R." 
+                         class="w-12 h-12 rounded-full object-cover">
+                    <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-gray-500 border-2 border-deep-navy rounded-full"></div>
+                </div>
+                
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between mb-1">
+                        <div class="flex items-center space-x-2">
+                            <h3 class="font-medium text-white text-sm">Olivia R.</h3>
+                            <span class="px-1.5 py-0.5 bg-gray-700 text-gray-300 text-xs rounded">BnB Host</span>
+                        </div>
+                        <span class="text-gray-400 text-xs whitespace-nowrap ml-2">2 days ago</span>
+                    </div>
+                    <p class="text-gray-400 text-sm mb-1 truncate">Hope you enjoyed your stay! Let me know if you need anything.</p>
+                    <div class="flex items-center space-x-2">
+                        <span class="px-2 py-0.5 bg-gray-700 text-gray-300 text-xs rounded-full">Stay: Dec 10-12</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="thread-6" class="border-b border-gray-800 px-4 py-4 cursor-pointer">
+            <div class="flex items-start space-x-3">
+                <div class="relative">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-4.jpg" 
+                         alt="Ryan P." 
+                         class="w-12 h-12 rounded-full object-cover">
+                    <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-gray-500 border-2 border-deep-navy rounded-full"></div>
+                </div>
+                
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between mb-1">
+                        <div class="flex items-center space-x-2">
+                            <h3 class="font-medium text-white text-sm">Ryan P.</h3>
+                            <span class="px-1.5 py-0.5 bg-gray-700 text-gray-300 text-xs rounded">Provider</span>
+                        </div>
+                        <span class="text-gray-400 text-xs whitespace-nowrap ml-2">3 days ago</span>
+                    </div>
+                    <p class="text-gray-400 text-sm mb-1 truncate">Service completed! Invoice has been sent to your wallet.</p>
+                    <div class="flex items-center space-x-2">
+                        <span class="px-2 py-0.5 bg-gray-700 text-gray-300 text-xs rounded-full">Completed</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <nav id="bottom-navigation" class="fixed bottom-0 left-0 right-0 bg-[#1A2332] border-t border-gray-700 px-4 py-2">
+        <div class="flex items-center justify-around">
+            <button class="flex flex-col items-center space-y-1 py-2 px-3">
+                <i class="fa-solid fa-house text-gray-400 text-lg"></i>
+                <span class="text-gray-400 text-xs">Discovery</span>
+            </button>
+            
+            <button class="flex flex-col items-center space-y-1 py-2 px-3">
+                <i class="fa-solid fa-bed text-gray-400 text-lg"></i>
+                <span class="text-gray-400 text-xs">BnB Browse</span>
+            </button>
+            
+            <button class="flex flex-col items-center space-y-1 py-2 px-3">
+                <i class="fa-solid fa-message text-teal text-lg"></i>
+                <span class="text-teal text-xs font-medium">Messaging</span>
+            </button>
+            
+            <button class="flex flex-col items-center space-y-1 py-2 px-3">
+                <i class="fa-solid fa-wallet text-gray-400 text-lg"></i>
+                <span class="text-gray-400 text-xs">Wallet</span>
+            </button>
+            
+            <button class="flex flex-col items-center space-y-1 py-2 px-3">
+                <i class="fa-regular fa-user text-gray-400 text-lg"></i>
+                <span class="text-gray-400 text-xs">Profile</span>
+            </button>
+        </div>
+    </nav>
+
+</main>
+
+<div id="thread-view" class="fixed inset-0 bg-deep-navy z-50 hidden flex flex-col">
+    
+    <header class="bg-deep-navy border-b border-gray-800 px-4 py-4">
+        <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center space-x-3">
+                <button id="back-to-list" class="p-2 -ml-2">
+                    <i class="fa-solid fa-arrow-left text-white text-lg"></i>
+                </button>
+                <div class="flex items-center space-x-2">
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" 
+                         alt="Alex T." 
+                         class="w-9 h-9 rounded-full object-cover">
+                    <div>
+                        <h3 class="font-medium text-white text-sm">Alex T.</h3>
+                        <div class="flex items-center space-x-1">
+                            <div class="w-1.5 h-1.5 bg-teal-light rounded-full"></div>
+                            <span class="text-gray-400 text-xs">Available</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+                <button class="p-2 rounded-lg bg-[#1A2332] border border-gray-700">
+                    <i class="fa-solid fa-phone text-gray-300 text-sm"></i>
+                </button>
+                <button id="thread-menu-btn" class="p-2 rounded-lg bg-[#1A2332] border border-gray-700">
+                    <i class="fa-solid fa-ellipsis-vertical text-gray-300 text-sm"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="bg-gradient-to-r from-teal/10 to-teal-dark/10 border border-teal/30 rounded-lg p-3">
+            <div class="flex items-start justify-between mb-2">
+                <div>
+                    <span class="text-xs text-gray-400">Upcoming Booking</span>
+                    <h4 class="font-medium text-white text-sm">Standard Cleaning</h4>
+                </div>
+                <span class="px-2 py-1 bg-teal/20 text-teal text-xs rounded-full font-medium">Dec 16</span>
+            </div>
+            <div class="flex items-center space-x-3 text-xs text-gray-300">
+                <span><i class="fa-regular fa-clock mr-1"></i>2:00 PM</span>
+                <span><i class="fa-solid fa-location-dot mr-1"></i>0.3 mi away</span>
+            </div>
+        </div>
+    </header>
+
+    <div id="messages-container" class="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        
+        <div class="flex justify-center">
+            <span class="px-3 py-1 bg-[#1A2332] text-gray-400 text-xs rounded-full">Today</span>
+        </div>
+
+        <div class="flex items-start space-x-2">
+            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" 
+                 alt="Alex T." 
+                 class="w-8 h-8 rounded-full object-cover flex-shrink-0">
+            <div class="flex-1">
+                <div class="bg-[#1A2332] border border-gray-700 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%]">
+                    <p class="text-white text-sm">Hi! Thanks for booking. I'll arrive promptly at 2pm with all supplies.</p>
+                </div>
+                <span class="text-gray-500 text-xs ml-2 mt-1 block">10:15 AM</span>
+            </div>
+        </div>
+
+        <div class="flex items-start space-x-2 justify-end">
+            <div class="flex-1 flex justify-end">
+                <div class="bg-teal/20 border border-teal/30 rounded-2xl rounded-tr-sm px-4 py-3 max-w-[85%]">
+                    <p class="text-white text-sm">Great! Do you need access to any specific areas?</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex justify-end">
+            <span class="text-gray-500 text-xs mr-2">10:18 AM</span>
+        </div>
+
+        <div class="flex items-start space-x-2">
+            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" 
+                 alt="Alex T." 
+                 class="w-8 h-8 rounded-full object-cover flex-shrink-0">
+            <div class="flex-1">
+                <div class="bg-[#1A2332] border border-gray-700 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%]">
+                    <p class="text-white text-sm">Just the main living areas and bathrooms. I'll bring eco-friendly products unless you have preferences.</p>
+                </div>
+                <span class="text-gray-500 text-xs ml-2 mt-1 block">10:22 AM</span>
+            </div>
+        </div>
+
+        <div class="flex items-start space-x-2 justify-end">
+            <div class="flex-1 flex justify-end">
+                <div class="bg-teal/20 border border-teal/30 rounded-2xl rounded-tr-sm px-4 py-3 max-w-[85%]">
+                    <p class="text-white text-sm">Perfect! I'll bring all the cleaning supplies. See you Monday at 2pm.</p>
+                </div>
+            </div>
+        </div>
+        <div class="flex justify-end">
+            <span class="text-gray-500 text-xs mr-2">Just now</span>
+        </div>
+
+    </div>
+
+    <div class="border-t border-gray-800 bg-deep-navy">
+        <div id="quick-replies" class="px-4 py-2 flex items-center space-x-2 overflow-x-auto">
+            <button class="px-3 py-1.5 bg-[#1A2332] border border-gray-700 rounded-full text-gray-300 text-xs whitespace-nowrap">
+                👍 Sounds good
+            </button>
+            <button class="px-3 py-1.5 bg-[#1A2332] border border-gray-700 rounded-full text-gray-300 text-xs whitespace-nowrap">
+                ⏰ Running late
+            </button>
+            <button class="px-3 py-1.5 bg-[#1A2332] border border-gray-700 rounded-full text-gray-300 text-xs whitespace-nowrap">
+                📍 Share location
+            </button>
+        </div>
+        
+        <div class="px-4 py-3 flex items-end space-x-2">
+            <button class="p-2.5 bg-[#1A2332] border border-gray-700 rounded-lg">
+                <i class="fa-solid fa-paperclip text-gray-300 text-lg"></i>
+            </button>
+            
+            <div class="flex-1 bg-[#1A2332] border border-gray-700 rounded-lg px-3 py-2.5 flex items-center">
+                <input type="text" placeholder="Type a message..." 
+                       class="flex-1 bg-transparent text-white text-sm outline-none placeholder-gray-400">
+            </div>
+            
+            <button class="p-2.5 bg-teal rounded-lg">
+                <i class="fa-solid fa-paper-plane text-white text-lg"></i>
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<div id="thread-menu-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden">
+    <div class="flex items-end justify-center min-h-screen">
+        <div class="bg-[#1A2332] border-t border-gray-700 rounded-t-2xl w-full max-w-md">
+            <div class="px-4 py-4 border-b border-gray-700">
+                <h3 class="font-sora font-semibold text-white text-lg">Safety & Options</h3>
+            </div>
+            
+            <div class="px-4 py-2">
+                <button class="w-full flex items-center space-x-3 py-3 border-b border-gray-700">
+                    <i class="fa-solid fa-phone-slash text-gray-300 text-lg w-6"></i>
+                    <span class="text-white">Mask Phone Number</span>
+                </button>
+                
+                <button class="w-full flex items-center space-x-3 py-3 border-b border-gray-700">
+                    <i class="fa-solid fa-flag text-yellow-400 text-lg w-6"></i>
+                    <span class="text-white">Report Conversation</span>
+                </button>
+                
+                <button class="w-full flex items-center space-x-3 py-3 border-b border-gray-700">
+                    <i class="fa-solid fa-ban text-red-400 text-lg w-6"></i>
+                    <span class="text-white">Block User</span>
+                </button>
+                
+                <button class="w-full flex items-center space-x-3 py-3 border-b border-gray-700">
+                    <i class="fa-solid fa-bell-slash text-gray-300 text-lg w-6"></i>
+                    <span class="text-white">Mute Notifications</span>
+                </button>
+                
+                <button class="w-full flex items-center space-x-3 py-3 border-b border-gray-700">
+                    <i class="fa-solid fa-calendar text-gray-300 text-lg w-6"></i>
+                    <span class="text-white">View Booking Details</span>
+                </button>
+                
+                <button class="w-full flex items-center space-x-3 py-3">
+                    <i class="fa-solid fa-trash text-gray-300 text-lg w-6"></i>
+                    <span class="text-white">Delete Conversation</span>
+                </button>
+            </div>
+            
+            <div class="px-4 py-4 border-t border-gray-700">
+                <button id="close-menu-modal" class="w-full py-3 bg-gray-700 text-white rounded-lg font-medium">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+window.addEventListener('load', function() {
+    const threads = document.querySelectorAll('[id^="thread-"]');
+    const threadView = document.getElementById('thread-view');
+    const backToList = document.getElementById('back-to-list');
+    const threadMenuBtn = document.getElementById('thread-menu-btn');
+    const threadMenuModal = document.getElementById('thread-menu-modal');
+    const closeMenuModal = document.getElementById('close-menu-modal');
+    
+    threads.forEach(thread => {
+        thread.addEventListener('click', function() {
+            threadView.classList.remove('hidden');
+        });
+    });
+    
+    if (backToList) {
+        backToList.addEventListener('click', function() {
+            threadView.classList.add('hidden');
+        });
+    }
+    
+    if (threadMenuBtn && threadMenuModal) {
+        threadMenuBtn.addEventListener('click', function() {
+            threadMenuModal.classList.remove('hidden');
+        });
+    }
+    
+    if (closeMenuModal && threadMenuModal) {
+        closeMenuModal.addEventListener('click', function() {
+            threadMenuModal.classList.add('hidden');
+        });
+        
+        threadMenuModal.addEventListener('click', function(e) {
+            if (e.target === threadMenuModal) {
+                threadMenuModal.classList.add('hidden');
+            }
+        });
+    }
+    
+    const filterTabs = document.querySelectorAll('#filter-tabs button');
+    filterTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            filterTabs.forEach(t => {
+                t.classList.remove('bg-teal/20', 'border-teal', 'text-teal');
+                t.classList.add('bg-[#1A2332]', 'border-gray-700', 'text-gray-300');
+            });
+            this.classList.add('bg-teal/20', 'border-teal', 'text-teal');
+            this.classList.remove('bg-[#1A2332]', 

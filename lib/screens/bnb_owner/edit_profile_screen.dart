@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/user_service.dart';
+import 'package:hook_app/utils/nav.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -188,7 +189,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       child: Row(
         children: [
           IconButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Nav.safePop(context),
             icon: const Icon(Icons.arrow_back, color: AppConstants.softWhite, size: 28),
           ),
           const SizedBox(width: 12),

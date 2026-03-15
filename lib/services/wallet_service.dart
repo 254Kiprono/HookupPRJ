@@ -30,12 +30,22 @@ class WalletService {
         },
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 404) {
+        if (response.body.isNotEmpty) {
+          final data = jsonDecode(response.body);
+          if (data is Map<String, dynamic> && data.containsKey('balance')) {
+            return {
+              'user_id': data['userId'] ?? data['user_id'] ?? userId,
+              'balance': (data['balance'] as num?)?.toDouble() ?? 0.0,
+              'last_updated': data['lastUpdated'] ?? data['last_updated'],
+            };
+          }
+        }
+        // Treat 404 or empty body as "wallet not initialized yet"
         return {
-          'user_id': data['userId'] ?? data['user_id'] ?? userId,
-          'balance': (data['balance'] as num?)?.toDouble() ?? 0.0,
-          'last_updated': data['lastUpdated'] ?? data['last_updated'],
+          'user_id': userId,
+          'balance': 0.0,
+          'last_updated': null,
         };
       } else if (response.statusCode == 401) {
         throw Exception('Unauthorized: Please login again');
@@ -267,7 +277,6 @@ class WalletService {
     return earnings;
   }
 }
-
 
 
 

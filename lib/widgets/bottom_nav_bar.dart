@@ -1,52 +1,110 @@
 import 'package:flutter/material.dart';
+import 'package:hook_app/utils/constants.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppBottomNavBar extends StatelessWidget {
   final int currentIndex;
-  final Color selectedColor;
-  final Color unselectedColor;
-  final ValueChanged<int>? onTap; // Add callback for index changes
+  final ValueChanged<int>? onTap;
 
   const AppBottomNavBar({
     super.key,
     required this.currentIndex,
-    this.selectedColor = Colors.blue,
-    this.unselectedColor = Colors.grey,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      onTap: onTap, // Use the passed callback
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: selectedColor,
-      unselectedItemColor: unselectedColor,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: 'Home',
+    return Container(
+      decoration: BoxDecoration(
+        color: AppConstants.cardNavy,
+        border: Border(
+          top: BorderSide(color: Colors.white.withOpacity(0.05), width: 1),
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.search),
-          label: 'Search',
+      ),
+      child: BottomNavigationBar(
+        currentIndex: currentIndex,
+        onTap: onTap,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.transparent, // Controlled by Container
+        elevation: 0,
+        selectedItemColor: AppConstants.primaryColor,
+        unselectedItemColor: AppConstants.mutedGray,
+        selectedLabelStyle: GoogleFonts.sora(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          height: 1.5,
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.holiday_village),
-          label: 'BNBs',
+        unselectedLabelStyle: GoogleFonts.sora(
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
+          height: 1.5,
         ),
-        BottomNavigationBarItem(
-          icon: Badge(
-            label: Text('3'),
-            child: Icon(Icons.message),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Padding(
+              padding: EdgeInsets.only(bottom: 4),
+              child: Icon(Icons.explore_outlined),
+            ),
+            activeIcon: Padding(
+              padding: EdgeInsets.only(bottom: 4),
+              child: Icon(Icons.explore),
+            ),
+            label: 'Discovery',
           ),
-          label: 'Messages',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person),
-          label: 'Profile',
-        ),
-      ],
+          BottomNavigationBarItem(
+            icon: Padding(
+              padding: EdgeInsets.only(bottom: 4),
+              child: Icon(Icons.bed_outlined),
+            ),
+            activeIcon: Padding(
+              padding: EdgeInsets.only(bottom: 4),
+              child: Icon(Icons.bed),
+            ),
+            label: 'BnB Browse',
+          ),
+          BottomNavigationBarItem(
+            icon: Padding(
+              padding: EdgeInsets.only(bottom: 4),
+              child: Badge(
+                backgroundColor: AppConstants.primaryColor,
+                label: Text('3', style: TextStyle(fontSize: 10)),
+                child: Icon(Icons.chat_bubble_outline),
+              ),
+            ),
+            activeIcon: Padding(
+              padding: EdgeInsets.only(bottom: 4),
+              child: Badge(
+                backgroundColor: AppConstants.primaryColor,
+                label: Text('3', style: TextStyle(fontSize: 10)),
+                child: Icon(Icons.chat_bubble),
+              ),
+            ),
+            label: 'Messaging',
+          ),
+          BottomNavigationBarItem(
+            icon: Padding(
+              padding: EdgeInsets.only(bottom: 4),
+              child: Icon(Icons.account_balance_wallet_outlined),
+            ),
+            activeIcon: Padding(
+              padding: EdgeInsets.only(bottom: 4),
+              child: Icon(Icons.account_balance_wallet),
+            ),
+            label: 'Wallet',
+          ),
+          BottomNavigationBarItem(
+            icon: Padding(
+              padding: EdgeInsets.only(bottom: 4),
+              child: Icon(Icons.person_outline),
+            ),
+            activeIcon: Padding(
+              padding: EdgeInsets.only(bottom: 4),
+              child: Icon(Icons.person),
+            ),
+            label: 'Profile',
+          ),
+        ],
+      ),
     );
   }
 }

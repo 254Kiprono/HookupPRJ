@@ -11,6 +11,10 @@ class AppConstants {
   static const Color primaryColor = Color(0xFF0F766E); // Teal
   static const Color secondaryColor = Color(0xFF0B1220); // Deep Navy
   static const Color accentColor = Color(0xFF99F6E4); // Mint Accent
+  static const Color tealLight = Color(0xFF14B8A6);
+  static const Color tealDark = Color(0xFF0D5F58);
+  static const Color deepNavy = Color(0xFF0B1220);
+  static const Color cardNavy = Color(0xFF1A2332); // For cards and navigation
 
   // Background Colors
   static const Color darkBackground = Color(0xFF0B1220); // Deep Navy
@@ -159,6 +163,11 @@ class AppConstants {
   static const int bnbOwnerRoleId = 4;
   static const int regularUserRoleId = 1; 
   static const int customerCareRoleId = 3; 
+
+  // Subscription Plans (in KSh)
+  static const int subWeeklyPrice = 200;
+  static const int subTwoWeeksPrice = 500;
+  static const int subMonthlyPrice = 800;
 }
 
 class TokenUtils {

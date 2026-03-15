@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/booking_service.dart';
 import 'package:hook_app/models/booking.dart';
+import 'package:hook_app/utils/nav.dart';
 
 class BnBBookingHistoryScreen extends StatefulWidget {
   const BnBBookingHistoryScreen({super.key});
@@ -96,7 +97,7 @@ class _BnBBookingHistoryScreenState extends State<BnBBookingHistoryScreen> {
       child: Row(
         children: [
           IconButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Nav.safePop(context),
             icon: const Icon(
               Icons.arrow_back,
               color: AppConstants.softWhite,

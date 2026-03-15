@@ -2,13 +2,15 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hook_app/app/routes.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:hook_app/services/user_service.dart';
+import 'package:hook_app/services/storage_service.dart';
+import 'package:hook_app/utils/nav.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final Map<String, dynamic> arguments;
@@ -21,7 +23,7 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   late Map<String, dynamic>? initialData;
-  late File? _profileImage;
+  XFile? _profileImage;
   late TextEditingController _fullNameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
@@ -34,17 +36,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  // Gallery and Video state
-  List<String> _galleryUrls = [];
-  List<File> _galleryFiles = [];
-  String? _videoUrl;
-  File? _videoFile;
-
   @override
   void initState() {
     super.initState();
     initialData = widget.arguments['initialData'] as Map<String, dynamic>?;
-    _profileImage = widget.arguments['profileImage'] as File?;
+    _profileImage = widget.arguments['profileImage'] as XFile?;
     _fullNameController =
         TextEditingController(text: initialData?['fullName'] ?? '');
     _emailController = TextEditingController(text: initialData?['email'] ?? '');
@@ -55,21 +51,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _bioController = TextEditingController(text: initialData?['bio'] ?? '');
     _interestsController =
         TextEditingController(text: initialData?['interests'] ?? '');
-
-    // Initialize gallery and video from initialData
-    if (initialData?['photoGallery'] != null) {
-      if (initialData!['photoGallery'] is List) {
-        _galleryUrls = List<String>.from(initialData!['photoGallery']);
-      } else if (initialData!['photoGallery'] is String) {
-        try {
-          _galleryUrls =
-              List<String>.from(jsonDecode(initialData!['photoGallery']));
-        } catch (e) {
-          _galleryUrls = [];
-        }
-      }
-    }
-    _videoUrl = initialData?['profileVideoUrl'];
   }
 
   @override
@@ -88,59 +69,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       setState(() {
-        _profileImage = File(image.path);
+        _profileImage = image;
       });
     }
   }
 
-  Future<void> _pickGalleryImages() async {
-    final List<XFile> images = await _picker.pickMultiImage();
-    if (images.isNotEmpty) {
-      setState(() {
-        // Limit to 6 total including existing
-        int remaining = 6 - _galleryFiles.length - _galleryUrls.length;
-        if (remaining > 0) {
-          _galleryFiles.addAll(
-            images.take(remaining).map((xfile) => File(xfile.path)),
-          );
-        }
-      });
-    }
-  }
-
-  Future<void> _pickVideo() async {
-    final XFile? video = await _picker.pickVideo(
-      source: ImageSource.gallery,
-      maxDuration: const Duration(seconds: 30),
-    );
-    if (video != null) {
-      setState(() {
-        _videoFile = File(video.path);
-      });
-    }
-  }
-
-  Future<String?> _uploadMedia(File file, String type) async {
+  Future<String?> _uploadMedia(XFile file, String type) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final String? authToken = prefs.getString(AppConstants.authTokenKey);
+      final String? authToken = await StorageService.getAuthToken();
 
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('${AppConstants.mediaUpload}?type=$type'),
-      );
+      final uri = Uri.parse('${AppConstants.mediaUpload}?type=$type');
+      print('📤 Uploading $type to $uri');
+
+      var request = http.MultipartRequest('POST', uri);
       request.headers['Authorization'] = 'Bearer $authToken';
-      
-      request.files.add(await http.MultipartFile.fromPath(
+
+      final bytes = await file.readAsBytes();
+      print('📦 File size: ${bytes.length} bytes, Name: ${file.name}');
+
+      request.files.add(http.MultipartFile.fromBytes(
         'file',
-        file.path,
-        contentType: type == 'video' 
-          ? MediaType('video', 'mp4')
-          : MediaType('image', 'jpeg'),
+        bytes,
+        filename: file.name.isNotEmpty
+            ? file.name
+            : 'upload_${DateTime.now().millisecondsSinceEpoch}',
+        contentType: type == 'video'
+            ? MediaType('video', 'mp4')
+            : MediaType('image', 'jpeg'),
       ));
 
+      print('🚀 Sending request...');
       final streamedResponse = await request.send();
       final responseBody = await streamedResponse.stream.bytesToString();
+
+      print('📥 Response Status: ${streamedResponse.statusCode}');
+      print('📜 Response Body: $responseBody');
 
       if (streamedResponse.statusCode == 200) {
         final data = jsonDecode(responseBody);
@@ -150,7 +113,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         return null;
       }
     } catch (error) {
-      debugPrint('Upload error: $error');
+      debugPrint('❌ Upload error: $error');
+      print('❌ Upload error: $error');
       return null;
     }
   }
@@ -163,8 +127,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _errorMessage = null;
     });
 
-    final prefs = await SharedPreferences.getInstance();
-    final String? authToken = prefs.getString(AppConstants.authTokenKey);
+    final String? authToken = await StorageService.getAuthToken();
 
     if (authToken == null || authToken.isEmpty) {
       if (mounted) {
@@ -177,23 +140,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       String? profileImageUrl;
       if (_profileImage != null) {
         profileImageUrl = await _uploadMedia(_profileImage!, 'profile');
-        if (profileImageUrl == null) throw Exception('Failed to upload profile image');
-      }
-
-      // Handle Gallery Uploads
-      List<String> finalGallery = List.from(_galleryUrls);
-      for (var file in _galleryFiles) {
-        final url = await _uploadMedia(file, 'gallery');
-        if (url != null) {
-          finalGallery.add(url);
-        }
-      }
-
-      // Handle Video Upload
-      String? finalVideoUrl = _videoUrl;
-      if (_videoFile != null) {
-        finalVideoUrl = await _uploadMedia(_videoFile!, 'video');
-        if (finalVideoUrl == null) throw Exception('Failed to upload profile video');
+        if (profileImageUrl == null)
+          throw Exception('Failed to upload profile image');
       }
 
       await UserService.updateUserProfile(
@@ -205,8 +153,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         bio: _bioController.text,
         interests: _interestsController.text,
         profileImage: profileImageUrl,
-        photoGallery: finalGallery,
-        profileVideoUrl: finalVideoUrl,
       );
 
       if (!mounted) return;
@@ -214,7 +160,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile updated successfully')),
       );
-      Navigator.pop(context); // Return to account screen
+      Nav.safePop(context); // Return to account screen
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -252,7 +198,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Nav.safePop(context),
         ),
         title: const Text('Edit Your Profile'),
         backgroundColor: AppConstants.primaryColor,
@@ -325,35 +271,60 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       ),
                                     ],
                                   ),
-                                  child: CircleAvatar(
-                                    radius: 70,
-                                    backgroundColor: Colors.white,
-                                    child: CircleAvatar(
-                                      radius: 65,
-                                      backgroundImage: _profileImage != null
-                                          ? FileImage(_profileImage!)
-                                              as ImageProvider
-                                          : initialData?['profileImageUrl'] !=
-                                                  null
-                                              ? NetworkImage(initialData![
-                                                      'profileImageUrl'])
-                                                  as ImageProvider
-                                              : const NetworkImage(
-                                                      'https://via.placeholder.com/150')
-                                                  as ImageProvider,
-                                      child: const Align(
-                                        alignment: Alignment.bottomRight,
-                                        child: CircleAvatar(
-                                          radius: 20,
-                                          backgroundColor:
-                                              AppConstants.accentColor,
-                                          child: Icon(
-                                            Icons.camera_alt,
-                                            size: 20,
-                                            color: Colors.white,
+                                  child: Container(
+                                    width: 140,
+                                    height: 140,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.white,
+                                    ),
+                                    child: Stack(
+                                      children: [
+                                        Positioned.fill(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(4.0),
+                                            child: ClipOval(
+                                              child: _profileImage != null
+                                                  ? (kIsWeb
+                                                      ? Image.network(
+                                                          _profileImage!.path,
+                                                          fit: BoxFit.cover,
+                                                        )
+                                                      : Image.file(
+                                                          File(_profileImage!
+                                                              .path),
+                                                          fit: BoxFit.cover,
+                                                        ))
+                                                  : initialData?[
+                                                              'profileImageUrl'] !=
+                                                          null
+                                                      ? Image.network(
+                                                          initialData![
+                                                              'profileImageUrl'],
+                                                          fit: BoxFit.cover,
+                                                        )
+                                                      : const Icon(
+                                                          Icons.person,
+                                                          size: 60,
+                                                          color: Colors.grey,
+                                                        ),
+                                            ),
                                           ),
                                         ),
-                                      ),
+                                        const Align(
+                                          alignment: Alignment.bottomRight,
+                                          child: CircleAvatar(
+                                            radius: 20,
+                                            backgroundColor:
+                                                AppConstants.accentColor,
+                                            child: Icon(
+                                              Icons.camera_alt,
+                                              size: 20,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
@@ -424,10 +395,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                         : null,
                               ),
                               const SizedBox(height: 20),
-                              _buildGalleryPicker(),
-                              const SizedBox(height: 20),
-                              _buildVideoPicker(),
-                              const SizedBox(height: 20),
                               ElevatedButton.icon(
                                 onPressed: _updateProfile,
                                 icon: const Icon(Icons.favorite,
@@ -457,139 +424,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildGalleryPicker() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Photo Gallery (Max 6)',
-          style: TextStyle(
-              color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-          ),
-          itemCount: (_galleryUrls.length + _galleryFiles.length + 1).clamp(0, 7),
-          itemBuilder: (context, index) {
-            if (index < _galleryUrls.length) {
-              return _buildMediaItem(
-                image: NetworkImage(_galleryUrls[index]),
-                onDelete: () => setState(() => _galleryUrls.removeAt(index)),
-              );
-            }
-            int fileIndex = index - _galleryUrls.length;
-            if (fileIndex < _galleryFiles.length) {
-              return _buildMediaItem(
-                image: FileImage(_galleryFiles[fileIndex]),
-                onDelete: () => setState(() => _galleryFiles.removeAt(fileIndex)),
-              );
-            }
-            if (_galleryUrls.length + _galleryFiles.length < 6) {
-              return GestureDetector(
-                onTap: _pickGalleryImages,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  child: const Icon(Icons.add_a_photo, color: Colors.white, size: 40),
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildVideoPicker() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Profile Video (30s max)',
-          style: TextStyle(
-              color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
-        GestureDetector(
-          onTap: _pickVideo,
-          child: Container(
-            height: 150,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: Colors.white, width: 2),
-            ),
-            child: _videoFile != null
-                ? Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.video_library, color: Colors.white, size: 50),
-                      Text(
-                        _videoFile!.path.split('/').last,
-                        style: const TextStyle(color: Colors.white),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      TextButton(
-                        onPressed: () => setState(() => _videoFile = null),
-                        child: const Text('Remove', style: TextStyle(color: Colors.redAccent)),
-                      )
-                    ],
-                  )
-                : _videoUrl != null
-                    ? Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.check_circle, color: Colors.greenAccent, size: 50),
-                          const Text('Video Uploaded', style: TextStyle(color: Colors.white)),
-                          TextButton(
-                            onPressed: () => setState(() => _videoUrl = null),
-                            child: const Text('Change', style: TextStyle(color: Colors.white60)),
-                          )
-                        ],
-                      )
-                    : const Icon(Icons.video_call, color: Colors.white, size: 50),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMediaItem({required ImageProvider image, required VoidCallback onDelete}) {
-    return Stack(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
-            image: DecorationImage(image: image, fit: BoxFit.cover),
-          ),
-        ),
-        Positioned(
-          top: 0,
-          right: 0,
-          child: GestureDetector(
-            onTap: onDelete,
-            child: const CircleAvatar(
-              radius: 12,
-              backgroundColor: Colors.red,
-              child: Icon(Icons.close, size: 16, color: Colors.white),
-            ),
-          ),
-        ),
-      ],
     );
   }
 

@@ -4,6 +4,7 @@ import 'package:hook_app/app/routes.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:hook_app/utils/nav.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   final String? contactInfo;
@@ -181,7 +182,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ),
                     const SizedBox(height: 24),
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => Nav.safePop(context),
                       child: const Text(
                         'Back to Account',
                         style: TextStyle(

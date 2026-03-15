@@ -120,502 +120,184 @@ class _SearchScreenState extends State<SearchScreen> with TickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppConstants.midnightPurple,
-              AppConstants.deepPurple,
-              AppConstants.darkBackground,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            stops: [0.0, 0.5, 1.0],
+      backgroundColor: AppConstants.darkBackground,
+      appBar: AppBar(
+        title: const Text('Find Providers', style: TextStyle(color: Colors.white, fontFamily: 'Sora', fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: Column(
+        children: [
+          _buildSearchOverlay(),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppConstants.primaryColor))
+                : _errorMessage != null
+                    ? _buildErrorWidget()
+                    : _providers.isEmpty
+                        ? _buildEmptyWidget()
+                        : ListView.builder(
+                            physics: const BouncingScrollPhysics(),
+                            padding: const EdgeInsets.all(20),
+                            itemCount: _providers.length,
+                            itemBuilder: (context, index) {
+                              final item = _providers[index];
+                              final user = item['user'] ?? {};
+                              final distance = item['distance_km'] ?? 0.0;
+                              return _buildProviderCard(user, distance);
+                            },
+                          ),
           ),
-        ),
-        child: SafeArea(
-          child: ResponsivePage(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              children: [
-                // Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: Text(
-                    'Find Providers',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppConstants.softWhite,
-                      shadows: [
-                        Shadow(
-                          blurRadius: 10.0,
-                          color: AppConstants.primaryColor.withOpacity(0.5),
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Glassmorphic Search Bar
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    gradient: LinearGradient(
-                      colors: [
-                        AppConstants.deepPurple.withOpacity(0.7),
-                        AppConstants.surfaceColor.withOpacity(0.5),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    border: Border.all(
-                      width: _isFocused ? 2 : 1.5,
-                      color: _isFocused
-                          ? AppConstants.primaryColor
-                          : AppConstants.primaryColor.withOpacity(0.3),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _isFocused
-                            ? AppConstants.primaryColor.withOpacity(0.4)
-                            : AppConstants.primaryColor.withOpacity(0.2),
-                        blurRadius: _isFocused ? 25 : 15,
-                        spreadRadius: _isFocused ? 3 : 1,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: TextField(
-                    controller: _locationController,
-                    focusNode: _searchFocusNode,
-                    style: const TextStyle(
-                      color: AppConstants.softWhite, // FIX: Visible text color
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Enter location (e.g., Westlands, Nairobi)',
-                      hintStyle: TextStyle(
-                        color: AppConstants.mutedGray.withOpacity(0.7),
-                        fontSize: 15,
-                      ),
-                      prefixIcon: Container(
-                        padding: const EdgeInsets.all(12),
-                        child: Icon(
-                          Icons.search,
-                          color: _isFocused
-                              ? AppConstants.primaryColor
-                              : AppConstants.accentColor,
-                          size: 24,
-                        ),
-                      ),
-                      suffixIcon: _locationController.text.isNotEmpty
-                          ? IconButton(
-                              icon: Icon(
-                                Icons.clear,
-                                color: AppConstants.mutedGray,
-                              ),
-                              onPressed: () {
-                                _locationController.clear();
-                                setState(() {
-                                  _providers = [];
-                                  _errorMessage = null;
-                                  _hasSearched = false;
-                                  _lastQuery = null;
-                                });
-                              },
-                            )
-                          : null,
-                      filled: false,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 18,
-                      ),
-                    ),
-                    onChanged: (value) {
-                      setState(() {}); // Update to show/hide clear button
-                    },
-                    onSubmitted: (value) {
-                      if (value.isNotEmpty) {
-                        _searchProviders(value);
-                      }
-                    },
-                  ),
-                ),
-                
-                const SizedBox(height: 12),
-                
-                // Search Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 0,
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                    ),
-                    onPressed: () {
-                      if (_locationController.text.isNotEmpty) {
-                        _searchProviders(_locationController.text);
-                      }
-                    },
-                    child: Ink(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppConstants.primaryColor,
-                            AppConstants.secondaryColor,
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppConstants.primaryColor.withOpacity(0.4),
-                            blurRadius: 15,
-                            spreadRadius: 1,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Container(
-                        alignment: Alignment.center,
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.search,
-                              color: AppConstants.softWhite,
-                              size: 22,
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              'Search',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: AppConstants.softWhite,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Results
-                Expanded(
-                  child: _isLoading
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              CircularProgressIndicator(
-                                color: AppConstants.primaryColor,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Searching for providers...',
-                                style: TextStyle(
-                                  color: AppConstants.softWhite.withOpacity(0.7),
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : _errorMessage != null
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.error_outline,
-                                    color: AppConstants.errorColor,
-                                    size: 48,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    _errorMessage!,
-                                    style: const TextStyle(
-                                      color: AppConstants.errorColor,
-                                      fontSize: 16,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  const SizedBox(height: 24),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      if (_locationController.text.isNotEmpty) {
-                                        _searchProviders(_locationController.text);
-                                      }
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppConstants.primaryColor,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 12,
-                                        horizontal: 32,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      'Retry',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: AppConstants.softWhite,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : _providers.isEmpty
-                              ? Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.search_off,
-                                        color: AppConstants.mutedGray.withOpacity(0.5),
-                                        size: 64,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        _hasSearched
-                                            ? 'No providers found${_lastQuery != null ? ' in $_lastQuery' : ''}'
-                                            : 'Search for providers by location',
-                                        style: TextStyle(
-                                          color: AppConstants.softWhite.withOpacity(0.6),
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        _hasSearched
-                                            ? 'Try a different location or widen your radius'
-                                            : 'Enter a city or neighborhood above',
-                                        style: TextStyle(
-                                          color: AppConstants.mutedGray.withOpacity(0.5),
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              : ListView.builder(
-                                  physics: const BouncingScrollPhysics(),
-                                  itemCount: _providers.length,
-                                  itemBuilder: (context, index) {
-                                    final item = _providers[index];
+        ],
+      ),
+    );
+  }
 
-                                    final user = item['user'] ?? {};
-                                    final distance = item['distance_km'] ?? 0.0;
-                                    final isAvailable = (user['isActive'] ?? user['is_active']) == true;
-                                    
-                                    return Container(
-                                      margin: const EdgeInsets.only(bottom: 16),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(20),
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            AppConstants.deepPurple.withOpacity(0.7),
-                                            AppConstants.surfaceColor.withOpacity(0.5),
-                                          ],
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                        ),
-                                        border: Border.all(
-                                          width: 1.5,
-                                          color: AppConstants.primaryColor.withOpacity(0.3),
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: AppConstants.primaryColor.withOpacity(0.15),
-                                            blurRadius: 15,
-                                            spreadRadius: 1,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      child: ListTile(
-                                        contentPadding: const EdgeInsets.all(16),
-                                        leading: Stack(
-                                          children: [
-                                            Container(
-                                              width: 56,
-                                              height: 56,
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                gradient: LinearGradient(
-                                                  colors: [
-                                                    AppConstants.primaryColor.withOpacity(0.3),
-                                                    AppConstants.accentColor.withOpacity(0.3),
-                                                  ],
-                                                ),
-                                                image: user['profile_image'] != null && user['profile_image'].toString().isNotEmpty
-                                                    ? DecorationImage(
-                                                        image: NetworkImage(user['profile_image']),
-                                                        fit: BoxFit.cover,
-                                                      )
-                                                    : null,
-                                              ),
-                                              child: user['profile_image'] == null || user['profile_image'].toString().isEmpty
-                                                  ? const Icon(
-                                                      Icons.person,
-                                                      color: AppConstants.softWhite,
-                                                      size: 28,
-                                                    )
-                                                  : null,
-                                            ),
-                                            if (isAvailable)
-                                              Positioned(
-                                                bottom: 0,
-                                                right: 0,
-                                                child: ScaleTransition(
-                                                  scale: _pulseAnimation,
-                                                  child: Container(
-                                                    width: 16,
-                                                    height: 16,
-                                                    decoration: BoxDecoration(
-                                                      shape: BoxShape.circle,
-                                                      color: AppConstants.successColor,
-                                                      border: Border.all(
-                                                        color: AppConstants.deepPurple,
-                                                        width: 2,
-                                                      ),
-                                                      boxShadow: [
-                                                        BoxShadow(
-                                                          color: AppConstants.successColor
-                                                              .withOpacity(0.8),
-                                                          blurRadius: 8,
-                                                          spreadRadius: 1,
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                        title: Text(
-                                          user['full_name'] ?? 'Unknown User',
-                                          style: const TextStyle(
-                                            color: AppConstants.softWhite,
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        subtitle: Padding(
-                                          padding: const EdgeInsets.only(top: 8.0),
-                                          child: Row(
-                                            children: [
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 10,
-                                                  vertical: 4,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: AppConstants.accentColor
-                                                      .withOpacity(0.2),
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  border: Border.all(
-                                                    color: AppConstants.accentColor
-                                                        .withOpacity(0.5),
-                                                    width: 1,
-                                                  ),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.location_on,
-                                                      color: AppConstants.accentColor,
-                                                      size: 14,
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      '${distance.toStringAsFixed(1)} km',
-                                                      style: const TextStyle(
-                                                        color: AppConstants.accentColor,
-                                                        fontSize: 12,
-                                                        fontWeight: FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              const SizedBox(width: 12),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 10,
-                                                  vertical: 4,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: isAvailable
-                                                      ? AppConstants.successColor
-                                                          .withOpacity(0.2)
-                                                      : AppConstants.mutedGray
-                                                          .withOpacity(0.2),
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  border: Border.all(
-                                                    color: isAvailable
-                                                        ? AppConstants.successColor
-                                                            .withOpacity(0.5)
-                                                        : AppConstants.mutedGray
-                                                            .withOpacity(0.5),
-                                                    width: 1,
-                                                  ),
-                                                ),
-                                                child: Text(
-                                                  isAvailable ? 'Online' : 'Offline',
-                                                  style: TextStyle(
-                                                    color: isAvailable
-                                                        ? AppConstants.successColor
-                                                        : AppConstants.mutedGray,
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        trailing: Icon(
-                                          Icons.arrow_forward_ios,
-                                          color: AppConstants.primaryColor,
-                                          size: 18,
-                                        ),
-                                        onTap: () {
-                                          // Navigate to provider details (future implementation)
-                                        },
-                                      ),
-                                    );
-                                  },
-                                ),
-                ),
-              ],
+  Widget _buildSearchOverlay() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: AppConstants.cardNavy,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.05)),
+            ),
+            child: TextField(
+              controller: _locationController,
+              focusNode: _searchFocusNode,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Enter location (e.g. Westlands)',
+                hintStyle: const TextStyle(color: AppConstants.mutedGray),
+                border: InputBorder.none,
+                icon: const Icon(Icons.location_on_rounded, color: AppConstants.primaryColor, size: 20),
+                suffixIcon: _locationController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: AppConstants.mutedGray, size: 20),
+                        onPressed: () => setState(() => _locationController.clear()),
+                      )
+                    : null,
+              ),
+              onSubmitted: (val) => _searchProviders(val),
             ),
           ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => _searchProviders(_locationController.text),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppConstants.primaryColor,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              child: const Text('Search Now', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProviderCard(dynamic user, double distance) {
+    final isAvailable = (user['isActive'] ?? user['is_active']) == true;
+    final String fullName = user['full_name'] ?? 'Unknown';
+    
+    return GestureDetector(
+      onTap: () {
+        // Navigate to details
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppConstants.cardNavy,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
         ),
+        child: Row(
+          children: [
+            Stack(
+              children: [
+                CircleAvatar(
+                  radius: 30,
+                  backgroundColor: AppConstants.primaryColor.withOpacity(0.1),
+                  child: Text(fullName[0], style: const TextStyle(color: AppConstants.primaryColor, fontWeight: FontWeight.bold, fontSize: 20)),
+                ),
+                if (isAvailable)
+                  Positioned(
+                    bottom: 2,
+                    right: 2,
+                    child: Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: AppConstants.successColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppConstants.cardNavy, width: 2),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(fullName, style: const TextStyle(color: Colors.white, fontFamily: 'Sora', fontSize: 17, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.near_me_rounded, color: AppConstants.primaryColor, size: 14),
+                      const SizedBox(width: 4),
+                      Text('${distance.toStringAsFixed(1)} km away', style: const TextStyle(color: AppConstants.mutedGray, fontSize: 13)),
+                      const SizedBox(width: 12),
+                      Text(isAvailable ? 'Online' : 'Offline', style: TextStyle(color: isAvailable ? AppConstants.successColor : AppConstants.mutedGray, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.search_rounded, size: 64, color: AppConstants.mutedGray.withOpacity(0.2)),
+          const SizedBox(height: 16),
+          Text(_hasSearched ? 'No providers found' : 'Find providers near you', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(_hasSearched ? 'Try a different location' : 'Enter a location to start searching', style: const TextStyle(color: AppConstants.mutedGray)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline_rounded, size: 64, color: AppConstants.errorColor),
+          const SizedBox(height: 16),
+          const Text('Search failed', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Text(_errorMessage!, style: const TextStyle(color: AppConstants.mutedGray), textAlign: TextAlign.center),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(onPressed: () => _searchProviders(_locationController.text), child: const Text('Retry')),
+        ],
       ),
     );
   }

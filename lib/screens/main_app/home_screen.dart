@@ -17,6 +17,7 @@ import 'package:hook_app/services/dummy_data_service.dart';
 import 'package:hook_app/services/location_service.dart';
 import 'package:hook_app/models/active_user.dart';
 import 'package:hook_app/utils/responsive.dart';
+import 'package:hook_app/utils/nav.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 
@@ -42,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isLoading = true;
   String? _errorMessage;
   int _selectedIndex = 0;
+  String _selectedCategory = 'Local Services';
 
   // Map and location state
   List<ActiveUser> _activeUsers = [];
@@ -214,12 +216,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   List<ActiveUser> get _filteredUsers {
-    return _activeUsers.where((user) {
+    var users = _activeUsers.where((user) {
       if (user.distance > _maxDistance) return false;
       if (user.age < _ageRange.start || user.age > _ageRange.end) return false;
       if (_onlineOnly && !user.isOnline) return false;
       return true;
     }).toList();
+
+    if (_selectedCategory == 'Featured') {
+      users = users.where((u) => u.isOnline).toList();
+      users.sort((a, b) => a.distance.compareTo(b.distance));
+    } else if (_selectedCategory == 'Recent') {
+      users.sort((a, b) => b.lastActive.compareTo(a.lastActive));
+    }
+
+    return users;
   }
 
   void _onItemTapped(int index) {
@@ -235,30 +246,225 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     final filteredUsers = _filteredUsers;
 
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppConstants.midnightPurple,
-            AppConstants.deepPurple,
-            AppConstants.darkBackground,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHomeHeader(),
+          _buildSearchBar(),
+          _buildCategoryChips(),
+          
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Featured Providers',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontFamily: 'Sora',
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {},
+                  child: const Text('View All', style: TextStyle(color: AppConstants.tealLight)),
+                ),
+              ],
+            ),
+          ),
+          
+          SizedBox(
+            height: 240,
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              scrollDirection: Axis.horizontal,
+              itemCount: filteredUsers.take(10).length,
+              itemBuilder: (context, index) {
+                return Container(
+                  width: 280,
+                  margin: const EdgeInsets.only(right: 12),
+                  child: _buildUserCard(filteredUsers[index], index),
+                );
+              },
+            ),
+          ),
+          
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHomeHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppConstants.primaryColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.location_on, color: Colors.white, size: 18),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'CloseBy',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'Sora',
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppConstants.cardNavy,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white.withOpacity(0.05)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.near_me, color: AppConstants.primaryColor, size: 14),
+                SizedBox(width: 6),
+                Text(
+                  'Downtown',
+                  style: TextStyle(color: Colors.white, fontSize: 13),
+                ),
+                SizedBox(width: 4),
+                Icon(Icons.keyboard_arrow_down, color: AppConstants.mutedGray, size: 16),
+              ],
+            ),
+          ),
+          
+          const Row(
+            children: [
+              Icon(Icons.notifications_none, color: AppConstants.mutedGray, size: 24),
+              SizedBox(width: 12),
+              CircleAvatar(
+                radius: 18,
+                backgroundImage: NetworkImage('https://via.placeholder.com/150'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: TextField(
+        decoration: InputDecoration(
+          hintText: 'Find services nearby...',
+          prefixIcon: const Icon(Icons.search, color: AppConstants.mutedGray),
+          fillColor: AppConstants.cardNavy,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
         ),
       ),
-      child: ResponsivePage(
-        child: Column(
-          children: [
-            // Filter chips
-            _buildFilterChips(),
+    );
+  }
 
-            // Map placeholder with user grid
-            Expanded(
-              child: _buildUserGrid(filteredUsers),
+  Widget _buildCategoryChips() {
+    final categories = [
+      {'label': 'Local Services', 'icon': Icons.build},
+      {'label': 'BnB', 'icon': Icons.bed},
+      {'label': 'Featured', 'icon': Icons.star},
+      {'label': 'Recent', 'icon': Icons.history},
+    ];
+    
+    return Container(
+      height: 60,
+      margin: const EdgeInsets.symmetric(vertical: 20),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        scrollDirection: Axis.horizontal,
+        itemCount: categories.length,
+        itemBuilder: (context, index) {
+          final label = categories[index]['label'] as String;
+          final isSelected = _selectedCategory == label;
+          return Container(
+            margin: const EdgeInsets.only(right: 10),
+            child: ActionChip(
+              onPressed: () {
+                if (label == 'BnB') {
+                  setState(() => _selectedIndex = 1);
+                  return;
+                }
+                setState(() => _selectedCategory = label);
+              },
+              avatar: Icon(
+                categories[index]['icon'] as IconData,
+                size: 14,
+                color: isSelected ? Colors.white : AppConstants.mutedGray,
+              ),
+              label: Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : AppConstants.mutedGray,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              backgroundColor: isSelected ? AppConstants.primaryColor : AppConstants.cardNavy,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(
+                  color: isSelected ? Colors.transparent : Colors.white.withOpacity(0.05),
+                ),
+              ),
             ),
-          ],
-        ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildRecommendationCard(String title, IconData icon, String count) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppConstants.cardNavy,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppConstants.primaryColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: AppConstants.primaryColor, size: 28),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            count,
+            style: const TextStyle(color: AppConstants.mutedGray, fontSize: 12),
+          ),
+        ],
       ),
     );
   }
@@ -412,155 +618,118 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildUserCard(ActiveUser user, int index) {
-    return AnimatedBuilder(
-      animation: _pulseController,
-      builder: (context, child) {
-        final pulseValue = _pulseController.value;
-
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              _selectedUserIndex = index;
-            });
-            _showUserDetails(user);
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: LinearGradient(
-                colors: [
-                  AppConstants.deepPurple.withOpacity(0.8),
-                  AppConstants.surfaceColor.withOpacity(0.6),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedUserIndex = index;
+        });
+        _showUserDetails(user);
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppConstants.cardNavy,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: _buildProfileImage(user.profileImage),
               ),
-              border: Border.all(
-                width: 2,
-                color: user.isOnline
-                    ? AppConstants.primaryColor
-                        .withOpacity(0.5 + pulseValue * 0.5)
-                    : AppConstants.mutedGray.withOpacity(0.3),
-              ),
-              boxShadow: user.isOnline
-                  ? [
-                      BoxShadow(
-                        color: AppConstants.primaryColor
-                            .withOpacity(0.3 + pulseValue * 0.3),
-                        blurRadius: 15 + pulseValue * 10,
-                        spreadRadius: 2 + pulseValue * 3,
-                      ),
-                    ]
-                  : [],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: Stack(
-                children: [
-                  // Profile image
-                  Positioned.fill(
-                    child: Image.network(
-                      user.profileImage,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: AppConstants.deepPurple,
-                          child: const Icon(
-                            Icons.person,
-                            size: 80,
-                            color: AppConstants.softWhite,
-                          ),
-                        );
-                      },
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
                     ),
                   ),
-
-                  // Gradient overlay
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withOpacity(0.8),
-                          ],
-                          stops: const [0.5, 1.0],
+                ),
+              ),
+              if (user.isOnline)
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: AppConstants.successColor,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppConstants.successColor.withOpacity(0.5),
+                          blurRadius: 8,
+                          spreadRadius: 2,
                         ),
-                      ),
+                      ],
                     ),
                   ),
-
-                  // Online indicator
-                  if (user.isOnline)
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: Container(
-                        width: (12 + pulseValue * 4).toDouble(),
-                        height: (12 + pulseValue * 4).toDouble(),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppConstants.successColor,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppConstants.successColor.withOpacity(0.6),
-                              blurRadius: (8 + pulseValue * 4).toDouble(),
-                              spreadRadius: (2 + pulseValue * 2).toDouble(),
-                            ),
-                          ],
+                ),
+              Positioned(
+                bottom: 12,
+                left: 12,
+                right: 12,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${user.name}, ${user.age}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'Sora',
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on, color: AppConstants.primaryColor, size: 12),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${user.distance} mi away',
+                          style: const TextStyle(color: AppConstants.mutedGray, fontSize: 11),
                         ),
-                      ),
+                      ],
                     ),
-
-                  // User info
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '${user.name}, ${user.age}',
-                            style: const TextStyle(
-                              color: AppConstants.softWhite,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.location_on,
-                                size: 14,
-                                color: AppConstants.primaryColor,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${user.distance} km away',
-                                style: TextStyle(
-                                  color:
-                                      AppConstants.softWhite.withOpacity(0.8),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Ksh 45/hour',
+                      style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileImage(String url) {
+    if (url.trim().isEmpty || !(url.startsWith('http://') || url.startsWith('https://'))) {
+      return Container(
+        color: AppConstants.cardNavy,
+        child: const Center(
+          child: Icon(Icons.person, color: AppConstants.mutedGray, size: 48),
+        ),
+      );
+    }
+
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          color: AppConstants.cardNavy,
+          child: const Center(
+            child: Icon(Icons.person, color: AppConstants.mutedGray, size: 48),
           ),
         );
       },
@@ -572,239 +741,222 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppConstants.deepPurple.withOpacity(0.95),
-              AppConstants.darkBackground.withOpacity(0.95),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        maxChildSize: 0.95,
+        minChildSize: 0.5,
+        builder: (_, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: AppConstants.darkBackground,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          ),
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Hero Section (Photo/Video)
+                      Stack(
+                        children: [
+                          Container(
+                            height: 400,
+                            width: double.infinity,
+                            decoration: const BoxDecoration(
+                              borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                              child: _buildProfileImage(user.profileImage),
+                            ),
+                          ),
+                          Positioned(
+                            top: 20,
+                            right: 20,
+                            child: IconButton(
+                              onPressed: () => Nav.safePop(context),
+                              icon: const CircleAvatar(
+                                backgroundColor: Colors.black45,
+                                child: Icon(Icons.close, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                          // Play button for video preview
+                          Center(
+                            child: Container(
+                              margin: const EdgeInsets.only(top: 160),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.black38,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white.withOpacity(0.5)),
+                              ),
+                              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 40),
+                            ),
+                          ),
+                        ],
+                      ),
+                      
+                      Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${user.name}, ${user.age}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontFamily: 'Sora',
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.location_on, color: AppConstants.primaryColor, size: 16),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${user.distance} mi away • Fast Response',
+                                          style: const TextStyle(color: AppConstants.mutedGray, fontSize: 14),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                if (user.isOnline)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: AppConstants.primaryColor.withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Row(
+                                      children: [
+                                        Icon(Icons.circle, color: AppConstants.successColor, size: 8),
+                                        SizedBox(width: 6),
+                                        Text('Online', style: TextStyle(color: Colors.white, fontSize: 12)),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            
+                            const SizedBox(height: 24),
+                            const Text(
+                              'About Me',
+                              style: TextStyle(color: Colors.white, fontFamily: 'Sora', fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              user.bio,
+                              style: const TextStyle(color: AppConstants.mutedGray, fontSize: 15, height: 1.5),
+                            ),
+                            
+                            const SizedBox(height: 32),
+                            const Text(
+                              'Price Tiers',
+                              style: TextStyle(color: Colors.white, fontFamily: 'Sora', fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                _buildPriceTier('1 Hour', 'Ksh 45'),
+                                const SizedBox(width: 12),
+                                _buildPriceTier('2 Hours', 'Ksh 80'),
+                                const SizedBox(width: 12),
+                                _buildPriceTier('3 Hours', 'Ksh 110'),
+                              ],
+                            ),
+                            
+                            const SizedBox(height: 40),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              // Bottom Action Button
+              Container(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                decoration: BoxDecoration(
+                  color: AppConstants.cardNavy,
+                  border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppConstants.darkBackground,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withOpacity(0.05)),
+                      ),
+                      child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Nav.safePop(context);
+                          _requestBooking(user);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppConstants.primaryColor,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                        ),
+                        child: const Text(
+                          'Request Booking',
+                          style: TextStyle(fontFamily: 'Sora', fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
           ),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-          border: Border.all(
-            color: AppConstants.primaryColor.withOpacity(0.3),
-            width: 2,
-          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPriceTier(String label, String price) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: AppConstants.cardNavy,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
         ),
         child: Column(
           children: [
-            // Handle bar
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppConstants.mutedGray.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-
-            // Profile image
-            Container(
-              margin: const EdgeInsets.all(20),
-              height: 200,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: AppConstants.primaryColor,
-                  width: 3,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppConstants.primaryColor.withOpacity(0.3),
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(17),
-                child: Image.network(
-                  user.profileImage,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                ),
-              ),
-            ),
-
-            // User info
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        '${user.name}, ${user.age}',
-                        style: const TextStyle(
-                          color: AppConstants.softWhite,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      if (user.isOnline)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppConstants.successColor,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            'Online',
-                            style: TextStyle(
-                              color: AppConstants.softWhite,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on,
-                        size: 18,
-                        color: AppConstants.primaryColor,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${user.distance} km away',
-                        style: TextStyle(
-                          color: AppConstants.softWhite.withOpacity(0.8),
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    user.bio,
-                    style: TextStyle(
-                      color: AppConstants.softWhite.withOpacity(0.9),
-                      fontSize: 16,
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Action buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            Navigator.pushNamed(context, Routes.providerDetail,
-                                arguments: {
-                                  'providerId': user.id,
-                                  'name': user.name,
-                                  'age': user.age,
-                                  'distanceKm': user.distance,
-                                  'price': 0.0,
-                                  'imageUrl': user.profileImage,
-                                  'bio': user.bio,
-                                  'isOnline': user.isOnline,
-                                });
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppConstants.deepPurple,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(
-                                color:
-                                    AppConstants.primaryColor.withOpacity(0.5),
-                                width: 1.5,
-                              ),
-                            ),
-                          ),
-                          child: const Text(
-                            'View Profile',
-                            style: TextStyle(
-                              color: AppConstants.softWhite,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [
-                                AppConstants.primaryColor,
-                                AppConstants.accentColor,
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Chat unlocks after booking is accepted. Request a booking from the profile.',
-                                  ),
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
-                              Navigator.pushNamed(context, Routes.providerDetail,
-                                  arguments: {
-                                    'providerId': user.id,
-                                    'name': user.name,
-                                    'age': user.age,
-                                    'distanceKm': user.distance,
-                                    'price': 0.0,
-                                    'imageUrl': user.profileImage,
-                                    'bio': user.bio,
-                                    'isOnline': user.isOnline,
-                                  });
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.message,
-                                    size: 18, color: AppConstants.softWhite),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Message',
-                                  style: TextStyle(
-                                    color: AppConstants.softWhite,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            Text(label, style: const TextStyle(color: AppConstants.mutedGray, fontSize: 12)),
+            const SizedBox(height: 8),
+            Text(price, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
           ],
         ),
+      ),
+    );
+  }
+
+  void _requestBooking(ActiveUser user) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Booking request sent to ${user.name}. Waiting for acceptance...'),
+        backgroundColor: AppConstants.primaryColor,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -853,7 +1005,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 },
               ),
               ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Nav.safePop(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppConstants.primaryColor,
                   padding:
@@ -918,7 +1070,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 },
               ),
               ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Nav.safePop(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppConstants.primaryColor,
                   padding:
@@ -946,108 +1098,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
 
     return Scaffold(
-      appBar: _selectedIndex == 0 && !_isLoading && _errorMessage == null
-          ? PreferredSize(
-              preferredSize: const Size.fromHeight(120.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppConstants.primaryColor,
-                      AppConstants.primaryColor.withOpacity(0.8),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: CustomAppBar(
-                  title: 'Hello, ${_userFullName ?? 'User'}',
-                  subtitle: 'Find trusted services nearby',
-                  showProfile: true,
-                  primaryColor: Theme.of(context).primaryColor,
-                  secondaryColor: Theme.of(context).colorScheme.secondary,
-                ),
-              ),
-            )
-          : _selectedIndex == 0 && _isLoading
-              ? null
-              : _selectedIndex == 0 && _errorMessage != null
-                  ? null
-                  : _selectedIndex == 3 && !_isLoading && _errorMessage == null
-                      ? PreferredSize(
-                          preferredSize: const Size.fromHeight(120.0),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppConstants.primaryColor,
-                                  AppConstants.primaryColor.withOpacity(0.8),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                            ),
-                            child: CustomAppBar(
-                              title: 'Chats',
-                              subtitle: 'Stay Connected',
-                              showProfile: false,
-                              primaryColor: Theme.of(context).primaryColor,
-                              secondaryColor:
-                                  Theme.of(context).colorScheme.secondary,
-                            ),
-                          ),
-                        )
-                      : _selectedIndex == 4
-                          ? null
-                          : AppBar(
-                              title: Text(
-                                _selectedIndex == 1
-                                    ? 'Search'
-                                    : _selectedIndex == 2
-                                        ? 'Bookings'
-                                        : 'Profile',
-                              ),
-                              backgroundColor: AppConstants.primaryColor,
-                            ),
-      body: _isLoading && _selectedIndex == 0
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null && _selectedIndex == 0
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _errorMessage!,
-                        style: const TextStyle(color: Colors.red, fontSize: 16),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _checkLoginAndFetchProfile,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).primaryColor,
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 12, horizontal: 24),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          'Retry',
-                          style: TextStyle(fontSize: 16, color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : _selectedIndex >= 0
-                  ? _buildPageContent(_selectedIndex)
-                  : const Center(child: Text('Error: Invalid tab index')),
+      backgroundColor: AppConstants.darkBackground,
+      body: SafeArea(
+        child: _buildPageContent(_selectedIndex),
+      ),
       bottomNavigationBar: AppBottomNavBar(
         currentIndex: _selectedIndex,
-        selectedColor: AppConstants.primaryColor,
-        unselectedColor: Colors.grey,
-        onTap: _onItemTapped,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
       ),
     );
   }
@@ -1057,19 +1118,101 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       backgroundColor: AppConstants.darkBackground,
       body: Row(
         children: [
-          _buildDesktopNav(),
+          // Left Sidebar
+          _buildDesktopSidebar(),
+          
+          // Main Content
           Expanded(
-            child: Column(
-              children: [
-                _buildDesktopTopBar(),
-                Expanded(
+            child: SingleChildScrollView(
+              child: Center(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 1200),
                   child: _buildPageContent(_selectedIndex),
                 ),
-              ],
+              ),
             ),
           ),
+          
+          // Right Context Panel
           _buildDesktopSidePanel(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopSidebar() {
+    return Container(
+      width: 250,
+      decoration: BoxDecoration(
+        color: AppConstants.cardNavy,
+        border: Border(right: BorderSide(color: Colors.white.withOpacity(0.05))),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 48),
+          // Logo
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppConstants.primaryColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.location_on, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'CloseBy',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'Sora',
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 60),
+          _sidebarItem(0, Icons.explore, 'Discovery'),
+          _sidebarItem(1, Icons.bed, 'BnB Browse'),
+          _sidebarItem(2, Icons.chat_bubble, 'Messaging'),
+          _sidebarItem(3, Icons.account_balance_wallet, 'Wallet'),
+          _sidebarItem(4, Icons.person, 'Profile'),
+        ],
+      ),
+    );
+  }
+
+  Widget _sidebarItem(int index, IconData icon, String label) {
+    final bool active = _selectedIndex == index;
+    return InkWell(
+      onTap: () => setState(() => _selectedIndex = index),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: active ? AppConstants.primaryColor.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              active ? icon : (icon == Icons.explore ? Icons.explore_outlined : icon),
+              color: active ? AppConstants.primaryColor : AppConstants.mutedGray,
+            ),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: TextStyle(
+                color: active ? Colors.white : AppConstants.mutedGray,
+                fontFamily: 'Sora',
+                fontWeight: active ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1077,9 +1220,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildDesktopNav() {
     final items = [
       _NavItem('Home', Icons.home_rounded, 0),
-      _NavItem('Search', Icons.search_rounded, 1),
-      _NavItem('BnBs', Icons.home_work_rounded, 2),
-      _NavItem('Messages', Icons.chat_bubble_rounded, 3),
+      _NavItem('BnBs', Icons.home_work_rounded, 1),
+      _NavItem('Messages', Icons.chat_bubble_rounded, 2),
+      _NavItem('Wallet', Icons.account_balance_wallet_rounded, 3),
       _NavItem('Profile', Icons.person_rounded, 4),
     ];
 
@@ -1371,11 +1514,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       case 0:
         return _buildHomeContent();
       case 1:
-        return const SearchScreen();
-      case 2:
         return const BnBsBrowseScreen();
-      case 3:
+      case 2:
         return const ConversationsScreen();
+      case 3:
+        return const WalletScreen();
       case 4:
         return const AccountScreen();
       default:

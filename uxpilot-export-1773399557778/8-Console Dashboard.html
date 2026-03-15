@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        window.FontAwesomeConfig = {
+          autoReplaceSvg: 'nest'
+        };
+      </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloseBy - Console Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-3.1.1.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0F766E', // Teal
+                        secondary: '#0B1220', // Deep Navy
+                        accent: '#99F6E4', // Mint
+                        text: '#F7F9FA', // Soft white
+                        muted: '#94A3B8', // Muted text
+                        success: '#10B981',
+                        error: '#EF4444',
+                        surface: '#151D2D', // Slightly lighter navy for cards
+                        surfaceHover: '#1E293B'
+                    },
+                    fontFamily: {
+                        sora: ['Sora', 'sans-serif'],
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.25)',
+                        'glow': '0 0 15px rgba(15, 118, 110, 0.3)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0B1220; color: #F7F9FA; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Sora', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+        
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; opacity: 0; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .ripple { position: relative; overflow: hidden; }
+        .ripple::after {
+            content: ""; display: block; position: absolute; width: 100%; height: 100%;
+            top: 0; left: 0; pointer-events: none; background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+            background-repeat: no-repeat; background-position: 50%; transform: scale(10, 10); opacity: 0; transition: transform .5s, opacity 1s;
+        }
+        .ripple:active::after { transform: scale(0, 0); opacity: .2; transition: 0s; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-text selection:bg-primary selection:text-white relative">
+
+    <!-- Mobile Sidebar Overlay -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-30 hidden transition-opacity duration-300 lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- Left Sidebar -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 lg:static lg:w-64 flex-shrink-0 bg-surface border-r border-slate-800 flex flex-col justify-between transition-transform duration-300 z-40 -translate-x-full lg:translate-x-0">
+        <div>
+            <!-- Logo -->
+            <div class="h-20 flex items-center justify-between px-6 border-b border-slate-800">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-glow">
+                        <i class="fa-solid fa-location-dot text-white text-xl"></i>
+                    </div>
+                    <span class="ml-3 font-sora font-bold text-xl tracking-wide">CloseBy</span>
+                </div>
+                <button onclick="toggleSidebar()" class="lg:hidden text-muted hover:text-text">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Nav Links -->
+            <nav class="mt-6 px-3 space-y-2">
+                <a href="#" class="flex items-center px-3 py-3 rounded-xl bg-primary/10 text-accent font-medium transition-colors group">
+                    <i class="fa-solid fa-house text-lg w-6 text-center"></i>
+                    <span class="ml-3 hidden lg:block">Home</span>
+                </a>
+                <a href="#" class="flex items-center px-3 py-3 rounded-xl text-muted hover:bg-surfaceHover hover:text-text transition-colors group">
+                    <i class="fa-solid fa-magnifying-glass text-lg w-6 text-center group-hover:text-primary transition-colors"></i>
+                    <span class="ml-3 hidden lg:block">Search</span>
+                </a>
+                <a href="#" class="flex items-center px-3 py-3 rounded-xl text-muted hover:bg-surfaceHover hover:text-text transition-colors group">
+                    <i class="fa-solid fa-bed text-lg w-6 text-center group-hover:text-primary transition-colors"></i>
+                    <span class="ml-3 hidden lg:block">BnBs</span>
+                </a>
+                <a href="#" class="flex items-center px-3 py-3 rounded-xl text-muted hover:bg-surfaceHover hover:text-text transition-colors group relative">
+                    <i class="fa-regular fa-message text-lg w-6 text-center group-hover:text-primary transition-colors"></i>
+                    <span class="ml-3 hidden lg:block">Messages</span>
+                    <span class="absolute top-3 right-3 w-2 h-2 bg-accent rounded-full hidden lg:block"></span>
+                </a>
+                <a href="#" class="flex items-center px-3 py-3 rounded-xl text-muted hover:bg-surfaceHover hover:text-text transition-colors group">
+                    <i class="fa-regular fa-user text-lg w-6 text-center group-hover:text-primary transition-colors"></i>
+                    <span class="ml-3 hidden lg:block">Profile</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- Bottom Sidebar Actions -->
+        <div class="p-4 border-t border-slate-800">
+            <button class="w-full flex items-center justify-center lg:justify-start px-3 py-3 rounded-xl text-muted hover:bg-surfaceHover hover:text-error transition-colors">
+                <i class="fa-solid fa-arrow-right-from-bracket text-lg w-6 text-center"></i>
+                <span class="ml-3 hidden lg:block font-medium">Log out</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col min-w-0 bg-secondary overflow-hidden">
+        
+        <!-- Header -->
+        <header id="header" class="h-20 bg-surface/50 backdrop-blur-md border-b border-slate-800 flex items-center justify-between px-4 md:px-6 z-10 sticky top-0">
+            <div class="flex items-center flex-1">
+                <button onclick="toggleSidebar()" class="lg:hidden text-muted hover:text-text mr-4 w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface transition-colors">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <div class="relative w-full max-w-md hidden sm:block">
+                    <i class="fa-solid fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-muted"></i>
+                    <input type="text" placeholder="Search services..." class="w-full bg-surface border border-slate-700 rounded-full py-2 pl-11 pr-4 text-sm focus:outline-none focus:border-primary transition-all text-text">
+                </div>
+                <button class="sm:hidden text-muted hover:text-text w-10 h-10 flex items-center justify-center">
+                    <i class="fa-solid fa-search text-lg"></i>
+                </button>
+            </div>
+            
+            <div class="flex items-center space-x-2 md:space-x-4">
+                <button class="w-10 h-10 rounded-full bg-surface border border-slate-700 flex items-center justify-center text-muted hover:text-text relative">
+                    <i class="fa-regular fa-bell"></i>
+                    <span class="absolute top-2 right-2.5 w-2 h-2 bg-error rounded-full border-2 border-surface"></span>
+                </button>
+                <div class="flex items-center cursor-pointer p-1 pr-2 md:pr-3 rounded-full hover:bg-surface transition-colors">
+                    <img class="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover border-2 border-primary" src="https://storage.googleapis.com/uxpilot-auth.appspot.com/33054d76e5-0d01932b29a02493eb73.png" alt="professional male avatar, modern digital style, clean background" />
+                    <span class="ml-2 md:ml-3 text-sm font-medium hidden xs:block">Alex M.</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Scrollable Content -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 flex flex-col lg:flex-row gap-8 max-w-[1600px] mx-auto w-full">
+            
+            <!-- Center Column (Main) -->
+            <div class="flex-1 space-y-8">
+                
+                <!-- Welcome & Stats -->
+                <section class="fade-in" style="animation-delay: 0.1s;">
+                    <h1 class="text-2xl md:text-3xl lg:text-4xl font-sora font-semibold mb-2">Welcome back, Alex</h1>
+                    <p class="text-muted text-sm md:text-base mb-6">Here's what's happening in your area today.</p>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                        <!-- Stat Card 1 -->
+                        <div class="bg-surface rounded-2xl p-5 border border-slate-800 shadow-soft hover:border-slate-700 transition-all">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center">
+                                    <i class="fa-solid fa-calendar-check"></i>
+                                </div>
+                                <span class="text-success text-xs font-medium flex items-center bg-success/10 px-2 py-1 rounded-md">
+                                    <i class="fa-solid fa-arrow-up mr-1 text-[10px]"></i> 12%
+                                </span>
+                            </div>
+                            <h3 class="text-3xl font-sora font-semibold mb-1">24</h3>
+                            <p class="text-muted text-sm">Active Bookings</p>
+                        </div>
+                        
+                        <!-- Stat Card 2 -->
+                        <div class="bg-surface rounded-2xl p-5 border border-slate-800 shadow-soft hover:border-slate-700 transition-all">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="w-10 h-10 rounded-full bg-accent/20 text-accent flex items-center justify-center">
+                                    <i class="fa-solid fa-wallet"></i>
+                                </div>
+                            </div>
+                            <h3 class="text-3xl font-sora font-semibold mb-1">$1,240</h3>
+                            <p class="text-muted text-sm">Weekly Earnings</p>
+                        </div>
+
+                        <!-- Stat Card 3 -->
+                        <div class="bg-surface rounded-2xl p-5 border border-slate-800 shadow-soft hover:border-slate-700 transition-all">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                                    <i class="fa-solid fa-star"></i>
+                                </div>
+                            </div>
+                            <h3 class="text-3xl font-sora font-semibold mb-1">4.9</h3>
+                            <p class="text-muted text-sm">Average Rating</p>
+                        </div>
+                        
+                        <!-- Stat Card 4 -->
+                        <div class="bg-gradient-to-br from-primary to-teal-800 rounded-2xl p-5 border border-primary/50 shadow-glow relative overflow-hidden group cursor-pointer">
+                            <div class="absolute -right-6 -top-6 w-24 h-24 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
+                            <div class="relative z-10 flex flex-col h-full justify-between">
+                                <div class="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center mb-4">
+                                    <i class="fa-solid fa-plus"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-sora font-semibold text-white mb-1">New Listing</h3>
+                                    <p class="text-white/80 text-xs">Create service or BnB</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Discovery Grid -->
+                <section class="fade-in" style="animation-delay: 0.2s;">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl md:text-2xl font-sora font-semibold">Local Providers Nearby</h2>
+                        <a href="#" class="text-primary text-sm font-medium hover:underline">View all</a>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                        <!-- Provider Card 1 -->
+                        <div class="bg-surface rounded-2xl overflow-hidden border border-slate-800 shadow-soft group hover:border-primary/30 transition-all flex flex-col">
+                            <div class="h-40 bg-slate-800 relative">
+                                <img class="absolute inset-0 w-full h-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-500" src="https://storage.googleapis.com/uxpilot-auth.appspot.com/7422d88a88-39eab02ffefdb48295f0.png" alt="modern home interior cleaning service, professional aesthetic" />
+                                <div class="absolute top-3 right-3 bg-secondary/80 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium border border-slate-700">
+                                    <i class="fa-solid fa-star text-yellow-400 text-[10px] mr-1"></i> 4.9
+                                </div>
+                            </div>
+                            <div class="p-5 relative flex-1 flex flex-col">
+                                <div class="absolute -top-8 left-5">
+                                    <img class="w-16 h-16 rounded-full border-4 border-surface object-cover shadow-lg" src="https://storage.googleapis.com/uxpilot-auth.appspot.com/b57a628305-e2811f3056dd9477b036.png" alt="friendly female professional headshot, cheerful, modern style" />
+                                    <div class="absolute bottom-1 right-1 w-4 h-4 bg-success rounded-full border-2 border-surface"></div>
+                                </div>
+                                <div class="mt-8 flex justify-between items-start">
+                                    <div>
+                                        <h3 class="font-sora font-semibold text-lg">Sarah J., 28</h3>
+                                        <p class="text-muted text-sm flex items-center mt-1">
+                                            <i class="fa-solid fa-location-dot mr-1.5 text-xs"></i> 1.2 km away
+                                        </p>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-lg font-semibold text-accent">$45</span><span class="text-muted text-xs">/hr</span>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex gap-2">
+                                    <span class="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded-md">Cleaning</span>
+                                    <span class="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded-md">Organizing</span>
+                                </div>
+                                <button class="w-full mt-auto bg-slate-800 hover:bg-primary text-white py-3 rounded-xl text-sm font-semibold transition-all ripple">
+                                    Request Booking
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Provider Card 2 -->
+                        <div class="bg-surface rounded-2xl overflow-hidden border border-slate-800 shadow-soft group hover:border-primary/30 transition-all flex flex-col">
+                            <div class="h-40 bg-slate-800 relative">
+                                <img class="absolute inset-0 w-full h-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-500" src="https://storage.googleapis.com/uxpilot-auth.appspot.com/5efac01d31-df129b1312d40a4c96de.png" alt="handyman tools and workplace, professional craftsmanship" />
+                                <div class="absolute top-3 right-3 bg-secondary/80 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-medium border border-slate-700">
+                                    <i class="fa-solid fa-star text-yellow-400 text-[10px] mr-1"></i> 4.7
+                                </div>
+                            </div>
+                            <div class="p-5 relative flex-1 flex flex-col">
+                                <div class="absolute -top-8 left-5">
+                                    <img class="w-16 h-16 rounded-full border-4 border-surface object-cover shadow-lg" src="https://storage.googleapis.com/uxpilot-auth.appspot.com/037645ed26-9374debf68306de8f076.png" alt="professional male handyman, focused, modern tools" />
+                                    <div class="absolute bottom-1 right-1 w-4 h-4 bg-slate-500 rounded-full border-2 border-surface"></div>
+                                </div>
+                                <div class="mt-8 flex justify-between items-start">
+                                    <div>
+                                        <h3 class="font-sora font-semibold text-lg">David K., 34</h3>
+                                        <p class="text-muted text-sm flex items-center mt-1">
+                                            <i class="fa-solid fa-location-dot mr-1.5 text-xs"></i> 2.5 km away
+                                        </p>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-lg font-semibold text-accent">$60</span><span class="text-muted text-xs">/hr</span>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex gap-2">
+                                    <span class="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded-md">Handyman</span>
+                                    <span class="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded-md">Repairs</span>
+                                </div>
+                                <button class="w-full mt-auto bg-slate-800 hover:bg-primary text-white py-3 rounded-xl text-sm font-semibold transition-all ripple">
+                                    Request Booking
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Chart Section Placeholder -->
+                 <section class="fade-in bg-surface rounded-2xl p-6 border border-slate-800" style="animation-delay: 0.3s;">
+                    <h2 class="text-lg font-sora font-semibold mb-4">Activity Overview</h2>
+                    <div id="chart-container" class="h-[300px] w-full bg-slate-800/50 rounded-xl flex items-center justify-center border border-slate-700/50">
+                        <span class="text-muted text-sm"><i class="fa-solid fa-chart-line mr-2"></i> Analytics Chart Area</span>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- Right Context Panel -->
+            <aside class="w-full lg:w-80 flex-shrink-0 space-y-6 fade-in" style="animation-delay: 0.4s;">
+                
+                <!-- Wallet Snippet -->
+                <div class="bg-surface rounded-2xl p-5 border border-slate-800 shadow-soft">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-sora font-semibold text-sm text-muted uppercase tracking-wider">Wallet</h3>
+                        <button class="text-primary hover:text-accent transition-colors"><i class="fa-solid fa-arrow-right"></i></button>
+                    </div>
+                    <div class="mb-4">
+                        <span class="text-3xl font-sora font-bold">$485.50</span>
+                        <p class="text-xs text-muted mt-1">Available Balance</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="flex-1 bg-primary hover:bg-teal-600 text-white py-2 rounded-lg text-sm font-medium transition-colors ripple">Withdraw</button>
+                        <button class="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-2 rounded-lg text-sm font-medium transition-colors ripple">Top Up</button>
+                    </div>
+                </div>
+
+                <!-- Upcoming Booking -->
+                <div class="bg-surface rounded-2xl p-5 border border-slate-800 shadow-soft">
+                    <h3 class="font-sora font-semibold text-sm text-muted uppercase tracking-wider mb-4">Up Next</h3>
+                    <div class="bg-secondary rounded-xl p-4 border border-slate-700/50">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex items-center gap-3">
+                                <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-1.jpg" class="w-10 h-10 rounded-full object-cover">
+                                <div>
+                                    <h4 class="font-medium text-sm">Elena R.</h4>
+                                    <p class="text-xs text-muted">Apartment Cleaning</p>
+                                </div>
+                            </div>
+                            <span class="bg-primary/20 text-accent text-[10px] font-bold px-2 py-1 rounded uppercase">Confirmed</span>
+                        </div>
+                        <div class="flex items-center text-xs text-muted mb-3 space-x-4">
+                            <span class="flex items-center"><i class="fa-regular fa-calendar mr-1.5"></i> Today</span>
+                            <span class="flex items-center"><i class="fa-regular fa-clock mr-1.5"></i> 14:00 - 16:00</span>
+                        </div>
+                        <div class="flex gap-2 mt-2">
+                            <button class="w-full bg-slate-800 hover:bg-slate-700 text-white py-1.5 rounded-lg text-xs font-medium transition-colors"><i class="fa-regular fa-message mr-1"></i> Message</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Safety & Subscription Shortcuts -->
+                <div class="space-y-3">
+                    <a href="#" class="flex items-center justify-between p-4 bg-surface rounded-xl border border-slate-800 hover:border-slate-700 transition-colors group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-slate-800 text-muted flex items-center justify-center group-hover:text-primary transition-colors">
+                                <i class="fa-solid fa-shield-halved"></i>
+                            </div>
+                            <span class="font-medium text-sm">Safety Center</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-muted"></i>
+                    </a>
+                    
+                    <div class="p-4 bg-gradient-to-r from-surface to-slate-800 rounded-xl border border-primary/30 relative overflow-hidden">
+                        <div class="absolute right-0 top-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl"></div>
+                        <div class="relative z-10">
+                            <h4 class="font-sora font-semibold text-sm text-accent mb-1 flex items-center">
+                                <i class="fa-solid fa-crown text-xs mr-1.5"></i> Pro Subscription
+                            </h4>
+                            <p class="text-xs text-muted mb-3">Unlock lower fees & premium placement.</p>
+                            <button class="bg-primary hover:bg-teal-600 text-white px-4 py-1.5 rounded-lg text-xs font-medium transition-colors ripple">Upgrade Now</button>
+                        </div>
+                    </div>
+                </div>
+
+            </aside>
+        </div>
+    </main>
+
+    <script>
+        // Simple script to render a basic dummy chart if Plotly is loaded, just for structural completeness
+        window.addEventListener('load', function() {
+            try {
+                var data = [{
+                    x: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    y: [20, 14, 25, 16, 38, 42, 30],
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    line: {color: '#99F6E4', width: 3},
+                    marker: {size: 8, color: '#0F766E'}
+                }];
+                var layout = {
+                    paper_bgcolor: 'transparent',
+                    plot_bgcolor: 'transparent',
+                    margin: { t: 20, r: 20, b: 40, l: 40 },
+                    xaxis: { gridcolor: '#1E293B', tickfont: {color: '#94A3B8'} },
+                    yaxis: { gridcolor: '#1E293B', tickfont: {color: '#94A3B8'} },
+                    showlegend: false
+                };
+                var config = {responsive: true, displayModeBar: false};
+                Plotly.newPlot('chart-container', data, layout, config);
+                // Remove placeholder text if chart renders
+                document.querySelector('#chart-container span').style.display = 'none';
+            } catch(e) {
+                console.log('Chart rendering skipped');
+            }
+        });
+    </script>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const isMobile = window.innerWidth < 1024;
+            
+            if (isMobile) {
+                sidebar.classList.toggle('translate-x-full');
+                overlay.classList.toggle('hidden');
+            } else {
+                sidebar.classList.toggle('translate-x-0');
+            }
+        }
+    </script>
+</body>
+</html>

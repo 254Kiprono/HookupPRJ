@@ -7,6 +7,7 @@ import 'package:hook_app/screens/auth/verification_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hook_app/services/payment_service.dart';
+import 'package:hook_app/utils/nav.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -254,102 +255,90 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     return Scaffold(
       backgroundColor: AppConstants.darkBackground,
       appBar: AppBar(
-        title: const Text('Subscription', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Subscription',
+          style: TextStyle(
+            color: Colors.white,
+            fontFamily: 'Sora',
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+          onPressed: () => Nav.safePop(context),
         ),
       ),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator(color: AppConstants.primaryColor))
         : ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         children: [
+          _buildSubscriptionHeader(),
+          const SizedBox(height: 32),
+          
           if (_errorMessage != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppConstants.errorColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: AppConstants.errorColor, fontSize: 13),
-                ),
-              ),
-            ),
+            _buildErrorTip(),
           
           if (_hasActiveSubscription)
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppConstants.successColor.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppConstants.successColor.withOpacity(0.5)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.verified, color: AppConstants.successColor),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      _activePlan != null
-                          ? 'Active subscription: $_activePlan'
-                          : 'Active subscription',
-                      style: const TextStyle(color: AppConstants.softWhite, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _buildActiveBanner(),
 
           _verificationItem(
-            title: 'Email Verification',
+            title: 'Email Address',
             subtitle: _email ?? 'Loading...',
             verified: _emailVerified,
+            icon: Icons.alternate_email,
             onVerify: () => _startVerificationFlow('email'),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _verificationItem(
-            title: 'Phone Verification',
+            title: 'Phone Number',
             subtitle: _phone ?? 'Loading...',
             verified: _phoneVerified,
+            icon: Icons.phone_iphone,
             onVerify: () => _startVerificationFlow('phone'),
           ),
           
           const SizedBox(height: 32),
           const Text(
-            'Verified profiles get higher visibility and trust. Email + phone must be verified before subscribing.',
-            style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+            'SELECT A PLAN',
+            style: TextStyle(
+              color: AppConstants.mutedGray,
+              fontSize: 12,
+              letterSpacing: 1.2,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Sora',
+            ),
           ),
-          
-          const SizedBox(height: 24),
-          _planCard('Test Plan', 'KSh 1', 'Quick test for payment flow'),
-          _planCard('Weekly', 'KSh 200', 'Best for trying CloseBy'),
-          _planCard('2 Weeks', 'KSh 500', 'Save on short term'),
-          _planCard('Monthly', 'KSh 800', 'Best value for growth'),
+          const SizedBox(height: 16),
+          _planCard('Weekly', 'KSh ${AppConstants.subWeeklyPrice}', 'Try for 7 days', Icons.calendar_view_week),
+          _planCard('2 Weeks', 'KSh ${AppConstants.subTwoWeeksPrice}', 'Popular choice', Icons.calendar_month),
+          _planCard('Monthly', 'KSh ${AppConstants.subMonthlyPrice}', 'Best value for pros', Icons.stars),
+          _planCard('Test Plan', 'KSh 1', 'Quick verification (Dev)', Icons.bug_report),
           
           const SizedBox(height: 32),
-          Text(
-            'Payment Method',
-            style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 16, fontWeight: FontWeight.bold),
+          const Text(
+            'PAYMENT METHOD',
+            style: TextStyle(
+              color: AppConstants.mutedGray,
+              fontSize: 12,
+              letterSpacing: 1.2,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Sora',
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _paymentMethodCard('mpesa', 'M-Pesa STK', Icons.phone_android)),
+              Expanded(child: _paymentMethodCard('mpesa', 'M-Pesa', Icons.account_balance_wallet)),
               const SizedBox(width: 16),
-              Expanded(child: _paymentMethodCard('card', 'Card Payment (Coming Soon)', Icons.credit_card)),
+              Expanded(child: _paymentMethodCard('card', 'Card', Icons.credit_card)),
             ],
           ),
           
-          const SizedBox(height: 40),
+          const SizedBox(height: 48),
           SizedBox(
             width: double.infinity,
             height: 56,
@@ -358,7 +347,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 backgroundColor: AppConstants.primaryColor,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                elevation: 0,
               ),
               onPressed: _canSubscribe && !_isRefreshing && _selectedPlan != null && _paymentMethod == 'mpesa'
                   ? (_hasActiveSubscription ? null : _handleSubscription)
@@ -367,17 +355,99 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                 : Text(
                     _hasActiveSubscription
-                      ? 'Subscription Active'
+                      ? 'SUBSCRIPTION ACTIVE'
                       : !_canSubscribe 
-                      ? 'Verify Components First' 
+                      ? 'COMPLETE VERIFICATION' 
                       : _selectedPlan == null 
-                        ? 'Select a Plan' 
-                        : 'Subscribe Now',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ? 'SELECT A PLAN' 
+                        : 'SUBSCRIBE NOW',
+                    style: const TextStyle(fontFamily: 'Sora', fontWeight: FontWeight.bold),
                   ),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubscriptionHeader() {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppConstants.primaryColor.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.workspace_premium_rounded, color: AppConstants.primaryColor, size: 40),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Unlock Full Access',
+          style: TextStyle(color: Colors.white, fontFamily: 'Sora', fontSize: 22, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Connect with more clients near you',
+          style: TextStyle(color: AppConstants.mutedGray, fontSize: 14),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorTip() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppConstants.errorColor.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppConstants.errorColor.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: AppConstants.errorColor, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _errorMessage!,
+              style: const TextStyle(color: AppConstants.errorColor, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveBanner() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppConstants.successColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppConstants.successColor.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle, color: AppConstants.successColor, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Current Plan: ${_activePlan ?? 'Active'}',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+                const Text(
+                  'You have full access to all features.',
+                  style: TextStyle(color: AppConstants.mutedGray, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -392,9 +462,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
       double amount = 0;
       if (_selectedPlan == 'Test Plan') amount = 1;
-      if (_selectedPlan == 'Weekly') amount = 200;
-      if (_selectedPlan == '2 Weeks') amount = 500;
-      if (_selectedPlan == 'Monthly') amount = 800;
+      if (_selectedPlan == 'Weekly') amount = AppConstants.subWeeklyPrice.toDouble();
+      if (_selectedPlan == '2 Weeks') amount = AppConstants.subTwoWeeksPrice.toDouble();
+      if (_selectedPlan == 'Monthly') amount = AppConstants.subMonthlyPrice.toDouble();
       
       String cleanPhone = _phone ?? '';
       cleanPhone = cleanPhone.replaceAll(RegExp(r'\D'), '');
@@ -429,38 +499,59 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       if (mounted) {
         setState(() => _isRefreshing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Payment Error: $e'), backgroundColor: AppConstants.errorColor),
+          SnackBar(
+            content: Text('Payment Error: $e'), 
+            backgroundColor: AppConstants.errorColor,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     }
   }
 
-  Widget _verificationItem({required String title, required String subtitle, required bool verified, required VoidCallback onVerify}) {
+  Widget _verificationItem({
+    required String title, 
+    required String subtitle, 
+    required bool verified, 
+    required IconData icon,
+    required VoidCallback onVerify,
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: AppConstants.cardNavy,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: Row(
         children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: verified ? AppConstants.successColor : AppConstants.mutedGray, size: 20),
+          ),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                const SizedBox(height: 4),
-                Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                Text(subtitle, style: const TextStyle(color: AppConstants.mutedGray, fontSize: 13)),
               ],
             ),
           ),
           if (verified)
-            const Icon(Icons.check_circle, color: AppConstants.successColor, size: 28)
+            const Icon(Icons.verified_rounded, color: AppConstants.successColor, size: 24)
           else
             TextButton(
               onPressed: onVerify,
-              style: TextButton.styleFrom(foregroundColor: AppConstants.primaryColor),
+              style: TextButton.styleFrom(
+                foregroundColor: AppConstants.primaryColor,
+                textStyle: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               child: const Text('Verify'),
             ),
         ],
@@ -468,7 +559,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
-  Widget _planCard(String title, String price, String desc) {
+  Widget _planCard(String title, String price, String desc, IconData icon) {
     final isSelected = _selectedPlan == title;
     return GestureDetector(
       onTap: () => setState(() => _selectedPlan = title),
@@ -476,26 +567,34 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? AppConstants.primaryColor.withOpacity(0.15) : const Color(0xFF1E293B),
+          color: isSelected ? AppConstants.primaryColor.withOpacity(0.05) : AppConstants.cardNavy,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? AppConstants.primaryColor : Colors.white.withOpacity(0.05),
-            width: 2,
+            width: 1.5,
           ),
         ),
         child: Row(
           children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isSelected ? AppConstants.primaryColor.withOpacity(0.1) : Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: isSelected ? AppConstants.primaryColor : AppConstants.mutedGray, size: 24),
+            ),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 4),
-                  Text(desc, style: const TextStyle(color: Colors.white60, fontSize: 13)),
+                  Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'Sora')),
+                  Text(desc, style: const TextStyle(color: AppConstants.mutedGray, fontSize: 13)),
                 ],
               ),
             ),
-            Text(price, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+            Text(price, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
       ),
@@ -507,26 +606,32 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     final bool isComingSoon = value == 'card';
     
     return Opacity(
-      opacity: isComingSoon ? 0.5 : 1.0,
+      opacity: isComingSoon ? 0.4 : 1.0,
       child: GestureDetector(
         onTap: isComingSoon ? null : () => setState(() => _paymentMethod = value),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 20),
           decoration: BoxDecoration(
-            color: isSelected ? AppConstants.primaryColor.withOpacity(0.15) : const Color(0xFF1E293B),
+            color: isSelected ? AppConstants.primaryColor.withOpacity(0.05) : AppConstants.cardNavy,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isSelected ? AppConstants.primaryColor : Colors.white.withOpacity(0.05),
-              width: 2,
+              width: 1.5,
             ),
           ),
           child: Column(
             children: [
-              Icon(icon, color: isSelected ? AppConstants.primaryColor : Colors.white54, size: 28),
+              Icon(icon, color: isSelected ? AppConstants.primaryColor : AppConstants.mutedGray, size: 28),
               const SizedBox(height: 8),
-              Text(label, 
+              Text(
+                isComingSoon ? '$label\nSoon' : label, 
                 textAlign: TextAlign.center,
-                style: TextStyle(color: isSelected ? Colors.white : Colors.white54, fontSize: 10, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)
+                style: TextStyle(
+                  color: isSelected ? Colors.white : AppConstants.mutedGray, 
+                  fontSize: 12, 
+                  fontFamily: 'Sora',
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                )
               ),
             ],
           ),
@@ -539,11 +644,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        title: Text(title, style: const TextStyle(color: Colors.white)),
-        content: Text(message, style: const TextStyle(color: Colors.white70)),
+        backgroundColor: AppConstants.cardNavy,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(title, style: const TextStyle(color: Colors.white, fontFamily: 'Sora')),
+        content: Text(message, style: const TextStyle(color: AppConstants.mutedGray)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+          TextButton(
+            onPressed: () => Nav.safePop(context), 
+            child: const Text('OK', style: TextStyle(color: AppConstants.primaryColor, fontWeight: FontWeight.bold)),
+          ),
         ],
       ),
     );

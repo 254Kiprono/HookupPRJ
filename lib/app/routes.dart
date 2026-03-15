@@ -17,6 +17,7 @@ import 'package:hook_app/screens/main_app/bookings_screen.dart';
 import 'package:hook_app/screens/main_app/messages_screen.dart';
 import 'package:hook_app/screens/main_app/account_screen.dart';
 import 'package:hook_app/screens/main_app/edit_profile_screen.dart';
+import 'package:hook_app/screens/main_app/gallery_video_screen.dart';
 import 'package:hook_app/screens/bnb_owner/bnb_owner_dashboard_screen.dart';
 import 'package:hook_app/screens/bnb_owner/register_bnb_screen.dart';
 import 'package:hook_app/screens/bnb_owner/manage_bnb_screen.dart';
@@ -42,6 +43,7 @@ class Routes {
   static const String messages = '/messages';
   static const String account = '/account';
   static const String editProfile = '/edit-profile';
+  static const String galleryVideo = '/gallery-video';
   static const String safetyCenter = '/safety-center';
   static const String subscription = '/subscription';
 
@@ -202,6 +204,21 @@ class Routes {
         final args = settings.arguments as Map<String, dynamic>;
         return MaterialPageRoute(
           builder: (_) => EditProfileScreen(arguments: args),
+        );
+      case galleryVideo:
+        if (settings.arguments == null ||
+            settings.arguments is! Map<String, dynamic>) {
+          return MaterialPageRoute(
+            builder: (_) => const Scaffold(
+              body: Center(
+                  child: Text('Invalid arguments for GalleryVideoScreen')),
+            ),
+          );
+        }
+        final args = settings.arguments as Map<String, dynamic>;
+        final userProfile = args['userProfile'] as Map<String, dynamic>;
+        return MaterialPageRoute(
+          builder: (_) => GalleryVideoScreen(userProfile: userProfile),
         );
 
       // BnB Owner Routes

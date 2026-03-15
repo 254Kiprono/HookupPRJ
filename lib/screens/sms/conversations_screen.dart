@@ -5,6 +5,8 @@ import 'package:hook_app/models/message_models.dart';
 import 'package:hook_app/screens/main_app/messages_screen.dart' as messages;
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/utils/responsive.dart';
+import 'package:hook_app/app/routes.dart';
+import 'package:hook_app/utils/nav.dart';
 
 class ConversationsScreen extends StatefulWidget {
   const ConversationsScreen({super.key});
@@ -70,291 +72,212 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppConstants.midnightPurple,
-              AppConstants.deepPurple,
-              AppConstants.darkBackground,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            stops: [0.0, 0.5, 1.0],
-          ),
+      backgroundColor: AppConstants.darkBackground,
+      appBar: AppBar(
+        title: const Text('Messages', style: TextStyle(color: Colors.white, fontFamily: 'Sora', fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Nav.safePop(context);
+            } else {
+              Navigator.of(context).pushReplacementNamed(Routes.home);
+            }
+          },
         ),
-        child: SafeArea(
-          child: ResponsivePage(
-            child: Column(
-              children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Messages',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: AppConstants.softWhite,
-                        shadows: [
-                          Shadow(
-                            blurRadius: 10.0,
-                            color: AppConstants.primaryColor.withOpacity(0.5),
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.refresh,
-                        color: AppConstants.softWhite,
-                      ),
-                      onPressed: _loadConversations,
-                    ),
-                  ],
-                ),
-              ),
-
-              // Content
-              Expanded(
-                child: _isLoading
-                    ? Center(
-                        child: CircularProgressIndicator(
-                          color: AppConstants.primaryColor,
-                        ),
-                      )
-                    : _errorMessage != null
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.error_outline,
-                                  size: 64,
-                                  color: AppConstants.errorColor,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  _errorMessage!,
-                                  style: const TextStyle(
-                                    color: AppConstants.errorColor,
-                                    fontSize: 16,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 24),
-                                ElevatedButton(
-                                  onPressed: _loadConversations,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppConstants.primaryColor,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12,
-                                      horizontal: 32,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'Retry',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: AppConstants.softWhite,
-                                    ),
-                                  ),
-                                ),
-                              ],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+            onPressed: _loadConversations,
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: Column(
+        children: [
+          _buildSearchOverlay(),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppConstants.primaryColor))
+                : _errorMessage != null
+                    ? _buildErrorWidget()
+                    : _conversations.isEmpty
+                        ? _buildEmptyWidget()
+                        : RefreshIndicator(
+                            onRefresh: _loadConversations,
+                            color: AppConstants.primaryColor,
+                            backgroundColor: AppConstants.cardNavy,
+                            child: ListView.builder(
+                              physics: const BouncingScrollPhysics(),
+                              padding: const EdgeInsets.all(20),
+                              itemCount: _conversations.length,
+                              itemBuilder: (context, index) {
+                                final conversation = _conversations[index];
+                                final otherUserId = _userId != null
+                                    ? (conversation.participantA == _userId
+                                        ? conversation.participantB
+                                        : conversation.participantA)
+                                    : conversation.participantB;
+                                return _buildConversationItem(conversation, otherUserId);
+                              },
                             ),
-                          )
-                        : _conversations.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.forum_outlined,
-                                      size: 80,
-                                      color: AppConstants.mutedGray.withOpacity(0.5),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'No conversations yet',
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppConstants.softWhite.withOpacity(0.7),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Start chatting with providers',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: AppConstants.mutedGray.withOpacity(0.6),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : RefreshIndicator(
-                                onRefresh: _loadConversations,
-                                color: AppConstants.primaryColor,
-                                child: ListView.builder(
-                                  physics: const BouncingScrollPhysics(),
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  itemCount: _conversations.length,
-                                  itemBuilder: (context, index) {
-                                    final conversation = _conversations[index];
-                                    
-                                    // Determine the other user ID
-                                    final otherUserId = _userId != null
-                                        ? (conversation.participantA == _userId
-                                            ? conversation.participantB
-                                            : conversation.participantA)
-                                        : conversation.participantB;
+                          ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                                    return _buildConversationCard(
-                                      conversation,
-                                      otherUserId,
-                                    );
-                                  },
-                                ),
-                              ),
-              ),
-              ],
-            ),
+  Widget _buildSearchOverlay() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: AppConstants.cardNavy,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: const TextField(
+          style: TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'Search conversations...',
+            hintStyle: TextStyle(color: AppConstants.mutedGray),
+            border: InputBorder.none,
+            icon: Icon(Icons.search_rounded, color: AppConstants.mutedGray, size: 20),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildConversationCard(Conversation conversation, int otherUserId) {
+  Widget _buildConversationItem(Conversation conversation, int otherUserId) {
     final lastMessage = conversation.lastMessage;
-    String lastMessageText = 'No messages yet';
+    String lastMessageText = 'Start a conversation';
     
     if (lastMessage != null && lastMessage.content != null) {
       if (lastMessage.content is TextContent) {
         lastMessageText = (lastMessage.content as TextContent).body;
       } else if (lastMessage.content is BookingProposal) {
         lastMessageText = '📅 Booking proposal';
-      } else if (lastMessage.content is MediaContent) {
-        lastMessageText = '📷 Media';
       }
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          colors: [
-            AppConstants.deepPurple.withOpacity(0.7),
-            AppConstants.surfaceColor.withOpacity(0.5),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        border: Border.all(
-          width: 1.5,
-          color: AppConstants.primaryColor.withOpacity(0.3),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppConstants.primaryColor.withOpacity(0.15),
-            blurRadius: 10,
-            spreadRadius: 1,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
-        leading: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [
-                AppConstants.primaryColor.withOpacity(0.3),
-                AppConstants.accentColor.withOpacity(0.3),
-              ],
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => messages.MessagesScreen(
+              otherUserId: otherUserId,
+              otherUserName: 'User $otherUserId',
             ),
           ),
-          child: const Icon(
-            Icons.person,
-            color: AppConstants.softWhite,
-            size: 28,
-          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppConstants.cardNavy,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
         ),
-        title: Text(
-          'User $otherUserId',
-          style: const TextStyle(
-            color: AppConstants.softWhite,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4.0),
-          child: Text(
-            lastMessageText,
-            style: TextStyle(
-              color: AppConstants.mutedGray.withOpacity(0.8),
-              fontSize: 14,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
+        child: Row(
           children: [
-            if (lastMessage != null)
-              Text(
-                _formatTime(lastMessage.timestamp),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppConstants.mutedGray.withOpacity(0.6),
+            Stack(
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: AppConstants.primaryColor.withOpacity(0.1),
+                  child: Text('U$otherUserId', style: const TextStyle(color: AppConstants.primaryColor, fontWeight: FontWeight.bold)),
                 ),
-              ),
-            if (conversation.unreadCount > 0) ...[
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppConstants.primaryColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${conversation.unreadCount}',
-                  style: const TextStyle(
-                    color: AppConstants.softWhite,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+                Positioned(
+                  bottom: 2,
+                  right: 2,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: AppConstants.successColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppConstants.cardNavy, width: 2),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ],
-        ),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => messages.MessagesScreen(
-                otherUserId: otherUserId,
-                otherUserName: 'User $otherUserId',
+              ],
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('User $otherUserId', style: const TextStyle(color: Colors.white, fontFamily: 'Sora', fontSize: 16, fontWeight: FontWeight.bold)),
+                      if (lastMessage != null)
+                        Text(_formatTime(lastMessage.timestamp), style: const TextStyle(color: AppConstants.mutedGray, fontSize: 11)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          lastMessageText,
+                          style: TextStyle(color: conversation.unreadCount > 0 ? Colors.white : AppConstants.mutedGray, fontSize: 13, fontWeight: conversation.unreadCount > 0 ? FontWeight.bold : FontWeight.normal),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (conversation.unreadCount > 0)
+                        Container(
+                          margin: const EdgeInsets.only(left: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: AppConstants.primaryColor, borderRadius: BorderRadius.circular(10)),
+                          child: Text('${conversation.unreadCount}', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                        ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          );
-        },
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.chat_bubble_outline_rounded, size: 64, color: AppConstants.mutedGray.withOpacity(0.2)),
+          const SizedBox(height: 16),
+          const Text('No conversations yet', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text('Find providers to start a chat', style: TextStyle(color: AppConstants.mutedGray)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline_rounded, size: 64, color: AppConstants.errorColor),
+          const SizedBox(height: 16),
+          const Text('Something went wrong', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(_errorMessage!, style: const TextStyle(color: AppConstants.mutedGray)),
+          const SizedBox(height: 24),
+          ElevatedButton(onPressed: _loadConversations, child: const Text('Retry')),
+        ],
       ),
     );
   }
@@ -362,12 +285,8 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
   String _formatTime(DateTime time) {
     final now = DateTime.now();
     final difference = now.difference(time);
-
-    if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inDays < 7) {
+    if (difference.inDays == 0) return '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
+    if (difference.inDays < 7) {
       final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       return weekdays[time.weekday - 1];
     }

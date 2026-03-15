@@ -3,6 +3,7 @@ import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/bnb_service.dart';
 import 'package:hook_app/models/bnb.dart';
 import 'package:hook_app/screens/bnb_owner/manage_sessions_screen.dart';
+import 'package:hook_app/utils/nav.dart';
 
 class ManageBnBScreen extends StatefulWidget {
   final BnB bnb;
@@ -69,7 +70,7 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
           ),
         );
         setState(() => _isEditing = false);
-        Navigator.pop(context);
+        Nav.safePop(context);
       }
     } catch (e) {
       if (context.mounted) {
@@ -144,7 +145,7 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
             backgroundColor: AppConstants.successColor,
           ),
         );
-        Navigator.pop(context);
+        Nav.safePop(context);
       }
     } catch (e) {
       if (context.mounted) {
@@ -218,7 +219,7 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
           Row(
             children: [
               IconButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Nav.safePop(context),
                 icon: const Icon(
                   Icons.arrow_back,
                   color: AppConstants.softWhite,

@@ -3,6 +3,7 @@ import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/bnb_service.dart';
 import 'package:hook_app/models/bnb.dart';
 import 'package:hook_app/models/bnb_session.dart';
+import 'package:hook_app/utils/nav.dart';
 
 class ManageSessionsScreen extends StatefulWidget {
   final BnB bnb;
@@ -133,7 +134,7 @@ class _ManageSessionsScreenState extends State<ManageSessionsScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Nav.safePop(context),
               child: const Text('Cancel', style: TextStyle(color: AppConstants.mutedGray)),
             ),
             TextButton(
@@ -161,7 +162,7 @@ class _ManageSessionsScreenState extends State<ManageSessionsScreen> {
                   ));
                 });
 
-                Navigator.pop(context);
+                Nav.safePop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Session added. Click Save to update.')),
                 );
@@ -227,7 +228,7 @@ class _ManageSessionsScreenState extends State<ManageSessionsScreen> {
       child: Row(
         children: [
           IconButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Nav.safePop(context),
             icon: const Icon(Icons.arrow_back, color: AppConstants.softWhite, size: 28),
           ),
           const SizedBox(width: 12),

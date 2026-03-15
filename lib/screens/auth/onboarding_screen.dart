@@ -48,108 +48,112 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        color: AppConstants.lightBackground,
-        child: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: PageView.builder(
-                  controller: _controller,
-                  itemCount: _items.length,
-                  onPageChanged: (i) => setState(() => _index = i),
-                  itemBuilder: (context, i) {
-                    final item = _items[i];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 28, vertical: 24),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            height: 140,
-                            width: 140,
-                            decoration: BoxDecoration(
-                              color:
-                                  AppConstants.primaryColor.withOpacity(0.08),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(item.icon,
-                                size: 72, color: AppConstants.primaryColor),
-                          ),
-                          const SizedBox(height: 32),
-                          Text(
-                            item.title,
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(
-                                  color: AppConstants.secondaryColor,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            item.subtitle,
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
-                                  color: AppConstants.mutedGray,
-                                ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton(
-                      onPressed: _finish,
-                      child: const Text('Skip'),
-                    ),
-                    Row(
-                      children: List.generate(
-                        _items.length,
-                        (i) => Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          width: _index == i ? 22 : 8,
-                          height: 8,
+      backgroundColor: AppConstants.darkBackground,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: PageView.builder(
+                controller: _controller,
+                itemCount: _items.length,
+                onPageChanged: (i) => setState(() => _index = i),
+                itemBuilder: (context, i) {
+                  final item = _items[i];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          height: 180,
+                          width: 180,
                           decoration: BoxDecoration(
-                            color: _index == i
-                                ? AppConstants.primaryColor
-                                : AppConstants.mutedGray.withOpacity(0.4),
-                            borderRadius: BorderRadius.circular(12),
+                            color: AppConstants.cardNavy,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppConstants.primaryColor.withOpacity(0.1)),
                           ),
+                          child: Icon(item.icon, size: 80, color: AppConstants.primaryColor),
+                        ),
+                        const SizedBox(height: 48),
+                        Text(
+                          item.title,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontFamily: 'Sora',
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          item.subtitle,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: AppConstants.mutedGray,
+                            fontSize: 16,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      _items.length,
+                      (i) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: _index == i ? 24 : 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: _index == i ? AppConstants.primaryColor : AppConstants.mutedGray.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(4),
                         ),
                       ),
                     ),
-                    ElevatedButton(
+                  ),
+                  const SizedBox(height: 40),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
                       onPressed: () async {
                         if (_index == _items.length - 1) {
                           await _finish();
                         } else {
-                          _controller.nextPage(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeOut);
+                          _controller.nextPage(duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
                         }
                       },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppConstants.primaryColor,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 0,
+                      ),
                       child: Text(
-                          _index == _items.length - 1 ? 'Get Started' : 'Next'),
+                        _index == _items.length - 1 ? 'Get Started' : 'Continue',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_index != _items.length - 1)
+                    TextButton(
+                      onPressed: _finish,
+                      child: const Text('Skip introduction', style: TextStyle(color: AppConstants.mutedGray)),
+                    ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

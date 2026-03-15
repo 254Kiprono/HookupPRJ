@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/bnb_service.dart';
 import 'package:hook_app/models/bnb_session.dart';
+import 'package:hook_app/utils/nav.dart';
 
 class RegisterBnBScreen extends StatefulWidget {
   const RegisterBnBScreen({super.key});
@@ -380,14 +381,14 @@ class _RegisterBnBScreenState extends State<RegisterBnBScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Nav.safePop(context),
               child: const Text('Cancel', style: TextStyle(color: AppConstants.mutedGray)),
             ),
             TextButton(
               onPressed: () {
                 if (selectedDuration != null && priceController.text.isNotEmpty) {
                   _addSession(selectedDuration!, double.parse(priceController.text));
-                  Navigator.pop(context);
+                  Nav.safePop(context);
                 }
               },
               child: const Text('Add', style: TextStyle(color: AppConstants.primaryColor)),
@@ -404,7 +405,7 @@ class _RegisterBnBScreenState extends State<RegisterBnBScreen> {
       child: Row(
         children: [
           IconButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Nav.safePop(context),
             icon: const Icon(
               Icons.arrow_back,
               color: AppConstants.softWhite,

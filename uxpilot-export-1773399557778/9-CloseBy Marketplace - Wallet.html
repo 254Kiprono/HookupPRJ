@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>::-webkit-scrollbar { display: none;}</style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'deep-navy': '#0B1220',
+                        'teal': '#0F766E',
+                        'teal-light': '#14B8A6',
+                        'teal-dark': '#0D5F58',
+                    },
+                    fontFamily: {
+                        'sora': ['Sora', 'sans-serif'],
+                        'inter': ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-deep-navy font-inter antialiased">
+
+<main id="wallet-main" class="flex flex-col h-screen">
+    
+    <header id="header" class="bg-deep-navy border-b border-gray-800 px-4 py-4 sm:px-6">
+        <div class="flex items-center justify-between">
+            <h1 class="font-sora font-semibold text-white text-xl">Wallet</h1>
+            
+            <div class="flex items-center space-x-3">
+                <button id="settings-btn" class="p-2 rounded-lg bg-[#1A2332] border border-gray-700">
+                    <i class="fa-solid fa-cog text-gray-300 text-sm"></i>
+                </button>
+                <button class="p-2 rounded-lg bg-[#1A2332] border border-gray-700">
+                    <i class="fa-solid fa-ellipsis-vertical text-gray-300 text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div id="wallet-content" class="flex-1 overflow-y-auto pb-20">
+        
+        <div id="balance-overview" class="px-4 py-6 sm:px-6">
+            <div class="bg-gradient-to-br from-teal to-teal-dark rounded-2xl p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="font-sora font-medium text-white/90 text-sm">Available Balance</h2>
+                        <div class="flex items-baseline space-x-2">
+                            <span class="font-sora font-bold text-white text-3xl">$247.50</span>
+                            <button class="p-1">
+                                <i class="fa-regular fa-eye text-white/80 text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                            <i class="fa-solid fa-wallet text-white text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mt-6">
+                    <button id="add-funds-btn" class="bg-white/20 backdrop-blur-sm rounded-xl p-3 flex flex-col items-center space-y-2">
+                        <i class="fa-solid fa-plus text-white text-lg"></i>
+                        <span class="text-white text-xs font-medium">Add Funds</span>
+                    </button>
+                    <button id="withdraw-btn" class="bg-white/20 backdrop-blur-sm rounded-xl p-3 flex flex-col items-center space-y-2">
+                        <i class="fa-solid fa-arrow-up text-white text-lg"></i>
+                        <span class="text-white text-xs font-medium">Withdraw</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="pending-holds" class="bg-[#1A2332] border border-gray-700 rounded-xl p-4 mb-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-sora font-medium text-white text-sm">Pending Holds</h3>
+                    <span class="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full">2 Active</span>
+                </div>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                                <i class="fa-solid fa-clock text-yellow-400 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-white text-sm font-medium">Cleaning Service</p>
+                                <p class="text-gray-400 text-xs">Hold expires Dec 16</p>
+                            </div>
+                        </div>
+                        <span class="text-yellow-400 font-medium">-$85.00</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                                <i class="fa-solid fa-bed text-yellow-400 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-white text-sm font-medium">BnB Stay</p>
+                                <p class="text-gray-400 text-xs">Hold expires Dec 18</p>
+                            </div>
+                        </div>
+                        <span class="text-yellow-400 font-medium">-$120.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="wallet-tabs" class="bg-deep-navy border-b border-gray-800 px-4 py-2 flex items-center space-x-2 overflow-x-auto">
+            <button class="px-3 py-1.5 bg-teal/20 border border-teal rounded-full text-teal text-xs font-medium whitespace-nowrap">
+                Recent (12)
+            </button>
+            <button class="px-3 py-1.5 bg-[#1A2332] border border-gray-700 rounded-full text-gray-300 text-xs font-medium whitespace-nowrap">
+                Payouts
+            </button>
+            <button class="px-3 py-1.5 bg-[#1A2332] border border-gray-700 rounded-full text-gray-300 text-xs font-medium whitespace-nowrap">
+                Refunds
+            </button>
+            <button class="px-3 py-1.5 bg-[#1A2332] border border-gray-700 rounded-full text-gray-300 text-xs font-medium whitespace-nowrap">
+                Receipts
+            </button>
+        </div>
+
+        <div id="transaction-history" class="px-4 py-4 space-y-4">
+            
+            <div class="bg-[#1A2332] border border-gray-700 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-teal/20 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-plus text-teal text-lg"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-white font-medium text-sm">Funds Added</h4>
+                            <p class="text-gray-400 text-xs">Dec 14, 2024 • 3:42 PM</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-teal font-semibold">+$150.00</span>
+                        <p class="text-gray-400 text-xs">•••• 4829</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">Completed</span>
+                    <button class="text-gray-400 text-xs hover:text-white">View Receipt</button>
+                </div>
+            </div>
+
+            <div class="bg-[#1A2332] border border-gray-700 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-3">
+                        <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-1.jpg" 
+                             alt="Jessica L." 
+                             class="w-10 h-10 rounded-lg object-cover">
+                        <div>
+                            <h4 class="text-white font-medium text-sm">Payment to Jessica L.</h4>
+                            <p class="text-gray-400 text-xs">Dec 13, 2024 • 5:15 PM</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-red-400 font-semibold">-$75.00</span>
+                        <p class="text-gray-400 text-xs">Massage Therapy</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">Completed</span>
+                    <button class="text-gray-400 text-xs hover:text-white">View Details</button>
+                </div>
+            </div>
+
+            <div class="bg-[#1A2332] border border-gray-700 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-3">
+                        <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-6.jpg" 
+                             alt="Olivia R." 
+                             class="w-10 h-10 rounded-lg object-cover">
+                        <div>
+                            <h4 class="text-white font-medium text-sm">Payment to Olivia R.</h4>
+                            <p class="text-gray-400 text-xs">Dec 12, 2024 • 11:30 AM</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-red-400 font-semibold">-$180.00</span>
+                        <p class="text-gray-400 text-xs">BnB Stay (2 nights)</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">Completed</span>
+                    <button class="text-gray-400 text-xs hover:text-white">Download Receipt</button>
+                </div>
+            </div>
+
+            <div class="bg-[#1A2332] border border-gray-700 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                            <i class="fa-solid fa-arrow-down text-green-400 text-lg"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-white font-medium text-sm">Refund Received</h4>
+                            <p class="text-gray-400 text-xs">Dec 10, 2024 • 2:18 PM</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-teal font-semibold">+$45.00</span>
+                        <p class="text-gray-400 text-xs">Cancelled Service</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">Processed</span>
+                    <button class="text-gray-400 text-xs hover:text-white">View Details</button>
+                </div>
+            </div>
+
+            <div class="bg-[#1A2332] border border-gray-700 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-3">
+                        <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-4.jpg" 
+                             alt="Ryan P." 
+                             class="w-10 h-10 rounded-lg object-cover">
+                        <div>
+                            <h4 class="text-white font-medium text-sm">Payment to Ryan P.</h4>
+                            <p class="text-gray-400 text-xs">Dec 9, 2024 • 4:45 PM</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-red-400 font-semibold">-$95.00</span>
+                        <p class="text-gray-400 text-xs">Personal Training</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">Completed</span>
+                    <button class="text-gray-400 text-xs hover:text-white">View Receipt</button>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="payment-methods" class="px-4 py-6 border-t border-gray-800">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-sora font-medium text-white text-lg">Payment Methods</h3>
+                <button id="add-card-btn" class="px-3 py-1.5 bg-teal rounded-lg text-white text-xs font-medium">
+                    <i class="fa-solid fa-plus mr-1"></i>Add Card
+                </button>
+            </div>
+            
+            <div class="space-y-3">
+                <div class="bg-[#1A2332] border border-gray-700 rounded-xl p-4 flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                            <i class="fa-brands fa-cc-visa text-blue-400 text-lg"></i>
+                        </div>
+                        <div>
+                            <p class="text-white font-medium text-sm">Visa •••• 4829</p>
+                            <p class="text-gray-400 text-xs">Expires 12/26 • Primary</p>
+                        </div>
+                    </div>
+                    <button class="text-gray-400 hover:text-white">
+                        <i class="fa-solid fa-ellipsis-horizontal"></i>
+                    </button>
+                </div>
+
+                <div class="bg-[#1A2332] border border-gray-700 rounded-xl p-4 flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
+                            <i class="fa-brands fa-cc-mastercard text-red-400 text-lg"></i>
+                        </div>
+                        <div>
+                            <p class="text-white font-medium text-sm">Mastercard •••• 7395</p>
+                            <p class="text-gray-400 text-xs">Expires 08/27</p>
+                        </div>
+                    </div>
+                    <button class="text-gray-400 hover:text-white">
+                        <i class="fa-solid fa-ellipsis-horizontal"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="privacy-settings" class="px-4 py-6 border-t border-gray-800">
+            <h3 class="font-sora font-medium text-white text-lg mb-4">Privacy & Security</h3>
+            
+            <div class="space-y-4">
+                <div class="bg-[#1A2332] border border-gray-700 rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-white font-medium text-sm">Discreet Statements</h4>
+                        <button class="w-10 h-6 bg-teal rounded-full flex items-center justify-end px-1">
+                            <div class="w-4 h-4 bg-white rounded-full"></div>
+                        </button>
+                    </div>
+                    <p class="text-gray-400 text-xs">Charges appear as "CB Services" on statements</p>
+                </div>
+
+                <div class="bg-[#1A2332] border border-gray-700 rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-white font-medium text-sm">Billing Descriptor</h4>
+                        <span class="text-teal text-sm font-medium">CB Services</span>
+                    </div>
+                    <p class="text-gray-400 text-xs">Customize how charges appear on your bank statement</p>
+                </div>
+
+                <button class="w-full bg-[#1A2332] border border-gray-700 rounded-xl p-4 flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-shield-halved text-teal text-lg"></i>
+                        <div class="text-left">
+                            <h4 class="text-white font-medium text-sm">Security Settings</h4>
+                            <p class="text-gray-400 text-xs">Manage PIN, 2FA, and transaction limits</p>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-gray-400"></i>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <nav id="bottom-navigation" class="fixed bottom-0 left-0 right-0 bg-[#1A2332] border-t border-gray-700 px-4 py-2">
+        <div class="flex items-center justify-around">
+            <button class="flex flex-col items-center space-y-1 py-2 px-3">
+                <i class="fa-solid fa-house text-gray-400 text-lg"></i>
+                <span class="text-gray-400 text-xs">Discovery</span>
+            </button>
+            
+            <button class="flex flex-col items-center space-y-1 py-2 px-3">
+                <i class="fa-solid fa-bed text-gray-400 text-lg"></i>
+                <span class="text-gray-400 text-xs">BnB Browse</span>
+            </button>
+            
+            <button class="flex flex-col items-center space-y-1 py-2 px-3">
+                <i class="fa-solid fa-message text-gray-400 text-lg"></i>
+                <span class="text-gray-400 text-xs">Messaging</span>
+            </button>
+            
+            <button class="flex flex-col items-center space-y-1 py-2 px-3">
+                <i class="fa-solid fa-wallet text-teal text-lg"></i>
+                <span class="text-teal text-xs font-medium">Wallet</span>
+            </button>
+            
+            <button class="flex flex-col items-center space-y-1 py-2 px-3">
+                <i class="fa-regular fa-user text-gray-400 text-lg"></i>
+                <span class="text-gray-400 text-xs">Profile</span>
+            </button>
+        </div>
+    </nav>
+
+</main>
+
+<div id="add-funds-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden">
+    <div class="flex items-end justify-center min-h-screen">
+        <div class="bg-[#1A2332] border-t border-gray-700 rounded-t-2xl w-full max-w-md">
+            <div class="px-4 py-4 border-b border-gray-700">
+                <h3 class="font-sora font-semibold text-white text-lg">Add Funds</h3>
+            </div>
+            
+            <div class="px-4 py-6">
+                <div class="mb-4">
+                    <label class="text-gray-300 text-sm mb-2 block">Amount</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white text-lg">$</span>
+                        <input type="number" placeholder="0.00" 
+                               class="w-full bg-deep-navy border border-gray-700 rounded-lg pl-8 pr-4 py-3 text-white text-lg font-medium">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-2 mb-6">
+                    <button class="py-2 bg-gray-700 text-white rounded-lg text-sm">$25</button>
+                    <button class="py-2 bg-gray-700 text-white rounded-lg text-sm">$50</button>
+                    <button class="py-2 bg-gray-700 text-white rounded-lg text-sm">$100</button>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="text-gray-300 text-sm mb-2 block">Payment Method</label>
+                    <div class="bg-deep-navy border border-gray-700 rounded-lg p-3 flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                                <i class="fa-brands fa-cc-visa text-blue-400"></i>
+                            </div>
+                            <span class="text-white text-sm">Visa •••• 4829</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down text-gray-400"></i>
+                    </div>
+                </div>
+                
+                <button class="w-full py-3 bg-teal text-white rounded-lg font-medium mb-3">
+                    Add Funds
+                </button>
+                
+                <button id="close-add-funds" class="w-full py-3 bg-gray-700 text-white rounded-lg font-medium">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+window.addEventListener('load', function() {
+    const addFundsBtn = document.getElementById('add-funds-btn');
+    const addFundsModal = document.getElementById('add-funds-modal');
+    const closeAddFunds = document.getElementById('close-add-funds');
+    
+    const walletTabs = document.querySelectorAll('#wallet-tabs button');
+    
+    if (addFundsBtn && addFundsModal) {
+        addFundsBtn.addEventListener('click', function() {
+            addFundsModal.classList.remove('hidden');
+        });
+    }
+    
+    if (closeAddFunds && addFundsModal) {
+        closeAddFunds.addEventListener('click', function() {
+            addFundsModal.classList.add('hidden');
+        });
+        
+        addFundsModal.addEventListener('click', function(e) {
+            if (e.target === addFundsModal) {
+                addFundsModal.classList.add('hidden');
+            }
+        });
+    }
+    
+    walletTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            walletTabs.forEach(t => {
+                t.classList.remove('bg-teal/20', 'border-teal', 'text-teal');
+                t.classList.add('bg-[#1A2332]', 'border-gray-700', 'text-gray-300');
+            });
+            this.classList.add('bg-teal/20', 'border-teal', 'text-teal');
+            this.classList.remove('bg-[#1A2332]', 'border-gray-700', 'text-gray-300');
+        });
+    });
+});
+</script>
+
+</body>
+</html>

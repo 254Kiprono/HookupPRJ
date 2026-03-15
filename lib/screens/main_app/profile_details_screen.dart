@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/user_service.dart';
 import 'package:intl/intl.dart';
+import 'package:hook_app/utils/nav.dart';
 
 class ProfileDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> userProfile;
@@ -219,7 +220,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.arrow_back, color: AppConstants.softWhite),
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () => Nav.safePop(context),
                         ),
                         const SizedBox(width: 16),
                         const Text(

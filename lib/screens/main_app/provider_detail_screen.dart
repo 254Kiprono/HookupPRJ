@@ -116,7 +116,7 @@ class ProviderDetailScreen extends StatelessWidget {
                   'Verified host on CloseBy. Book confidently with transparent pricing.',
               style: const TextStyle(height: 1.4)),
           const SizedBox(height: 16),
-          _sectionTitle('Intro Video (30s)'),
+          _sectionTitle('Video'),
           const SizedBox(height: 8),
           Container(
             height: 180,

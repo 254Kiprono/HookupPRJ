@@ -4,8 +4,10 @@ import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/io.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:hook_app/utils/constants.dart';
+import 'package:hook_app/app/routes.dart';
 import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/utils/responsive.dart';
+import 'package:hook_app/utils/nav.dart';
 
 class Message {
   final String id;
@@ -506,12 +508,12 @@ class _MessagesScreenState extends State<MessagesScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Nav.safePop(context),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
+              Nav.safePop(context);
               _initiateBooking();
             },
             style: ElevatedButton.styleFrom(
@@ -539,239 +541,262 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: AppConstants.primaryColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Center(
-          child: Text(
-            'Chats',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+    return WillPopScope(
+      onWillPop: () async {
+        if (Navigator.of(context).canPop()) {
+          return true;
+        }
+        Navigator.of(context).pushReplacementNamed(Routes.home);
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: AppConstants.darkBackground,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leadingWidth: 70,
+          leading: Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+              onPressed: () {
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                } else {
+                  Navigator.of(context).pushReplacementNamed(Routes.home);
+                }
+              },
             ),
           ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.event, color: Colors.white),
-            onPressed: _showBookingDialog,
+          title: Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: AppConstants.primaryColor.withOpacity(0.1),
+                child: Text(widget.otherUserName[0], style: const TextStyle(color: AppConstants.primaryColor, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.otherUserName, style: const TextStyle(color: Colors.white, fontSize: 16, fontFamily: 'Sora', fontWeight: FontWeight.bold)),
+                    const Text('Online', style: TextStyle(color: AppConstants.successColor, fontSize: 11)),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      body: ResponsivePage(
-        child: Column(
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.more_vert, color: Colors.white),
+              onPressed: () {},
+            ),
+          ],
+        ),
+        body: Column(
           children: [
+            const Divider(color: Colors.white10, height: 1),
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Center(child: CircularProgressIndicator(color: AppConstants.primaryColor))
                   : _errorMessage != null
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                _errorMessage!,
-                                style: const TextStyle(
-                                  color: Colors.red,
-                                  fontSize: 16,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                onPressed: _initAndFetchUserId,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppConstants.primaryColor,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Retry',
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.all(8),
-                          itemCount: _messages.length,
-                          itemBuilder: (context, index) {
-                            final message = _messages[index];
-                            final isSentByUser = message.senderId == _userId;
-                            return _buildMessageBubble(message, isSentByUser);
-                          },
-                        ),
+                      ? _buildErrorPlaceholder()
+                      : _messages.isEmpty
+                          ? _buildEmptyPlaceholder()
+                          : ListView.builder(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                              itemCount: _messages.length,
+                              itemBuilder: (context, index) => _buildMessageBubble(_messages[index]),
+                            ),
             ),
-            _buildMessageInput(),
+            _buildMessageInputArea(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMessageBubble(Message message, bool isSentByUser) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      alignment: isSentByUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: ConstrainedBox(
-        constraints:
-            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: isSentByUser ? AppConstants.primaryColor : Colors.grey[200],
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            crossAxisAlignment: isSentByUser
-                ? CrossAxisAlignment.end
-                : CrossAxisAlignment.start,
-            children: [
-              if (message.content is TextContent)
-                Text(
-                  (message.content as TextContent).body,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: isSentByUser ? Colors.white : Colors.black87,
-                  ),
-                )
-              else if (message.content is BookingProposal)
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: const Border(
-                      top: BorderSide(color: AppConstants.primaryColor),
-                      left: BorderSide(color: AppConstants.primaryColor),
-                      right: BorderSide(color: AppConstants.primaryColor),
-                      bottom: BorderSide(color: AppConstants.primaryColor),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Booking Proposal',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: AppConstants.primaryColor,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        (message.content as BookingProposal).meetingPurpose,
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      const SizedBox(height: 8),
-                      if (!isSentByUser)
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () =>
-                                    _respondToBooking(message.id, 'ACCEPTED'),
-                                child: const Text('Accept'),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () =>
-                                    _respondToBooking(message.id, 'REJECTED'),
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Colors.red),
-                                ),
-                                child: const Text(
-                                  'Reject',
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-              const SizedBox(height: 4),
-              Text(
-                _formatMessageTime(message.timestamp),
-                style: TextStyle(
-                  fontSize: 11,
-                  color: isSentByUser ? Colors.white70 : Colors.grey[600],
-                ),
+  Widget _buildMessageBubble(Message message) {
+    final isMe = message.senderId == _userId;
+    return Align(
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: Column(
+        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+            decoration: BoxDecoration(
+              color: isMe ? AppConstants.primaryColor : AppConstants.cardNavy,
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(20),
+                topRight: const Radius.circular(20),
+                bottomLeft: Radius.circular(isMe ? 20 : 4),
+                bottomRight: Radius.circular(isMe ? 4 : 20),
               ),
-            ],
+              boxShadow: [
+                if (isMe) BoxShadow(color: AppConstants.primaryColor.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4)),
+              ],
+            ),
+            child: _buildMessageContent(message),
           ),
-        ),
+          const SizedBox(height: 6),
+          Text(
+            _formatMessageTime(message.timestamp),
+            style: const TextStyle(color: AppConstants.mutedGray, fontSize: 10),
+          ),
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }
 
-  Widget _buildMessageInput() {
+  Widget _buildMessageContent(Message message) {
+    if (message.content is TextContent) {
+      return Text(
+        (message.content as TextContent).body,
+        style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.4),
+      );
+    } else if (message.content is BookingProposal) {
+      final proposal = message.content as BookingProposal;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.event_note_rounded, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              const Text('Booking Proposal', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(proposal.meetingPurpose, style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13)),
+          const SizedBox(height: 8),
+          Text(
+            'Time: ${_formatDateTime(proposal.proposedTime)}',
+            style: const TextStyle(color: AppConstants.accentColor, fontSize: 12, fontWeight: FontWeight.bold),
+          ),
+          if (message.senderId != _userId) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => _respondToBooking(message.id, 'ACCEPTED'),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppConstants.successColor, padding: EdgeInsets.zero, minimumSize: const Size(0, 36)),
+                    child: const Text('Accept', style: TextStyle(fontSize: 12)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _respondToBooking(message.id, 'REJECTED'),
+                    style: OutlinedButton.styleFrom(side: const BorderSide(color: AppConstants.errorColor), padding: EdgeInsets.zero, minimumSize: const Size(0, 36)),
+                    child: const Text('Reject', style: TextStyle(color: AppConstants.errorColor, fontSize: 12)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildMessageInputArea() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      color: Colors.white,
+      padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).padding.bottom + 12),
+      decoration: BoxDecoration(
+        color: AppConstants.cardNavy,
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, -5))],
+      ),
       child: Row(
         children: [
-          Expanded(
-            child: TextField(
-              controller: _messageController,
-              focusNode: _messageFocusNode,
-              decoration: InputDecoration(
-                hintText: 'Type here',
-                filled: true,
-                fillColor: Colors.grey[100],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-              ),
-              onChanged: (text) {
-                _channel.sink.add(jsonEncode({
-                  'typing': {
-                    'conversation_id': widget.otherUserId,
-                    'user_id': _userId,
-                    'is_typing': text.isNotEmpty,
-                  },
-                }));
-              },
-              onSubmitted: (text) {
-                if (text.trim().isNotEmpty) _sendMessage(text);
-              },
+          GestureDetector(
+            onTap: _showBookingDialog,
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), shape: BoxShape.circle),
+              child: const Icon(Icons.add_rounded, color: AppConstants.primaryColor, size: 24),
             ),
           ),
-          const SizedBox(width: 8),
-          CircleAvatar(
-            backgroundColor: AppConstants.primaryColor,
-            child: IconButton(
-              icon: const Icon(
-                Icons.send,
-                color: Colors.white,
-                size: 20,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(24),
               ),
-              onPressed: _messageController.text.trim().isEmpty
-                  ? null
-                  : () => _sendMessage(_messageController.text),
+              child: TextField(
+                controller: _messageController,
+                focusNode: _messageFocusNode,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                decoration: const InputDecoration(
+                  hintText: 'Type a message...',
+                  hintStyle: TextStyle(color: AppConstants.mutedGray),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(vertical: 12),
+                ),
+                onChanged: (val) {
+                  _channel.sink.add(jsonEncode({
+                    'typing': {
+                      'conversation_id': widget.otherUserId,
+                      'user_id': _userId,
+                      'is_typing': val.isNotEmpty,
+                    },
+                  }));
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: () => _sendMessage(_messageController.text),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: const BoxDecoration(color: AppConstants.primaryColor, shape: BoxShape.circle),
+              child: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildEmptyPlaceholder() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.chat_bubble_outline_rounded, size: 48, color: Colors.white.withOpacity(0.1)),
+          const SizedBox(height: 16),
+          const Text('No messages yet', style: TextStyle(color: AppConstants.mutedGray, fontSize: 14)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorPlaceholder() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline_rounded, size: 48, color: AppConstants.errorColor),
+          const SizedBox(height: 16),
+          Text(_errorMessage!, style: const TextStyle(color: Colors.white, fontSize: 14), textAlign: TextAlign.center),
+          const SizedBox(height: 24),
+          TextButton(onPressed: _initAndFetchUserId, child: const Text('Retry')),
+        ],
+      ),
+    );
+  }
+
+  String _formatDateTime(DateTime dt) {
+    return '${dt.day}/${dt.month} at ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
   String _formatMessageTime(DateTime time) {

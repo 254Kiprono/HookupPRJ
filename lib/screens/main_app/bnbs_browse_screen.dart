@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hook_app/utils/constants.dart';
+import 'package:hook_app/utils/nav.dart';
 import 'package:hook_app/services/bnb_service.dart';
 import 'package:hook_app/models/bnb.dart';
 import 'package:hook_app/utils/responsive.dart';
@@ -105,195 +106,138 @@ class _BnBsBrowseScreenState extends State<BnBsBrowseScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppConstants.midnightPurple,
-              AppConstants.deepPurple,
-              AppConstants.darkBackground,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+      backgroundColor: AppConstants.darkBackground,
+      appBar: AppBar(
+        title: const Text('Browse BnBs', style: TextStyle(color: Colors.white, fontFamily: 'Sora', fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+          onPressed: () => Nav.safePop(context),
         ),
-        child: SafeArea(
-          child: ResponsivePage(
-            child: Column(
-              children: [
-                // Header
-                Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Text(
-                    'Browse BnBs',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppConstants.softWhite,
-                      shadows: [
-                        Shadow(
-                          blurRadius: 10.0,
-                          color: AppConstants.primaryColor.withOpacity(0.5),
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-              // Search bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        style: const TextStyle(color: AppConstants.softWhite),
-                        decoration: InputDecoration(
-                          hintText: 'Enter location...',
-                          hintStyle: TextStyle(color: AppConstants.mutedGray),
-                          prefixIcon: Icon(Icons.search, color: AppConstants.primaryColor),
-                          filled: true,
-                          fillColor: AppConstants.surfaceColor.withOpacity(0.5),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppConstants.primaryColor, AppConstants.secondaryColor],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.search, color: AppConstants.softWhite),
-                        onPressed: _searchBnBs,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Filters
-              if (_bnbs.isNotEmpty) ...[
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    children: [
-                      _buildFilterButton(
-                        'Price Range',
-                        Icons.attach_money,
-                        () => _showPriceFilter(),
-                      ),
-                      const SizedBox(width: 8),
-                      _buildFilterButton(
-                        'Type',
-                        Icons.home,
-                        () => _showTypeFilter(),
-                      ),
-                      const SizedBox(width: 8),
-                      _buildFilterChip(
-                        'Available Only',
-                        _availableOnly,
-                        () {
-                          setState(() {
-                            _availableOnly = !_availableOnly;
-                            _applyFilters();
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // Content
-                Expanded(
-                  child: _isLoading
-                      ? const Center(
-                          child: CircularProgressIndicator(
-                            color: AppConstants.primaryColor,
-                          ),
-                        )
-                      : _error != null
-                          ? _buildErrorWidget()
-                          : _filteredBnbs.isEmpty && _bnbs.isEmpty
-                              ? _buildEmptyWidget()
-                              : _filteredBnbs.isEmpty
-                                  ? _buildNoResultsWidget()
-                                  : _buildBnBList(),
-                ),
-              ],
-            ),
+      ),
+      body: Column(
+        children: [
+          _buildSearchArea(),
+          if (_bnbs.isNotEmpty) _buildFilterArea(),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppConstants.primaryColor))
+                : _error != null
+                    ? _buildErrorWidget()
+                    : _filteredBnbs.isEmpty && _bnbs.isEmpty
+                        ? _buildEmptyWidget()
+                        : _filteredBnbs.isEmpty
+                            ? _buildNoResultsWidget()
+                            : _buildBnBList(),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildFilterButton(String label, IconData icon, VoidCallback onTap) {
+  Widget _buildSearchArea() {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: AppConstants.cardNavy,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withOpacity(0.05)),
+              ),
+              child: TextField(
+                controller: _searchController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  hintText: 'Where are you looking?',
+                  hintStyle: TextStyle(color: AppConstants.mutedGray),
+                  border: InputBorder.none,
+                  icon: Icon(Icons.location_on_rounded, color: AppConstants.primaryColor, size: 20),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: _searchBnBs,
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppConstants.primaryColor,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.search_rounded, color: Colors.white, size: 24),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterArea() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        children: [
+          _buildFilterChip('Price Range', Icons.tune_rounded, () => _showPriceFilter()),
+          const SizedBox(width: 12),
+          _buildFilterChip('Type', Icons.home_work_rounded, () => _showTypeFilter()),
+          const SizedBox(width: 12),
+          _buildAvailabilityToggle(),
+          const SizedBox(width: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, IconData icon, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: AppConstants.surfaceColor.withOpacity(0.5),
+          color: AppConstants.cardNavy,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: AppConstants.primaryColor.withOpacity(0.3),
-          ),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: AppConstants.primaryColor),
+            Icon(icon, size: 16, color: AppConstants.primaryColor),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                color: AppConstants.softWhite,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            Text(label, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFilterChip(String label, bool isActive, VoidCallback onTap) {
+  Widget _buildAvailabilityToggle() {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        setState(() {
+          _availableOnly = !_availableOnly;
+          _applyFilters();
+        });
+      },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          gradient: isActive
-              ? const LinearGradient(
-                  colors: [AppConstants.primaryColor, AppConstants.secondaryColor],
-                )
-              : null,
-          color: isActive ? null : AppConstants.surfaceColor.withOpacity(0.5),
+          color: _availableOnly ? AppConstants.primaryColor.withOpacity(0.1) : AppConstants.cardNavy,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isActive
-                ? AppConstants.primaryColor
-                : AppConstants.mutedGray.withOpacity(0.3),
-          ),
+          border: Border.all(color: _availableOnly ? AppConstants.primaryColor : Colors.white.withOpacity(0.05)),
         ),
         child: Text(
-          label,
+          'Available Only',
           style: TextStyle(
-            color: AppConstants.softWhite,
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+            color: _availableOnly ? AppConstants.primaryColor : Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
@@ -303,70 +247,38 @@ class _BnBsBrowseScreenState extends State<BnBsBrowseScreen> {
   void _showPriceFilter() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppConstants.deepPurple,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: AppConstants.cardNavy,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Price Range (KES)',
-                style: TextStyle(
-                  color: AppConstants.softWhite,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 24),
+              const Text('Filter by Price', style: TextStyle(color: Colors.white, fontFamily: 'Sora', fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 32),
               RangeSlider(
                 values: _priceRange,
                 min: 0,
                 max: 10000,
-                divisions: 100,
+                divisions: 20,
                 activeColor: AppConstants.primaryColor,
-                inactiveColor: AppConstants.mutedGray.withOpacity(0.3),
-                labels: RangeLabels(
-                  _priceRange.start.round().toString(),
-                  _priceRange.end.round().toString(),
-                ),
+                inactiveColor: Colors.white.withOpacity(0.1),
+                labels: RangeLabels('KSh ${_priceRange.start.round()}', 'KSh ${_priceRange.end.round()}'),
                 onChanged: (values) {
-                  setModalState(() {
-                    _priceRange = values;
-                  });
+                  setModalState(() => _priceRange = values);
                 },
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'KES ${_priceRange.start.round()}',
-                    style: const TextStyle(color: AppConstants.softWhite),
-                  ),
-                  Text(
-                    'KES ${_priceRange.end.round()}',
-                    style: const TextStyle(color: AppConstants.softWhite),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    _applyFilters();
-                  });
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppConstants.primaryColor,
-                  minimumSize: const Size(double.infinity, 48),
-                ),
-                child: const Text(
-                  'Apply',
-                  style: TextStyle(color: AppConstants.softWhite),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() => _applyFilters());
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Apply Filter'),
                 ),
               ),
             ],
@@ -379,61 +291,53 @@ class _BnBsBrowseScreenState extends State<BnBsBrowseScreen> {
   void _showTypeFilter() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppConstants.deepPurple,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: AppConstants.cardNavy,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) => Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'BnB Type',
-              style: TextStyle(
-                color: AppConstants.softWhite,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
+            const Text('Property Type', style: TextStyle(color: Colors.white, fontFamily: 'Sora', fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
             ...List.generate(5, (index) {
-              return ListTile(
-                title: Text(
-                  _getBnBTypeName(index),
-                  style: const TextStyle(color: AppConstants.softWhite),
-                ),
-                leading: Radio<int>(
-                  value: index,
-                  groupValue: _selectedBnBType,
-                  activeColor: AppConstants.primaryColor,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedBnBType = value;
-                      _applyFilters();
-                    });
-                    Navigator.pop(context);
-                  },
-                ),
-              );
-            }),
-            ListTile(
-              title: const Text(
-                'All Types',
-                style: TextStyle(color: AppConstants.softWhite),
-              ),
-              leading: Radio<int?>(
-                value: null,
-                groupValue: _selectedBnBType,
-                activeColor: AppConstants.primaryColor,
-                onChanged: (value) {
+              final isSelected = _selectedBnBType == index;
+              return GestureDetector(
+                onTap: () {
                   setState(() {
-                    _selectedBnBType = null;
+                    _selectedBnBType = index;
                     _applyFilters();
                   });
                   Navigator.pop(context);
                 },
-              ),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppConstants.primaryColor.withOpacity(0.1) : Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: isSelected ? AppConstants.primaryColor : Colors.transparent),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(_getBnBTypeName(index), style: TextStyle(color: isSelected ? Colors.white : AppConstants.mutedGray, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+                      if (isSelected) const Icon(Icons.check_circle_rounded, color: AppConstants.primaryColor, size: 20),
+                    ],
+                  ),
+                ),
+              );
+            }),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _selectedBnBType = null;
+                  _applyFilters();
+                });
+                Navigator.pop(context);
+              },
+              child: const Text('Clear Filter', style: TextStyle(color: AppConstants.errorColor)),
             ),
           ],
         ),
@@ -443,160 +347,83 @@ class _BnBsBrowseScreenState extends State<BnBsBrowseScreen> {
 
   Widget _buildBnBList() {
     return ListView.builder(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       itemCount: _filteredBnbs.length,
-      itemBuilder: (context, index) {
-        final bnb = _filteredBnbs[index];
-        return _buildBnBCard(bnb);
-      },
+      itemBuilder: (context, index) => _buildBnBCard(_filteredBnbs[index]),
     );
   }
 
   Widget _buildBnBCard(BnB bnb) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
+        color: AppConstants.cardNavy,
         borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          colors: [
-            AppConstants.deepPurple.withOpacity(0.7),
-            AppConstants.surfaceColor.withOpacity(0.5),
-          ],
-        ),
-        border: Border.all(
-          color: AppConstants.primaryColor.withOpacity(0.3),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppConstants.primaryColor.withOpacity(0.2),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // If we had images, they would go here. For now, solid placeholder or icon hero
+          Container(
+            height: 160,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: AppConstants.primaryColor.withOpacity(0.05),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: const Center(child: Icon(Icons.home_work_rounded, color: AppConstants.primaryColor, size: 48)),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(child: Text(bnb.name, style: const TextStyle(color: Colors.white, fontFamily: 'Sora', fontSize: 18, fontWeight: FontWeight.bold))),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: (bnb.available ? AppConstants.successColor : AppConstants.errorColor).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        bnb.availabilityStatus,
+                        style: TextStyle(color: bnb.available ? AppConstants.successColor : AppConstants.errorColor, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on_rounded, color: AppConstants.mutedGray, size: 14),
+                    const SizedBox(width: 6),
+                    Text(bnb.location, style: const TextStyle(color: AppConstants.mutedGray, fontSize: 13)),
+                    const SizedBox(width: 12),
+                    const Icon(Icons.king_bed_rounded, color: AppConstants.mutedGray, size: 14),
+                    const SizedBox(width: 6),
+                    Text(_getBnBTypeName(bnb.bnbType), style: const TextStyle(color: AppConstants.mutedGray, fontSize: 13)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('KSh ${bnb.priceKES.toStringAsFixed(0)} / mo', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    ElevatedButton(
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0)),
+                      child: const Text('Details'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    bnb.name,
-                    style: const TextStyle(
-                      color: AppConstants.softWhite,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: bnb.available
-                        ? AppConstants.successColor.withOpacity(0.2)
-                        : AppConstants.mutedGray.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: bnb.available
-                          ? AppConstants.successColor
-                          : AppConstants.mutedGray,
-                    ),
-                  ),
-                  child: Text(
-                    bnb.availabilityStatus,
-                    style: TextStyle(
-                      color: bnb.available
-                          ? AppConstants.successColor
-                          : AppConstants.mutedGray,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.location_on, size: 16, color: AppConstants.primaryColor),
-                const SizedBox(width: 4),
-                Text(
-                  bnb.location,
-                  style: TextStyle(
-                    color: AppConstants.softWhite.withOpacity(0.7),
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.home, size: 16, color: AppConstants.accentColor),
-                const SizedBox(width: 4),
-                Text(
-                  _getBnBTypeName(bnb.bnbType),
-                  style: TextStyle(
-                    color: AppConstants.softWhite.withOpacity(0.7),
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.map, size: 16, color: AppConstants.primaryColor),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    bnb.address,
-                    style: TextStyle(
-                      color: AppConstants.softWhite.withOpacity(0.7),
-                      fontSize: 14,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            if (bnb.callNumber != null && bnb.callNumber!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(Icons.phone, size: 16, color: AppConstants.accentColor),
-                  const SizedBox(width: 4),
-                  Text(
-                    bnb.callNumber!,
-                    style: TextStyle(
-                      color: AppConstants.softWhite.withOpacity(0.7),
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 12),
-            Divider(color: AppConstants.mutedGray.withOpacity(0.2)),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'KES ${bnb.priceKES.toStringAsFixed(0)} / night',
-                  style: const TextStyle(
-                    color: AppConstants.primaryColor,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -606,28 +433,10 @@ class _BnBsBrowseScreenState extends State<BnBsBrowseScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.search,
-            size: 80,
-            color: AppConstants.mutedGray.withOpacity(0.5),
-          ),
+          Icon(Icons.house_siding_rounded, size: 64, color: AppConstants.mutedGray.withOpacity(0.2)),
           const SizedBox(height: 16),
-          Text(
-            'Search for BnBs',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: AppConstants.softWhite.withOpacity(0.7),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Enter a location to find available BnBs',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppConstants.mutedGray.withOpacity(0.6),
-            ),
-          ),
+          const Text('Search for properties', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text('Enter a location to see listings', style: TextStyle(color: AppConstants.mutedGray)),
         ],
       ),
     );
@@ -638,28 +447,10 @@ class _BnBsBrowseScreenState extends State<BnBsBrowseScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.filter_list_off,
-            size: 80,
-            color: AppConstants.mutedGray.withOpacity(0.5),
-          ),
+          Icon(Icons.search_off_rounded, size: 64, color: AppConstants.mutedGray.withOpacity(0.2)),
           const SizedBox(height: 16),
-          Text(
-            'No results found',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: AppConstants.softWhite.withOpacity(0.7),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Try adjusting your filters',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppConstants.mutedGray.withOpacity(0.6),
-            ),
-          ),
+          const Text('No properties found', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text('Try adjusting filters or location', style: TextStyle(color: AppConstants.mutedGray)),
         ],
       ),
     );
@@ -670,32 +461,10 @@ class _BnBsBrowseScreenState extends State<BnBsBrowseScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.error_outline,
-            size: 80,
-            color: AppConstants.errorColor,
-          ),
+          const Icon(Icons.error_outline_rounded, size: 64, color: AppConstants.errorColor),
           const SizedBox(height: 16),
-          Text(
-            'Error loading BnBs',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: AppConstants.softWhite.withOpacity(0.7),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Text(
-              _error ?? 'Unknown error',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppConstants.mutedGray.withOpacity(0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
+          const Text('Something went wrong', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(_error ?? 'Unknown error', style: const TextStyle(color: AppConstants.mutedGray)),
         ],
       ),
     );

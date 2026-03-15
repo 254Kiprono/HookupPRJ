@@ -14,21 +14,7 @@ class AuthHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 48, 24, 40),
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
-        ),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            AppConstants.primaryColor,
-            AppConstants.secondaryColor,
-          ],
-        ),
-      ),
+      padding: const EdgeInsets.fromLTRB(28, 60, 28, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -36,16 +22,18 @@ class AuthHeader extends StatelessWidget {
             title,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 28,
+              fontFamily: 'Sora',
+              fontSize: 32,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             subtitle,
             style: const TextStyle(
-              color: Colors.white70,
+              color: AppConstants.mutedGray,
               fontSize: 16,
+              height: 1.5,
             ),
           ),
         ],
