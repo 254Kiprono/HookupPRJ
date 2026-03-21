@@ -60,7 +60,7 @@ class AppBottomNavBar extends StatelessWidget {
               padding: EdgeInsets.only(bottom: 4),
               child: Icon(Icons.bed),
             ),
-            label: 'BnB Browse',
+            label: 'BnB',
           ),
           BottomNavigationBarItem(
             icon: Padding(
@@ -79,7 +79,7 @@ class AppBottomNavBar extends StatelessWidget {
                 child: Icon(Icons.chat_bubble),
               ),
             ),
-            label: 'Messaging',
+            label: 'Chats',
           ),
           BottomNavigationBarItem(
             icon: Padding(

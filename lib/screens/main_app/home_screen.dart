@@ -1120,19 +1120,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         children: [
           // Left Sidebar
           _buildDesktopSidebar(),
-          
-          // Main Content
+
+          // Main Content — each tab fills the available height/width
           Expanded(
-            child: SingleChildScrollView(
-              child: Center(
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  child: _buildPageContent(_selectedIndex),
-                ),
-              ),
-            ),
+            child: _buildDesktopPageContent(_selectedIndex),
           ),
-          
+
           // Right Context Panel
           _buildDesktopSidePanel(),
         ],
@@ -1176,8 +1169,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           const SizedBox(height: 60),
           _sidebarItem(0, Icons.explore, 'Discovery'),
-          _sidebarItem(1, Icons.bed, 'BnB Browse'),
-          _sidebarItem(2, Icons.chat_bubble, 'Messaging'),
+          _sidebarItem(1, Icons.bed, 'BnB'),
+          _sidebarItem(2, Icons.chat_bubble, 'Chats'),
           _sidebarItem(3, Icons.account_balance_wallet, 'Wallet'),
           _sidebarItem(4, Icons.person, 'Profile'),
         ],
@@ -1422,12 +1415,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             onTap: () => _openSidePanelPage(const SubscriptionScreen()),
           ),
           _sideAction(
-            title: 'Wallet',
-            subtitle: 'Balance & payouts',
-            icon: Icons.account_balance_wallet_rounded,
-            onTap: () => _openSidePanelPage(const WalletScreen()),
-          ),
-          _sideAction(
             title: 'Safety Center',
             subtitle: 'Reports & help',
             icon: Icons.shield_rounded,
@@ -1507,6 +1494,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => page),
     );
+  }
+
+  /// Renders page content for desktop — each screen fills available space
+  Widget _buildDesktopPageContent(int index) {
+    switch (index) {
+      case 0:
+        return SingleChildScrollView(
+          child: Center(
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: _buildHomeContent(),
+            ),
+          ),
+        );
+      case 1:
+        return const BnBsBrowseScreen();
+      case 2:
+        return const ConversationsScreen();
+      case 3:
+        return const WalletScreen();
+      case 4:
+        return const AccountScreen();
+      default:
+        return const Center(child: Text('Error: Invalid tab index', style: TextStyle(color: Colors.white)));
+    }
   }
 
   Widget _buildPageContent(int index) {
