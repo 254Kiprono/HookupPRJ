@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/app/routes.dart';
+import 'package:hook_app/widgets/web_image.dart';
 
 class ProviderDetailScreen extends StatelessWidget {
   final int? providerId;
@@ -45,7 +46,7 @@ class ProviderDetailScreen extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: imageUrl != null && imageUrl!.isNotEmpty
-                ? Image.network(imageUrl!, height: 240, fit: BoxFit.cover)
+                ? SizedBox(height: 240, child: platformAwareImage(imageUrl!, fit: BoxFit.cover))
                 : Container(
                     height: 240,
                     color: AppConstants.surfaceColor,

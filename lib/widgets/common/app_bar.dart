@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hook_app/widgets/web_image.dart';
 
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -64,10 +65,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
               if (showProfile)
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 20,
-                  backgroundImage:
-                      NetworkImage('https://via.placeholder.com/150'),
+                  child: ClipOval(child: platformAwareImage('https://via.placeholder.com/150')),
                 ),
             ],
           ),

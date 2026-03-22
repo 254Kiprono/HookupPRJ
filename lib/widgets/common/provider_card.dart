@@ -1,6 +1,7 @@
 // lib/widgets/common/provider_card.dart
 import 'package:flutter/material.dart';
 import 'package:hook_app/utils/constants.dart';
+import 'package:hook_app/widgets/web_image.dart';
 
 class ProviderCard extends StatelessWidget {
   final String name;
@@ -31,11 +32,10 @@ class ProviderCard extends StatelessWidget {
               ClipRRect(
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(16)),
-                child: Image.network(
-                  imageUrl,
+                child: SizedBox(
                   height: 120,
                   width: double.infinity,
-                  fit: BoxFit.cover,
+                  child: platformAwareImage(imageUrl),
                 ),
               ),
               Positioned(
@@ -65,10 +65,9 @@ class ProviderCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const CircleAvatar(
+                    CircleAvatar(
                       radius: 12,
-                      backgroundImage:
-                          NetworkImage('https://via.placeholder.com/50'),
+                      child: ClipOval(child: platformAwareImage('https://via.placeholder.com/50')),
                     ),
                     const SizedBox(width: 8),
                     Text(

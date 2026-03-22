@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:video_player/video_player.dart';
+import 'package:hook_app/widgets/web_image.dart';
 
 class GalleryVideoScreen extends StatefulWidget {
   final Map<String, dynamic> userProfile;
@@ -95,14 +96,12 @@ class _GalleryVideoScreenState extends State<GalleryVideoScreen> {
     _initializeVideoPlayer();
   }
 
-  String _getProxiedUrl(String url) {
-    return url; // No proxy needed - using HtmlElementStrategy.preferHtmlElement
-  }
+  // Remove local _getProxiedUrl as it's now in AppConstants
 
   void _initializeVideoPlayer() {
     if (_videoUrl != null && _videoUrl!.isNotEmpty) {
       _videoController?.dispose();
-      _videoController = VideoPlayerController.networkUrl(Uri.parse(_getProxiedUrl(_videoUrl!)))
+      _videoController = VideoPlayerController.networkUrl(Uri.parse(AppConstants.getProxiedUrl(_videoUrl!)))
         ..initialize().then((_) {
           if (mounted) setState(() {});
         }).catchError((e) {
@@ -275,21 +274,13 @@ class _GalleryVideoScreenState extends State<GalleryVideoScreen> {
               // Image preview
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                child: Image.network(
-                  _galleryUrls[index],
-                  fit: BoxFit.contain,
+                child: SizedBox(
                   width: double.infinity,
                   height: MediaQuery.of(context).size.height * 0.5,
-                  webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
-                  loadingBuilder: (ctx, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return const SizedBox(
-                      height: 300,
-                      child: Center(
-                        child: CircularProgressIndicator(color: AppConstants.primaryColor),
-                      ),
-                    );
-                  },
+                  child: platformAwareImage(
+                    AppConstants.getProxiedUrl(_galleryUrls[index]),
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
               // Options
@@ -649,10 +640,9 @@ class _GalleryVideoScreenState extends State<GalleryVideoScreen> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(18),
-                  child: Image.network(
-                    url!,
+                  child: platformAwareImage(
+                    AppConstants.getProxiedUrl(url!),
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _placeholderSlot(),
                   ),
                 ),
               )
@@ -777,28 +767,9 @@ class _GalleryVideoScreenState extends State<GalleryVideoScreen> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              _galleryUrls[index],
+            child: platformAwareImage(
+              AppConstants.getProxiedUrl(_galleryUrls[index]),
               fit: BoxFit.cover,
-              webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
-              loadingBuilder: (ctx, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Container(
-                  color: AppConstants.surfaceColor,
-                  child: const Center(
-                    child: CircularProgressIndicator(
-                        color: AppConstants.primaryColor, strokeWidth: 2),
-                  ),
-                );
-              },
-              errorBuilder: (ctx, err, st) {
-                debugPrint('Image load error for ${_galleryUrls[index]}: $err');
-                return Container(
-                  color: AppConstants.surfaceColor,
-                  child: const Icon(Icons.broken_image,
-                      color: AppConstants.mutedGray),
-                );
-              },
             ),
           ),
           // Border overlay

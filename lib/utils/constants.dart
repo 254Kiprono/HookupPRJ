@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -82,6 +83,8 @@ class AppConstants {
       '$userServiceBaseUrl$apiVersion/auth/get-userprofile';
   static const String mediaUpload =
       '$userServiceBaseUrl$apiVersion/media/upload';
+  static const String mediaProxy =
+      '$userServiceBaseUrl$apiVersion/media/proxy';
 
   // User Service Search Endpoints
   static const String searchProviders =
@@ -168,6 +171,18 @@ class AppConstants {
   static const int subWeeklyPrice = 200;
   static const int subTwoWeeksPrice = 500;
   static const int subMonthlyPrice = 800;
+  
+  static String getProxiedUrl(String url) {
+    if (kIsWeb &&
+        url.isNotEmpty &&
+        !url.contains('/media/proxy?url=') &&
+        (url.contains('r2.dev') || url.contains('cloudflarestorage.com'))) {
+      final proxied = '$mediaProxy?url=${Uri.encodeComponent(url)}';
+      debugPrint('🔗 Proxying Media: $url -> $proxied');
+      return proxied;
+    }
+    return url;
+  }
 }
 
 class TokenUtils {

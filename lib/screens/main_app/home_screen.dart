@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hook_app/widgets/common/app_bar.dart';
 import 'package:hook_app/widgets/bottom_nav_bar.dart';
 import 'package:hook_app/utils/constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hook_app/app/routes.dart';
 import 'package:hook_app/screens/main_app/search_screen.dart';
 import 'package:hook_app/screens/main_app/bnbs_browse_screen.dart';
@@ -19,6 +20,7 @@ import 'package:hook_app/models/active_user.dart';
 import 'package:hook_app/utils/responsive.dart';
 import 'package:hook_app/utils/nav.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:hook_app/widgets/web_image.dart';
 import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
@@ -43,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isLoading = true;
   String? _errorMessage;
   int _selectedIndex = 0;
+  static const String _bugFixBuster = "B9C5B88_FORCE_REFRESH_NGINX_CACHE_SIZE_CHANGE_777888999000_BYPASS_NGINX_CACHE_TRICK_V4";
   String _selectedCategory = 'Local Services';
 
   // Map and location state
@@ -59,6 +62,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    print(_bugFixBuster); // Force inclusion in build for cache busting
 
     // Initialize pulse animation for markers
     _pulseController = AnimationController(
@@ -67,8 +71,32 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     )..repeat(reverse: true);
 
     // _pages initialization removed from here
-
+    _loadSavedIndex();
     _checkLoginAndFetchProfile();
+  }
+
+  Future<void> _loadSavedIndex() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedIndex = prefs.getInt('last_nav_index') ?? 0;
+      if (mounted) {
+        setState(() {
+          _selectedIndex = savedIndex;
+        });
+        debugPrint('🏠 [NAV] Restored Tab Index: $_selectedIndex');
+      }
+    } catch (e) {
+      debugPrint('⚠️ [NAV] Failed to load saved index: $e');
+    }
+  }
+
+  Future<void> _saveIndex(int index) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('last_nav_index', index);
+    } catch (e) {
+      debugPrint('⚠️ [NAV] Failed to save index: $e');
+    }
   }
 
   @override
@@ -234,9 +262,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _onItemTapped(int index) {
+    if (_selectedIndex == index) return;
     setState(() {
       _selectedIndex = index;
     });
+    _saveIndex(index);
   }
 
   Widget _buildHomeContent() {
@@ -348,13 +378,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ),
           
-          const Row(
+          Row(
             children: [
-              Icon(Icons.notifications_none, color: AppConstants.mutedGray, size: 24),
-              SizedBox(width: 12),
+              const Icon(Icons.notifications_none, color: AppConstants.mutedGray, size: 24),
+              const SizedBox(width: 12),
               CircleAvatar(
                 radius: 18,
-                backgroundImage: NetworkImage('https://via.placeholder.com/150'),
+                child: ClipOval(child: platformAwareImage('https://via.placeholder.com/150')),
               ),
             ],
           ),
@@ -722,18 +752,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       );
     }
 
-    return Image.network(
-      url,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          color: AppConstants.cardNavy,
-          child: const Center(
-            child: Icon(Icons.person, color: AppConstants.mutedGray, size: 48),
-          ),
-        );
-      },
-    );
+    return platformAwareImage(url);
   }
 
   void _showUserDetails(ActiveUser user) {
@@ -1171,8 +1190,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           _sidebarItem(0, Icons.explore, 'Discovery'),
           _sidebarItem(1, Icons.bed, 'BnB'),
           _sidebarItem(2, Icons.chat_bubble, 'Chats'),
-          _sidebarItem(3, Icons.account_balance_wallet, 'Wallet'),
-          _sidebarItem(4, Icons.person, 'Profile'),
+          _sidebarItem(3, Icons.person, 'Profile'),
         ],
       ),
     );
@@ -1215,8 +1233,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _NavItem('Home', Icons.home_rounded, 0),
       _NavItem('BnBs', Icons.home_work_rounded, 1),
       _NavItem('Messages', Icons.chat_bubble_rounded, 2),
-      _NavItem('Wallet', Icons.account_balance_wallet_rounded, 3),
-      _NavItem('Profile', Icons.person_rounded, 4),
+      _NavItem('Profile', Icons.person_rounded, 3),
     ];
 
     return Container(
@@ -1254,7 +1271,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             child: OutlinedButton.icon(
               onPressed: () {
                 setState(() {
-                  _selectedIndex = 4;
+                  _selectedIndex = 3;
                 });
               },
               style: OutlinedButton.styleFrom(
@@ -1327,10 +1344,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 : _selectedIndex == 1
                     ? 'Search'
                     : _selectedIndex == 2
-                        ? 'BnBs'
-                        : _selectedIndex == 3
-                            ? 'Messages'
-                            : 'Profile',
+                        ? 'Messages'
+                        : 'Profile',
             style: const TextStyle(
               color: AppConstants.softWhite,
               fontSize: 20,
@@ -1498,43 +1513,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   /// Renders page content for desktop — each screen fills available space
   Widget _buildDesktopPageContent(int index) {
-    switch (index) {
-      case 0:
-        return SingleChildScrollView(
+    return IndexedStack(
+      index: index,
+      children: [
+        SingleChildScrollView(
           child: Center(
             child: Container(
               constraints: const BoxConstraints(maxWidth: 1200),
               child: _buildHomeContent(),
             ),
           ),
-        );
-      case 1:
-        return const BnBsBrowseScreen();
-      case 2:
-        return const ConversationsScreen();
-      case 3:
-        return const WalletScreen();
-      case 4:
-        return const AccountScreen();
-      default:
-        return const Center(child: Text('Error: Invalid tab index', style: TextStyle(color: Colors.white)));
-    }
+        ),
+        const BnBsBrowseScreen(),
+        const ConversationsScreen(),
+        const AccountScreen(),
+      ],
+    );
   }
 
   Widget _buildPageContent(int index) {
-    switch (index) {
-      case 0:
-        return _buildHomeContent();
-      case 1:
-        return const BnBsBrowseScreen();
-      case 2:
-        return const ConversationsScreen();
-      case 3:
-        return const WalletScreen();
-      case 4:
-        return const AccountScreen();
-      default:
-        return const Center(child: Text('Error: Invalid tab index'));
-    }
+    return IndexedStack(
+      index: index,
+      children: [
+        _buildHomeContent(),
+        const BnBsBrowseScreen(),
+        const ConversationsScreen(),
+        const AccountScreen(),
+      ],
+    );
   }
 }

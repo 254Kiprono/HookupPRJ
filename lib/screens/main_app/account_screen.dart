@@ -20,6 +20,7 @@ import 'package:hook_app/screens/bnb_owner/bnb_bookings_screen.dart';
 import 'package:hook_app/utils/responsive.dart';
 
 import 'package:hook_app/screens/main_app/profile_details_screen.dart';
+import 'package:hook_app/widgets/web_image.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -29,7 +30,10 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  
+  @override
+  bool get wantKeepAlive => true;
   Map<String, dynamic>? _userProfile;
   bool _isLoading = true;
   String? _errorMessage;
@@ -137,12 +141,17 @@ class _AccountScreenState extends State<AccountScreen>
       await prefs.setString(AppConstants.userProfileKey, jsonEncode(data));
 
       if (mounted) {
+        if (_isLoading) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        
         setState(() {
           _userProfile = data;
           _isOnline = (data['isActive'] ?? data['is_active']) == true;
           final roleStr = (data['role'] ?? data['roleName'] ?? '').toString();
           _isBnBOwner = roleStr == 'ROLE_BNB_OWNER';
-          _isLoading = false;
           _errorMessage = null;
         });
         _fadeController.forward();
@@ -282,6 +291,7 @@ class _AccountScreenState extends State<AccountScreen>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: AppConstants.darkBackground,
       appBar: AppBar(
@@ -340,7 +350,7 @@ class _AccountScreenState extends State<AccountScreen>
                 child: _profileImage != null
                     ? Image.file(File(_profileImage!.path), fit: BoxFit.cover)
                     : _userProfile?['profileImage'] != null && _userProfile!['profileImage'].toString().isNotEmpty
-                        ? Image.network(_userProfile!['profileImage'], fit: BoxFit.cover)
+                        ? platformAwareImage(_userProfile!['profileImage'], fit: BoxFit.cover)
                         : const Icon(Icons.person, size: 60, color: AppConstants.mutedGray),
               ),
             ),
@@ -369,6 +379,73 @@ class _AccountScreenState extends State<AccountScreen>
             style: const TextStyle(color: AppConstants.primaryColor, fontSize: 12, fontWeight: FontWeight.bold),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildGalleryPreview() {
+    if (_userProfile == null) return const SizedBox();
+
+    final galleryRaw = _userProfile!['photo_gallery'] ?? _userProfile!['photoGallery'];
+    List<String> _galleryUrls = [];
+    if (galleryRaw != null) {
+      if (galleryRaw is List) {
+        _galleryUrls = List<String>.from(
+          galleryRaw.where((e) => e != null && e.toString().trim().isNotEmpty),
+        );
+      } else if (galleryRaw is String && galleryRaw.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(galleryRaw);
+          if (decoded is List) {
+            _galleryUrls = List<String>.from(
+              decoded.where((e) => e != null && e.toString().trim().isNotEmpty),
+            );
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (_galleryUrls.isEmpty) return const SizedBox();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'My Photos',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Sora',
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 100,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _galleryUrls.length,
+            itemBuilder: (context, index) {
+              return Container(
+                margin: const EdgeInsets.only(right: 12),
+                width: 100,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: AppConstants.cardNavy,
+                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: platformAwareImage(
+                    _galleryUrls[index],
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 32),
       ],
     );
   }
@@ -435,14 +512,15 @@ class _AccountScreenState extends State<AccountScreen>
         _buildMenuItem(
           icon: Icons.photo_library_outlined,
           title: 'Gallery & Video',
-          onTap: () {
+          onTap: () async {
             if (_userProfile != null) {
-              Navigator.push(
+              await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => GalleryVideoScreen(userProfile: _userProfile!),
                 ),
               );
+              // Removed redundant _fetchUserProfile(); here to prevent flickering
             }
           },
         ),

@@ -225,14 +225,21 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
           ? const Center(child: CircularProgressIndicator(color: AppConstants.primaryColor))
           : _error != null
               ? _buildErrorWidget()
-              : SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      _buildBalanceCard(),
-                      const SizedBox(height: 24),
-                      _buildTransactionSections(),
-                      const SizedBox(height: 40),
-                    ],
+              : Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 16),
+                        _buildBalanceCard(),
+                        const SizedBox(height: 24),
+                        Expanded(
+                          child: _buildTransactionSections(),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
     );
@@ -242,10 +249,10 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 24),
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: AppConstants.cardNavy,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withOpacity(0.05)),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -260,36 +267,37 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
         children: [
           const Text(
             'Total Balance',
-            style: TextStyle(color: AppConstants.mutedGray, fontSize: 14, fontFamily: 'Sora'),
+            style: TextStyle(color: AppConstants.mutedGray, fontSize: 13, fontFamily: 'Sora'),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Text(
             'KSh ${_balance.toStringAsFixed(2)}',
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 40,
+              fontSize: 32,
               fontWeight: FontWeight.bold,
               fontFamily: 'Sora',
               letterSpacing: -1,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           Row(
             children: [
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: _balance > 0 ? _showWithdrawalDialog : null,
                   icon: const Icon(Icons.account_balance_wallet, size: 18),
-                  label: const Text('Withdraw'),
+                  label: const Text('Withdraw', style: TextStyle(color: Colors.white)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppConstants.primaryColor,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ),
               const SizedBox(width: 12),
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(12),
@@ -307,11 +315,14 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
   Widget _buildTransactionSections() {
     return Column(
       children: [
-        Padding(
+        Container(
+          alignment: Alignment.centerLeft,
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: TabBar(
             controller: _tabController,
             isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            dividerColor: Colors.transparent,
             indicatorColor: AppConstants.primaryColor,
             labelColor: Colors.white,
             unselectedLabelColor: AppConstants.mutedGray,
@@ -326,8 +337,7 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
           ),
         ),
         const SizedBox(height: 16),
-        SizedBox(
-          height: 500, // Or use flexible logic
+        Expanded(
           child: TabBarView(
             controller: _tabController,
             children: [

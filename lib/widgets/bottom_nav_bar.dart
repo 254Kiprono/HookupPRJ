@@ -84,17 +84,6 @@ class AppBottomNavBar extends StatelessWidget {
           BottomNavigationBarItem(
             icon: Padding(
               padding: EdgeInsets.only(bottom: 4),
-              child: Icon(Icons.account_balance_wallet_outlined),
-            ),
-            activeIcon: Padding(
-              padding: EdgeInsets.only(bottom: 4),
-              child: Icon(Icons.account_balance_wallet),
-            ),
-            label: 'Wallet',
-          ),
-          BottomNavigationBarItem(
-            icon: Padding(
-              padding: EdgeInsets.only(bottom: 4),
               child: Icon(Icons.person_outline),
             ),
             activeIcon: Padding(

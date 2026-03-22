@@ -15,7 +15,10 @@ class ConversationsScreen extends StatefulWidget {
   State<ConversationsScreen> createState() => _ConversationsScreenState();
 }
 
-class _ConversationsScreenState extends State<ConversationsScreen> {
+class _ConversationsScreenState extends State<ConversationsScreen> with AutomaticKeepAliveClientMixin {
+  
+  @override
+  bool get wantKeepAlive => true;
   List<Conversation> _conversations = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -71,6 +74,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: AppConstants.darkBackground,
       appBar: AppBar(

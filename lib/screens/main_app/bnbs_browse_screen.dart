@@ -12,7 +12,10 @@ class BnBsBrowseScreen extends StatefulWidget {
   State<BnBsBrowseScreen> createState() => _BnBsBrowseScreenState();
 }
 
-class _BnBsBrowseScreenState extends State<BnBsBrowseScreen> {
+class _BnBsBrowseScreenState extends State<BnBsBrowseScreen> with AutomaticKeepAliveClientMixin {
+  
+  @override
+  bool get wantKeepAlive => true;
   List<BnB> _bnbs = [];
   List<BnB> _filteredBnbs = [];
   bool _isLoading = false;
@@ -27,6 +30,20 @@ class _BnBsBrowseScreenState extends State<BnBsBrowseScreen> {
   void initState() {
     super.initState();
     _searchController.addListener(_applyFilters);
+    _loadInitialResults();
+  }
+
+  Future<void> _loadInitialResults() async {
+    // Silent initial load for Nairobi
+    try {
+      final bnbs = await BnBService.getBnBsByLocation('Nairobi');
+      if (mounted) {
+        setState(() {
+          _bnbs = bnbs;
+          _applyFilters();
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -105,6 +122,7 @@ class _BnBsBrowseScreenState extends State<BnBsBrowseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: AppConstants.darkBackground,
       appBar: AppBar(

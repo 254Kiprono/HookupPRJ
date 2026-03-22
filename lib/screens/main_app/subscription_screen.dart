@@ -273,9 +273,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       ),
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator(color: AppConstants.primaryColor))
-        : ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-        children: [
+        : Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                children: [
           _buildSubscriptionHeader(),
           const SizedBox(height: 32),
           
@@ -368,6 +372,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           const SizedBox(height: 40),
         ],
       ),
+            ),
+          ),
     );
   }
 
