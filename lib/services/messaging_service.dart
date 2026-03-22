@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
-import 'package:http/http.dart' as http;
+import 'package:hook_app/services/http_service.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/storage_service.dart';
@@ -23,7 +23,7 @@ class MessagingService {
 
     final requestId = DateTime.now().millisecondsSinceEpoch.toString();
 
-    final response = await http.post(
+    final response = await HttpService.post(
       Uri.parse(AppConstants.sendMessage),
       headers: {
         'Authorization': 'Bearer $token',
@@ -58,7 +58,7 @@ class MessagingService {
 
     final requestId = DateTime.now().millisecondsSinceEpoch.toString();
 
-    final response = await http.post(
+    final response = await HttpService.post(
       Uri.parse(AppConstants.sendMessage),
       headers: {
         'Authorization': 'Bearer $token',
@@ -96,7 +96,7 @@ class MessagingService {
       'offset': offset.toString(),
     });
 
-    final response = await http.get(
+    final response = await HttpService.get(
       uri,
       headers: {
         'Authorization': 'Bearer $token',
@@ -136,7 +136,7 @@ class MessagingService {
       'offset': offset.toString(),
     });
 
-    final response = await http.get(
+    final response = await HttpService.get(
       uri,
       headers: {
         'Authorization': 'Bearer $token',
@@ -170,7 +170,7 @@ class MessagingService {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
-    final response = await http.delete(
+    final response = await HttpService.delete(
       Uri.parse('${AppConstants.messages}/$messageId'),
       headers: {
         'Authorization': 'Bearer $token',
@@ -204,7 +204,7 @@ class MessagingService {
     final proposalId = DateTime.now().millisecondsSinceEpoch.toString();
     final termsHash = 'terms_${DateTime.now().millisecondsSinceEpoch}';
 
-    final response = await http.post(
+    final response = await HttpService.post(
       Uri.parse(AppConstants.bookingInitiate),
       headers: {
         'Authorization': 'Bearer $token',
@@ -237,7 +237,7 @@ class MessagingService {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
-    final response = await http.post(
+    final response = await HttpService.post(
       Uri.parse(AppConstants.bookingRespond),
       headers: {
         'Authorization': 'Bearer $token',
@@ -269,7 +269,7 @@ class MessagingService {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
-    final response = await http.post(
+    final response = await HttpService.post(
       Uri.parse(AppConstants.notificationsSms),
       headers: {
         'Authorization': 'Bearer $token',

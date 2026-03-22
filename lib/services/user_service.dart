@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:hook_app/services/http_service.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/storage_service.dart';
 
@@ -27,7 +27,7 @@ class UserService {
       body['user_id'] = userId; // Send as string, do NOT parse to int
     }
 
-    final response = await http
+    final response = await HttpService
         .post(
           Uri.parse(
               '${AppConstants.userServiceBaseUrl}/v1/auth/get-userprofile'),
@@ -103,7 +103,7 @@ class UserService {
     if (hourlyRate != null) body['hourly_rate'] = hourlyRate;
     if (fcmToken != null) body['fcm_token'] = fcmToken;
 
-    final response = await http
+    final response = await HttpService
         .patch(
           Uri.parse(
               '${AppConstants.userServiceBaseUrl}/v1/auth/update-userprofile'),
@@ -130,7 +130,7 @@ class UserService {
 
     if (token == null) throw Exception('No auth token found');
 
-    final response = await http
+    final response = await HttpService
         .patch(
           Uri.parse(
               '${AppConstants.userServiceBaseUrl}/v1/auth/update-userprofile'),
@@ -159,7 +159,7 @@ class UserService {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
-    final response = await http
+    final response = await HttpService
         .post(
           Uri.parse(AppConstants.updateLocation),
           headers: {
@@ -206,7 +206,7 @@ class UserService {
     if (page != null) body['page'] = page;
     if (limit != null) body['limit'] = limit;
 
-    final response = await http
+    final response = await HttpService
         .post(
           Uri.parse(AppConstants.searchNearbyUsers),
           headers: {
@@ -252,7 +252,7 @@ class UserService {
     if (address != null) body['address'] = address;
     if (role != null) body['role'] = role;
 
-    final response = await http
+    final response = await HttpService
         .post(
           Uri.parse(AppConstants.googleSignUp),
           headers: {'Content-Type': 'application/json'},
@@ -270,7 +270,7 @@ class UserService {
 
   /// Google Sign In
   static Future<Map<String, dynamic>> googleSignIn(String idToken) async {
-    final response = await http
+    final response = await HttpService
         .post(
           Uri.parse(AppConstants.googleSignIn),
           headers: {'Content-Type': 'application/json'},
@@ -296,7 +296,7 @@ class UserService {
         await updateActiveStatus(false);
       } catch (_) {}
 
-      await http.post(
+      await HttpService.post(
         Uri.parse(AppConstants.logout),
         headers: {
           'Content-Type': 'application/json',

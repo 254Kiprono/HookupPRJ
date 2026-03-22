@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:hook_app/app/theme.dart';
 import 'package:hook_app/app/routes.dart';
 
+import 'package:hook_app/utils/nav.dart';
+
 class HookUpApp extends StatelessWidget {
   const HookUpApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: Nav.navigatorKey,
       title: 'CloseBy',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,

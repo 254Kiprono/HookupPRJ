@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:hook_app/services/http_service.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/models/provider.dart';
@@ -10,15 +10,14 @@ class ApiService {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
-    // Use POST method (endpoint requires POST per gRPC-Gateway)
-    // Backend extracts userID and roleID from JWT token via AuthInterceptor, so body can be empty
-    final response = await http.post(
+    // Use POST method
+    final response = await HttpService.post(
       Uri.parse(AppConstants.getuserprofile),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
-      body: jsonEncode({}), // Empty body - backend extracts everything from JWT token
+      body: jsonEncode({}),
     ).timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {
@@ -32,7 +31,7 @@ class ApiService {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
-    final response = await http.get(
+    final response = await HttpService.get(
       Uri.parse('${AppConstants.searchProviders}?region=$region'),
       headers: {
         'Authorization': 'Bearer $token',
@@ -55,7 +54,7 @@ class ApiService {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
-    final response = await http.get(
+    final response = await HttpService.get(
       Uri.parse('${AppConstants.searchBnBs}?region=$region'),
       headers: {
         'Authorization': 'Bearer $token',

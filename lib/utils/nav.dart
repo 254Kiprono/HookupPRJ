@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:hook_app/app/routes.dart';
 
 class Nav {
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   static void safePop(BuildContext context, {String fallback = Routes.home}) {
     final navigator = Navigator.of(context);
     if (navigator.canPop()) {

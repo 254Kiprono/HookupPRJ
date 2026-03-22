@@ -249,7 +249,7 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 24),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
       decoration: BoxDecoration(
         color: AppConstants.cardNavy,
         borderRadius: BorderRadius.circular(20),
@@ -286,7 +286,7 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: _balance > 0 ? _showWithdrawalDialog : null,
-                  icon: const Icon(Icons.account_balance_wallet, size: 18),
+                  icon: const Icon(Icons.account_balance_wallet, size: 18, color: Colors.white),
                   label: const Text('Withdraw', style: TextStyle(color: Colors.white)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppConstants.primaryColor,

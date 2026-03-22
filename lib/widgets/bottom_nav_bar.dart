@@ -27,8 +27,8 @@ class AppBottomNavBar extends StatelessWidget {
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.transparent, // Controlled by Container
         elevation: 0,
-        selectedItemColor: AppConstants.primaryColor,
-        unselectedItemColor: AppConstants.mutedGray,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white.withOpacity(0.4),
         selectedLabelStyle: GoogleFonts.sora(
           fontSize: 10,
           fontWeight: FontWeight.w600,

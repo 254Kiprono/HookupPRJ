@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:hook_app/services/http_service.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/models/bnb.dart';
@@ -19,7 +19,7 @@ class BnBService {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
-    final response = await http.post(
+    final response = await HttpService.post(
       Uri.parse(AppConstants.registerBnB),
       headers: {
         'Content-Type': 'application/json',
@@ -76,7 +76,7 @@ class BnBService {
       body['sessions'] = sessions.map((s) => s.toJson()).toList();
     }
 
-    final response = await http.put(
+    final response = await HttpService.put(
       Uri.parse('${AppConstants.updateBnB}/$bnbId'),
       headers: {
         'Content-Type': 'application/json',
@@ -97,7 +97,7 @@ class BnBService {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
-    final response = await http.get(
+    final response = await HttpService.get(
       Uri.parse('${AppConstants.getBnBsByLocation}/$location'),
       headers: {
         'Authorization': 'Bearer $token',
@@ -122,7 +122,7 @@ class BnBService {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
-    final response = await http.get(
+    final response = await HttpService.get(
       Uri.parse('${AppConstants.getBnBDetails}/$bnbId'),
       headers: {
         'Authorization': 'Bearer $token',
@@ -143,7 +143,7 @@ class BnBService {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
-    final response = await http.delete(
+    final response = await HttpService.delete(
       Uri.parse('${AppConstants.deleteBnB}/$bnbId'),
       headers: {
         'Authorization': 'Bearer $token',
@@ -164,7 +164,7 @@ class BnBService {
     final url = '${AppConstants.getBnBsByOwner}/$ownerId';
     print('[BNB SERVICE] Fetching BnBs from: $url');
 
-    final response = await http.get(
+    final response = await HttpService.get(
       Uri.parse(url),
       headers: {
         'Authorization': 'Bearer $token',

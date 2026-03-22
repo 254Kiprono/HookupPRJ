@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:hook_app/services/http_service.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/models/wallet_transaction.dart';
@@ -16,7 +17,7 @@ class WalletService {
     try {
       final uri = Uri.parse('${AppConstants.getWalletBalance}/$userId/balance');
       
-      final response = await http.get(
+      final response = await HttpService.get(
         uri,
         headers: {
           'Authorization': 'Bearer $token',
@@ -89,7 +90,7 @@ class WalletService {
     if (userId == null) throw Exception('No user ID found');
 
     try {
-      final response = await http.get(
+      final response = await HttpService.get(
         Uri.parse('${AppConstants.getPaymentHistory}/$userId/payment-history?limit=$limit&offset=$offset'),
         headers: {
           'Authorization': 'Bearer $token',
@@ -127,7 +128,7 @@ class WalletService {
     if (userId == null) throw Exception('No user ID found');
 
     try {
-      final response = await http.get(
+      final response = await HttpService.get(
         Uri.parse('${AppConstants.getWithdrawHistory}/$userId/withdrawals?limit=$limit&offset=$offset'),
         headers: {
           'Authorization': 'Bearer $token',
@@ -162,7 +163,7 @@ class WalletService {
     if (token == null) throw Exception('No auth token found');
 
     try {
-      final response = await http.post(
+      final response = await HttpService.post(
         Uri.parse('${AppConstants.bookingServiceBaseUrl}/v1/wallet/earnings'),
         headers: {
           'Content-Type': 'application/json',
@@ -215,7 +216,7 @@ class WalletService {
     if (userId == null) throw Exception('No user ID found');
 
     try {
-      final response = await http.post(
+      final response = await HttpService.post(
         Uri.parse(AppConstants.withdraw),
         headers: {
           'Content-Type': 'application/json',
