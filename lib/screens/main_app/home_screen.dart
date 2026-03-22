@@ -1123,11 +1123,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ),
       bottomNavigationBar: AppBottomNavBar(
         currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
+        onTap: _onItemTapped, // Use the proper method that saves the index
       ),
     );
   }
@@ -1199,7 +1195,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _sidebarItem(int index, IconData icon, String label) {
     final bool active = _selectedIndex == index;
     return InkWell(
-      onTap: () => setState(() => _selectedIndex = index),
+      onTap: () => _onItemTapped(index), // Use the proper method that saves the index
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1270,9 +1266,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: OutlinedButton.icon(
               onPressed: () {
-                setState(() {
-                  _selectedIndex = 3;
-                });
+                _onItemTapped(3);
               },
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppConstants.softWhite,
@@ -1291,7 +1285,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildNavItem(_NavItem item) {
     final active = _selectedIndex == item.index;
     return InkWell(
-      onTap: () => setState(() => _selectedIndex = item.index),
+      onTap: () => _onItemTapped(item.index), // Use the proper method
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),

@@ -31,22 +31,39 @@ class ApiService {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
-    final response = await HttpService.get(
-      Uri.parse('${AppConstants.searchProviders}?region=$region'),
+    // Updated to match backend SearchNearbyUsers endpoint (POST /v1/users/search-nearby)
+    final response = await HttpService.post(
+      Uri.parse(AppConstants.searchProviders),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
+      body: jsonEncode({
+        'county': region,
+        'limit': 50,
+      }),
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body) as List<dynamic>;
-      return data
-          .map((json) => Provider.fromJson(json))
-          .where((provider) => provider.isActive)
-          .toList();
+      final dynamic body = jsonDecode(response.body);
+      final List<dynamic> userList = (body is Map && body.containsKey('users')) ? body['users'] : [];
+      
+      return userList.map((u) {
+        final profile = u['user'] ?? {};
+        return Provider(
+          id: (profile['user_id'] ?? profile['id'] ?? 0) as int,
+          name: (profile['full_name'] ?? profile['name'] ?? 'Provider').toString(),
+          price: (profile['hourly_rate'] ?? 0.0).toDouble(),
+          isActive: profile['is_active'] as bool? ?? true,
+          distance: (u['distance_km'] ?? 0.0).toString() + ' km',
+        );
+      }).toList();
+    } else if (response.statusCode == 403) {
+      print('🔐 [API] 403 Forbidden - Token might be invalid for this service');
+      return []; // Return empty instead of crashing
     } else {
-      throw Exception('Failed to fetch providers: ${response.statusCode}');
+      print('❌ [API] searchProviders failed: ${response.statusCode}');
+      return []; // Return empty as fallback
     }
   }
 
@@ -54,8 +71,9 @@ class ApiService {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
+    // Updated to match backend GetBnBsByLocation (GET /v1/bnb/location/{location})
     final response = await HttpService.get(
-      Uri.parse('${AppConstants.searchBnBs}?region=$region'),
+      Uri.parse('${AppConstants.searchBnBs}/$region'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -63,10 +81,12 @@ class ApiService {
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body) as List<dynamic>;
-      return data.map((json) => BnB.fromJson(json)).toList();
+      final dynamic body = jsonDecode(response.body);
+      final List<dynamic> bnbList = (body is Map && body.containsKey('bnbs')) ? body['bnbs'] : [];
+      return bnbList.map((json) => BnB.fromJson(json)).toList();
     } else {
-      throw Exception('Failed to fetch BnBs: ${response.statusCode}');
+      print('❌ [API] searchBnBs failed: ${response.statusCode}');
+      return [];
     }
   }
 }

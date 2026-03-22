@@ -88,8 +88,8 @@ class AppConstants {
 
   // User Service Search Endpoints
   static const String searchProviders =
-      '$userServiceBaseUrl$apiVersion/location/search-providers';
-  static const String searchBnBs = '$userServiceBaseUrl$apiVersion/bnbs/search';
+      '$userServiceBaseUrl$apiVersion/users/search-nearby';
+  static const String searchBnBs = '$bnbServiceBaseUrl$apiVersion/bnb/location';
 
   // BnB Service Endpoints
   static const String registerBnB =
@@ -176,8 +176,12 @@ class AppConstants {
     if (kIsWeb &&
         url.isNotEmpty &&
         !url.contains('/media/proxy?url=') &&
-        (url.contains('r2.dev') || url.contains('cloudflarestorage.com'))) {
-      final proxied = '$mediaProxy?url=${Uri.encodeComponent(url)}';
+        (url.contains('r2.dev') ||
+         url.contains('cloudflarestorage.com') ||
+         url.contains('placeholder.com') ||
+         url.contains('via.placeholder.com'))) {
+      final String encodedUrl = Uri.encodeComponent(url);
+      final String proxied = '$mediaProxy?url=$encodedUrl';
       debugPrint('🔗 Proxying Media: $url -> $proxied');
       return proxied;
     }

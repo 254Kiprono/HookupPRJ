@@ -11,6 +11,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:hook_app/services/user_service.dart';
 import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/utils/nav.dart';
+import 'package:hook_app/widgets/web_image.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final Map<String, dynamic> arguments;
@@ -286,21 +287,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                             child: ClipOval(
                                               child: _profileImage != null
                                                   ? (kIsWeb
-                                                      ? Image.network(
-                                                          _profileImage!.path,
-                                                          fit: BoxFit.cover,
-                                                        )
+                                                      ? platformAwareImage(_profileImage!.path, fit: BoxFit.cover)
                                                       : Image.file(
-                                                          File(_profileImage!
-                                                              .path),
+                                                          File(_profileImage!.path),
                                                           fit: BoxFit.cover,
                                                         ))
-                                                  : initialData?[
-                                                              'profileImageUrl'] !=
-                                                          null
-                                                      ? Image.network(
-                                                          initialData![
-                                                              'profileImageUrl'],
+                                                  : (initialData?['profileImageUrl'] != null || initialData?['profileImage'] != null)
+                                                      ? platformAwareImage(
+                                                          initialData?['profileImageUrl'] ?? initialData?['profileImage'] ?? '',
                                                           fit: BoxFit.cover,
                                                         )
                                                       : const Icon(

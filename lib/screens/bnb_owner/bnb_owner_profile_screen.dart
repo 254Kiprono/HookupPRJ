@@ -3,6 +3,7 @@ import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/user_service.dart';
 import 'package:hook_app/screens/bnb_owner/edit_profile_screen.dart';
 import 'package:hook_app/utils/nav.dart';
+import 'package:hook_app/widgets/web_image.dart';
 
 class BnBOwnerProfileScreen extends StatefulWidget {
   const BnBOwnerProfileScreen({super.key});
@@ -161,15 +162,10 @@ class _BnBOwnerProfileScreenState extends State<BnBOwnerProfileScreen> {
           child: (_userData?['profile_image'] ?? _userData?['profileImage']) != null &&
                   ((_userData?['profile_image'] ?? _userData?['profileImage']) as String).isNotEmpty
               ? ClipOval(
-                  child: Image.network(
+                  child: platformAwareImage(
                     // Support both snake_case and camelCase keys
                     (_userData!['profile_image'] ?? _userData!['profileImage']) as String,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => const Icon(
-                      Icons.person,
-                      size: 50,
-                      color: AppConstants.softWhite,
-                    ),
                   ),
                 )
               : const Icon(
