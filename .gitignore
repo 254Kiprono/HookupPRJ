@@ -1,0 +1,7 @@
+build/
+.dart_tool/
+android/.gradle/
+
+# Local machine files
+android/local.properties
+build_log.txt

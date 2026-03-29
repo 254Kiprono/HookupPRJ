@@ -39,14 +39,14 @@ class AppConstants {
 
   // API Endpoints
   static const String userServiceBaseUrl =
-      'https://hk-userservice.devsinkenya.com';
+      'https://identity-service.close-by.chat';
   static const String messagingServiceBaseUrl =
-      'https://message-service.devsinkenya.com';
-  static const String bnbServiceBaseUrl = 'https://bnb-service.devsinkenya.com';
+      'https://chat-service.close-by.chat';
+  static const String bnbServiceBaseUrl = 'https://bnb-service.close-by.chat';
   static const String bookingServiceBaseUrl =
-      'https://booking-service.devsinkenya.com';
+      'https://booking-service.close-by.chat';
   static const String paymentServiceBaseUrl =
-      'https://payment-service.devsinkenya.com';
+      'https://payment-service.close-by.chat';
   static const String apiVersion = '/v1';
 
   // Authentication Endpoints (User Service)
@@ -137,7 +137,7 @@ class AppConstants {
 
   // Wallet Service Endpoints
   static const String walletServiceBaseUrl =
-      'https://wallet-service.devsinkenya.com';
+      'https://wallet-service.close-by.chat';
   static const String getWalletBalance =
       '$walletServiceBaseUrl$apiVersion/wallet'; // + /{user_id}/balance
   static const String withdraw =
@@ -152,7 +152,7 @@ class AppConstants {
   
   // WebSocket Endpoint
   static const String websocketUrl =
-      'wss://message-service.devsinkenya.com/v1/stream';
+      'wss://chat-service.close-by.chat/v1/stream'; // Use wss:// for Flutter WebSocket connection through proxy
 
   // SharedPreferences Keys
   static const String authTokenKey = 'auth_token';

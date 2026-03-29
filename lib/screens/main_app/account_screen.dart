@@ -41,6 +41,7 @@ class _AccountScreenState extends State<AccountScreen>
   final ImagePicker _picker = ImagePicker();
   bool _isOnline = false;
   bool _isBnBOwner = false;
+  bool _isUploading = false;
   late AnimationController _pulseController;
   late AnimationController _fadeController;
   late Animation<double> _pulseAnimation;
@@ -260,12 +261,54 @@ class _AccountScreenState extends State<AccountScreen>
         setState(() {
           _profileImage = image;
         });
-        // Upload image logic would go here
+        // Upload picked image to server
+        await _uploadProfileImage(image.path);
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to pick image: $e')),
       );
+    }
+  }
+
+  Future<void> _uploadProfileImage(String path) async {
+    setState(() {
+      _isUploading = true;
+    });
+
+    try {
+      print('📤 [ACCOUNT] Starting profile image upload: $path');
+      final result = await UserService.uploadMedia(path, type: 'profile');
+      final String? imageUrl = result['url'];
+
+      if (imageUrl != null) {
+        print('✅ [ACCOUNT] Upload success, updating profile with URL: $imageUrl');
+        
+        // Update user profile with the new image URL
+        await UserService.updateUserProfile(profileImage: imageUrl);
+        
+        // Refresh local profile
+        await _fetchUserProfile();
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile photo updated successfully')),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ [ACCOUNT] Upload failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to upload photo: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
     }
   }
 
@@ -354,18 +397,30 @@ class _AccountScreenState extends State<AccountScreen>
                         : const Icon(Icons.person, size: 60, color: AppConstants.mutedGray),
               ),
             ),
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: GestureDetector(
-                onTap: _pickProfileImage,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(color: AppConstants.primaryColor, shape: BoxShape.circle),
-                  child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 18),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: GestureDetector(
+                  onTap: _isUploading ? null : _pickProfileImage,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                        color: AppConstants.primaryColor,
+                        shape: BoxShape.circle),
+                    child: _isUploading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.camera_alt_rounded,
+                            color: Colors.white, size: 18),
+                  ),
                 ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: 16),

@@ -27,9 +27,18 @@ class ApiService {
     }
   }
 
-  static Future<List<Provider>> searchProviders(String region) async {
+  static Future<List<Provider>> searchProviders(String region,
+      {double? latitude, double? longitude}) async {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
+
+    final Map<String, dynamic> body = {
+      'county': region,
+      'limit': 50,
+    };
+
+    if (latitude != null) body['latitude'] = latitude;
+    if (longitude != null) body['longitude'] = longitude;
 
     // Updated to match backend SearchNearbyUsers endpoint (POST /v1/users/search-nearby)
     final response = await HttpService.post(
@@ -38,10 +47,8 @@ class ApiService {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({
-        'county': region,
-        'limit': 50,
-      }),
+      body: jsonEncode(body),
+
     );
 
     if (response.statusCode == 200) {

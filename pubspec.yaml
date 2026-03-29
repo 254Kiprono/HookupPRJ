@@ -36,6 +36,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  # To include images, uncomment and modify this:
-  # assets:
-  #   - assets/images/logo.png
+  assets:
+    - assets/images/logo.png

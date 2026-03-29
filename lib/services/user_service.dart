@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:hook_app/services/http_service.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/storage_service.dart';
+import 'package:http/http.dart' as http;
 
 class UserService {
   /// Get the current user's profile
@@ -307,6 +308,44 @@ class UserService {
       // Ignore errors during logout
     } finally {
       await StorageService.clearAll();
+    }
+  }
+
+  /// Upload media (image/video) to server
+  /// Returns the JSON response from backend containing the resource URL
+  static Future<Map<String, dynamic>> uploadMedia(
+    String filePath, {
+    String type = 'profile',
+  }) async {
+    final token = await StorageService.getAuthToken();
+    if (token == null) throw Exception('No auth token found');
+
+    final uri = Uri.parse('${AppConstants.mediaUpload}?type=$type');
+    final request = http.MultipartRequest('POST', uri);
+
+    request.headers['Authorization'] = 'Bearer $token';
+
+    final file = await http.MultipartFile.fromPath(
+      'file',
+      filePath,
+    );
+    request.files.add(file);
+
+    print('📤 [USER_SERVICE] Uploading $type file: $filePath');
+    final streamedResponse = await request.send().timeout(
+          const Duration(minutes: 5), // Large files need time
+        );
+
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      print('✅ [USER_SERVICE] $type upload successful: ${decoded['url']}');
+      return decoded;
+    } else {
+      print('❌ [USER_SERVICE] $type upload failed: ${response.statusCode}');
+      throw Exception(
+          'Failed to upload $type: ${response.statusCode} - ${response.body}');
     }
   }
 }

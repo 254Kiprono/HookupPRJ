@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
-  static const String baseUrl = 'https://message-service.devsinkenya.com';
+  static const String baseUrl = 'https://chat-service.close-by.chat';
   static const Map<String, String> defaultHeaders = {
     'Content-Type': 'application/json',
   };

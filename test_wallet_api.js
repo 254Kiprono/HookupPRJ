@@ -4,7 +4,7 @@
 const testWalletAPI = async () => {
     const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJyb2xlX2lkIjozLCJleHAiOjE3NjUyOTMxMzQsImlhdCI6MTc2NTI4OTUzNH0.tJZwoBc8Lm-GX1zjVcpE2iIwmXE79xGWQ_PAK3Gk7xs";
     const userId = 1;
-    const url = `https://wallet-service.devsinkenya.com/v1/wallet/${userId}/balance`;
+    const url = `https://wallet-service.close-by.chat/v1/wallet/${userId}/balance`;
 
     console.log("🔍 Testing wallet API...");
     console.log("🔍 URL:", url);

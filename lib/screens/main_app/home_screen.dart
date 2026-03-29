@@ -9,6 +9,7 @@ import 'package:hook_app/screens/main_app/search_screen.dart';
 import 'package:hook_app/screens/main_app/bnbs_browse_screen.dart';
 import 'package:hook_app/screens/sms/conversations_screen.dart';
 import 'package:hook_app/screens/main_app/account_screen.dart';
+import 'package:hook_app/services/user_service.dart';
 import 'package:hook_app/screens/main_app/subscription_screen.dart';
 import 'package:hook_app/screens/main_app/wallet_screen.dart';
 import 'package:hook_app/screens/main_app/safety_center_screen.dart';
@@ -53,6 +54,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Position? _currentPosition;
   int? _selectedUserIndex;
   late AnimationController _pulseController;
+  Timer? _locationTimer;
 
   // Filter state
   double _maxDistance = 50.0; // Increased default to ensure users are visible
@@ -102,6 +104,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void dispose() {
     _pulseController.dispose();
+    _locationTimer?.cancel();
     super.dispose();
   }
 
@@ -160,6 +163,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       print('🔍 [HOME] Loading active users...');
       await _loadActiveUsers();
       print('✅ [HOME] All data loaded successfully!');
+
+      // Start periodic location updates
+      _startLocationUpdates();
     } catch (error) {
       print('❌ [HOME] Profile API error: $error');
       print('🔍 [HOME] Loading dummy data as fallback...');
@@ -199,7 +205,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     try {
       // Try real provider search first
       final loc = position ?? LocationService.getDefaultLocation();
-      final providers = await ApiService.searchProviders(region);
+      final providers = await ApiService.searchProviders(
+        region,
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+      );
       final users = providers.map((p) {
         return ActiveUser(
           id: p.id,
@@ -240,6 +250,48 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       setState(() {
         _activeUsers = users;
       });
+    }
+  }
+
+  void _startLocationUpdates() {
+    _locationTimer?.cancel();
+    
+    // Immediate update
+    _updateUserLocationOnServer();
+
+    // Periodic update every 30 seconds (10s might be too frequent for battery, but user requested 10s)
+    _locationTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      _updateUserLocationOnServer();
+    });
+  }
+
+  Future<void> _updateUserLocationOnServer() async {
+    try {
+      final hasPermission = await LocationService.requestLocationPermission();
+      if (!hasPermission) return;
+
+      final position = await LocationService.getCurrentLocation();
+      if (position == null) {
+        debugPrint('⚠️ [LOCATION] Could not retrieve position');
+        return;
+      }
+
+      if (mounted) {
+        setState(() {
+          _currentPosition = position;
+        });
+      }
+
+      // Update backend
+      await UserService.updateUserLocation(
+        position.latitude,
+        position.longitude,
+        county: _userLocation,
+      );
+      debugPrint(
+          '📍 [LOCATION] Backend updated: ${position.latitude}, ${position.longitude}');
+    } catch (e) {
+      debugPrint('⚠️ [LOCATION] Update failed: $e');
     }
   }
 
@@ -337,16 +389,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
-                  color: AppConstants.primaryColor,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
+                  image: const DecorationImage(
+                    image: AssetImage(AppConstants.logoPath),
+                    fit: BoxFit.cover,
+                  ),
                 ),
-                child: const Icon(Icons.location_on, color: Colors.white, size: 18),
               ),
               const SizedBox(width: 12),
               const Text(
-                'CloseBy',
+                'Discovery',
                 style: TextStyle(
                   color: Colors.white,
                   fontFamily: 'Sora',
