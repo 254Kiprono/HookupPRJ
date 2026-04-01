@@ -13,6 +13,7 @@ class BnBService {
     required String address,
     required double priceKES,
     required bool available,
+    required int bnbType, // Added to match backend
     required String callNumber, // Now required
     required List<BnBSession> sessions, // Sessions included in registration
   }) async {
@@ -31,6 +32,8 @@ class BnBService {
         'address': address,
         'price': priceKES, // Backend expects 'price' not 'price_kes'
         'available': available,
+        // Proto field is `bnb_type` → JSON uses camelCase `bnbType`
+        'bnbType': bnbType,
         // Proto field is `contact_number` → JSON uses camelCase `contactNumber`
         'contactNumber': callNumber,
         'sessions': sessions.map((s) => s.toJson()).toList(),

@@ -116,9 +116,16 @@ class MessagingService {
       }
       
       return [];
+    } else if (response.statusCode == 401 || response.statusCode == 403) {
+      // Not authorized or not yet allowed to chat — treat as empty
+      return [];
     } else {
-      final error = jsonDecode(response.body);
-      throw Exception(error['error_message'] ?? 'Failed to load conversation');
+      try {
+        final error = jsonDecode(response.body);
+        throw Exception(error['error_message'] ?? 'Failed to load conversation');
+      } catch (_) {
+        throw Exception('Failed to load conversation');
+      }
     }
   }
 
@@ -156,9 +163,16 @@ class MessagingService {
       }
       
       return [];
+    } else if (response.statusCode == 401 || response.statusCode == 403) {
+      // Not authorized or chat not available yet
+      return [];
     } else {
-      final error = jsonDecode(response.body);
-      throw Exception(error['error_message'] ?? 'Failed to load conversations');
+      try {
+        final error = jsonDecode(response.body);
+        throw Exception(error['error_message'] ?? 'Failed to load conversations');
+      } catch (_) {
+        throw Exception('Failed to load conversations');
+      }
     }
   }
 

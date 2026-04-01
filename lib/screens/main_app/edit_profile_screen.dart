@@ -99,12 +99,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             : MediaType('image', 'jpeg'),
       ));
 
-      print('🚀 Sending request...');
+      print('Sending request...');
       final streamedResponse = await request.send();
       final responseBody = await streamedResponse.stream.bytesToString();
 
-      print('📥 Response Status: ${streamedResponse.statusCode}');
-      print('📜 Response Body: $responseBody');
+      print('Response Status: ${streamedResponse.statusCode}');
+      print('Response Body: $responseBody');
 
       if (streamedResponse.statusCode == 200) {
         final data = jsonDecode(responseBody);
@@ -114,8 +114,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         return null;
       }
     } catch (error) {
-      debugPrint('❌ Upload error: $error');
-      print('❌ Upload error: $error');
+      debugPrint('Upload error: $error');
+      print('Upload error: $error');
       return null;
     }
   }
@@ -287,14 +287,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                             child: ClipOval(
                                               child: _profileImage != null
                                                   ? (kIsWeb
-                                                      ? platformAwareImage(_profileImage!.path, fit: BoxFit.cover)
+                                                      ? Image.network(_profileImage!.path, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image))
                                                       : Image.file(
                                                           File(_profileImage!.path),
                                                           fit: BoxFit.cover,
                                                         ))
-                                                  : (initialData?['profileImageUrl'] != null || initialData?['profileImage'] != null)
+                                                  : (initialData?['profileImageUrl'] != null || initialData?['profileImage'] != null || initialData?['profile_image'] != null)
                                                       ? platformAwareImage(
-                                                          initialData?['profileImageUrl'] ?? initialData?['profileImage'] ?? '',
+                                                          (initialData?['profileImageUrl'] ?? initialData?['profileImage'] ?? initialData?['profile_image'] ?? '').toString(),
                                                           fit: BoxFit.cover,
                                                         )
                                                       : const Icon(
@@ -303,6 +303,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                                           color: Colors.grey,
                                                         ),
                                             ),
+
                                           ),
                                         ),
                                         const Align(

@@ -187,7 +187,7 @@ class _BnBOwnerLoginScreenState extends State<BnBOwnerLoginScreen> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _loginBnBOwner,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppConstants.accentColor,
+                            backgroundColor: AppConstants.primaryColor,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 18),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

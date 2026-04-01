@@ -131,6 +131,14 @@ file:///home/kiprono-alex/.pub-cache/hosted/pub.dev/flutter_secure_storage_platf
 file:///home/kiprono-alex/.pub-cache/hosted/pub.dev/flutter_secure_storage_web-1.2.1/lib/flutter_secure_storage_web.dart
 file:///home/kiprono-alex/.pub-cache/hosted/pub.dev/flutter_secure_storage_web-1.2.1/lib/src/jsonwebkey.dart
 file:///home/kiprono-alex/.pub-cache/hosted/pub.dev/flutter_secure_storage_web-1.2.1/lib/src/subtle.dart
+file:///home/kiprono-alex/.pub-cache/hosted/pub.dev/geocoding-4.0.0/lib/geocoding.dart
+file:///home/kiprono-alex/.pub-cache/hosted/pub.dev/geocoding_platform_interface-3.2.0/lib/geocoding_platform_interface.dart
+file:///home/kiprono-alex/.pub-cache/hosted/pub.dev/geocoding_platform_interface-3.2.0/lib/src/errors/errors.dart
+file:///home/kiprono-alex/.pub-cache/hosted/pub.dev/geocoding_platform_interface-3.2.0/lib/src/errors/no_result_found_exception.dart
+file:///home/kiprono-alex/.pub-cache/hosted/pub.dev/geocoding_platform_interface-3.2.0/lib/src/geocoding_platform_interface.dart
+file:///home/kiprono-alex/.pub-cache/hosted/pub.dev/geocoding_platform_interface-3.2.0/lib/src/models/location.dart
+file:///home/kiprono-alex/.pub-cache/hosted/pub.dev/geocoding_platform_interface-3.2.0/lib/src/models/models.dart
+file:///home/kiprono-alex/.pub-cache/hosted/pub.dev/geocoding_platform_interface-3.2.0/lib/src/models/placemark.dart
 file:///home/kiprono-alex/.pub-cache/hosted/pub.dev/geolocator-10.1.1/lib/geolocator.dart
 file:///home/kiprono-alex/.pub-cache/hosted/pub.dev/geolocator_android-4.6.2/lib/geolocator_android.dart
 file:///home/kiprono-alex/.pub-cache/hosted/pub.dev/geolocator_android-4.6.2/lib/src/geolocator_android.dart
@@ -1155,7 +1163,6 @@ file:///home/kiprono-alex/Projects/HooK-UP/HookupPRJ/lib/screens/sms/conversatio
 file:///home/kiprono-alex/Projects/HooK-UP/HookupPRJ/lib/services/api_service.dart
 file:///home/kiprono-alex/Projects/HooK-UP/HookupPRJ/lib/services/bnb_service.dart
 file:///home/kiprono-alex/Projects/HooK-UP/HookupPRJ/lib/services/booking_service.dart
-file:///home/kiprono-alex/Projects/HooK-UP/HookupPRJ/lib/services/dummy_data_service.dart
 file:///home/kiprono-alex/Projects/HooK-UP/HookupPRJ/lib/services/http_service.dart
 file:///home/kiprono-alex/Projects/HooK-UP/HookupPRJ/lib/services/location_service.dart
 file:///home/kiprono-alex/Projects/HooK-UP/HookupPRJ/lib/services/messaging_service.dart

@@ -40,7 +40,6 @@ class _BnBBookingsScreenState extends State<BnBBookingsScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         
-        // Parse error message to provide more helpful feedback
         String errorMessage = 'Failed to load bookings';
         String errorDetails = e.toString();
         
@@ -91,8 +90,8 @@ class _BnBBookingsScreenState extends State<BnBBookingsScreen> {
         await WalletService.createEarning(
           bookingId: booking.bookingId,
           bnbId: booking.bnbId ?? '',
-          bnbName: 'BnB ${booking.bnbId}', // You might want to fetch actual BnB name
-          clientName: booking.clientId, // You might want to fetch actual client name
+          bnbName: 'BnB ${booking.bnbId}', 
+          clientName: booking.clientId,
           amount: booking.bnbPrice!,
           reference: 'BOOKING-${booking.bookingId}',
         );
@@ -573,15 +572,15 @@ class _BnBBookingsScreenState extends State<BnBBookingsScreen> {
       case BookingStatus.pending:
         return AppConstants.accentColor;
       case BookingStatus.paymentPending:
-        return AppConstants.accentColor; // Orange/yellow for payment pending
+        return AppConstants.accentColor; 
       case BookingStatus.paid:
-        return AppConstants.primaryColor; // Pink for paid
+        return AppConstants.primaryColor; 
       case BookingStatus.completed:
-        return AppConstants.successColor; // Green for completed
+        return AppConstants.successColor; 
       case BookingStatus.cancelled:
-        return AppConstants.errorColor; // Red for cancelled
+        return AppConstants.errorColor; 
       case BookingStatus.servicePending:
-        return AppConstants.accentColor; // Blue for service pending
+        return AppConstants.accentColor; 
     }
   }
 

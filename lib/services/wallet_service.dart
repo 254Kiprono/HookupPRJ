@@ -12,10 +12,11 @@ class WalletService {
     if (token == null) throw Exception('No auth token found');
 
     final userId = await StorageService.getUserId();
-    if (userId == null) throw Exception('No user ID found');
+    final profileId = await StorageService.getProfileId();
+    if (profileId == null) throw Exception('No profile ID found');
 
     try {
-      final uri = Uri.parse('${AppConstants.getWalletBalance}/$userId/balance');
+      final uri = Uri.parse('${AppConstants.walletServiceBaseUrl}${AppConstants.apiVersion}/wallet/profile/$profileId/balance');
       
       final response = await HttpService.get(
         uri,
@@ -37,6 +38,7 @@ class WalletService {
           if (data is Map<String, dynamic> && data.containsKey('balance')) {
             return {
               'user_id': data['userId'] ?? data['user_id'] ?? userId,
+              'profile_id': data['profileId'] ?? data['profile_id'] ?? profileId,
               'balance': (data['balance'] as num?)?.toDouble() ?? 0.0,
               'last_updated': data['lastUpdated'] ?? data['last_updated'],
             };
@@ -45,6 +47,7 @@ class WalletService {
         // Treat 404 or empty body as "wallet not initialized yet"
         return {
           'user_id': userId,
+          'profile_id': profileId,
           'balance': 0.0,
           'last_updated': null,
         };
@@ -60,6 +63,7 @@ class WalletService {
       // Return zero balance instead of throwing to prevent app crash
       return {
         'user_id': userId,
+        'profile_id': profileId,
         'balance': 0.0,
         'last_updated': null,
         'error': 'Network error: ${e.message}',
@@ -68,6 +72,7 @@ class WalletService {
       print('❌ [WALLET] Invalid response format: $e');
       return {
         'user_id': userId,
+        'profile_id': profileId,
         'balance': 0.0,
         'last_updated': null,
         'error': 'Invalid response format',
@@ -86,12 +91,12 @@ class WalletService {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
-    final userId = await StorageService.getUserId();
-    if (userId == null) throw Exception('No user ID found');
+    final profileId = await StorageService.getProfileId();
+    if (profileId == null) throw Exception('No profile ID found');
 
     try {
       final response = await HttpService.get(
-        Uri.parse('${AppConstants.getPaymentHistory}/$userId/payment-history?limit=$limit&offset=$offset'),
+        Uri.parse('${AppConstants.walletServiceBaseUrl}${AppConstants.apiVersion}/wallet/profile/$profileId/payment-history?limit=$limit&offset=$offset'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -124,12 +129,12 @@ class WalletService {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
-    final userId = await StorageService.getUserId();
-    if (userId == null) throw Exception('No user ID found');
+    final profileId = await StorageService.getProfileId();
+    if (profileId == null) throw Exception('No profile ID found');
 
     try {
       final response = await HttpService.get(
-        Uri.parse('${AppConstants.getWithdrawHistory}/$userId/withdrawals?limit=$limit&offset=$offset'),
+        Uri.parse('${AppConstants.walletServiceBaseUrl}${AppConstants.apiVersion}/wallet/profile/$profileId/withdrawals?limit=$limit&offset=$offset'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -213,7 +218,8 @@ class WalletService {
     if (token == null) throw Exception('No auth token found');
 
     final userId = await StorageService.getUserId();
-    if (userId == null) throw Exception('No user ID found');
+    final profileId = await StorageService.getProfileId();
+    if (profileId == null) throw Exception('No profile ID found');
 
     try {
       final response = await HttpService.post(
@@ -224,6 +230,7 @@ class WalletService {
         },
         body: jsonEncode({
           'user_id': userId,
+          'profile_id': profileId,
           'amount': amount,
           'phone_number': phoneNumber,
         }),
@@ -278,7 +285,6 @@ class WalletService {
     return earnings;
   }
 }
-
 
 
 

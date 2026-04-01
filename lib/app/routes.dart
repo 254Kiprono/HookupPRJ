@@ -9,6 +9,7 @@ import 'package:hook_app/screens/main_app/subscription_screen.dart';
 import 'package:hook_app/screens/main_app/safety_center_screen.dart';
 import 'package:hook_app/screens/auth/safety_notice_screen.dart';
 import 'package:hook_app/screens/auth/onboarding_screen.dart';
+import 'package:hook_app/screens/auth/verification_screen.dart';
 import 'package:hook_app/screens/main_app/home_screen.dart';
 import 'package:hook_app/screens/main_app/search_screen.dart';
 import 'package:hook_app/screens/main_app/provider_detail_screen.dart';
@@ -26,10 +27,23 @@ import 'package:hook_app/screens/auth/register_bnb_owner_screen.dart';
 import 'package:hook_app/screens/auth/bnb_owner_login_screen.dart';
 import 'package:hook_app/models/bnb.dart';
 
+class PremiumPageRoute extends PageRouteBuilder {
+  final Widget page;
+  PremiumPageRoute({required this.page})
+      : super(
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 150),
+        );
+}
+
 class Routes {
   static const String loading = '/';
   static const String onboarding = '/onboarding';
   static const String safetyNotice = '/safety-notice';
+  static const String verification = '/verification';
   static const String login = '/login';
   static const String register = '/register';
   static const String forgotPassword = '/forgot-password';
@@ -58,203 +72,107 @@ class Routes {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case loading:
-        return MaterialPageRoute(builder: (_) => const LoadingScreen());
+        return PremiumPageRoute(page: const LoadingScreen());
       case onboarding:
-        return MaterialPageRoute(builder: (_) => const OnboardingScreen());
+        return PremiumPageRoute(page: const OnboardingScreen());
       case safetyNotice:
-        return MaterialPageRoute(builder: (_) => const SafetyNoticeScreen());
+        return PremiumPageRoute(page: const SafetyNoticeScreen());
       case login:
-        return MaterialPageRoute(builder: (_) => const LoginScreen());
+        return PremiumPageRoute(page: const LoginScreen());
+      case verification:
+        final args = settings.arguments as Map<String, dynamic>;
+        return PremiumPageRoute(
+          page: VerificationScreen(
+            verificationType: args['type'] ?? 'email',
+            contact: args['contact'],
+            userId: args['userId'],
+          ),
+        );
+      case bnbOwnerLogin:
+        return PremiumPageRoute(page: const BnBOwnerLoginScreen());
       case register:
-        return MaterialPageRoute(builder: (_) => const RegisterScreen());
+        return PremiumPageRoute(page: const RegisterScreen());
+      case registerBnBOwner:
+        return PremiumPageRoute(page: const RegisterBnBOwnerScreen());
       case forgotPassword:
         final args = settings.arguments as String?;
-        return MaterialPageRoute(
-          builder: (_) => ForgotPasswordScreen(contactInfo: args),
-        );
+        return PremiumPageRoute(page: ForgotPasswordScreen(contactInfo: args));
       case verifyResetCode:
-        if (settings.arguments == null || settings.arguments is! String) {
-          return MaterialPageRoute(
-            builder: (_) => const Scaffold(
-              body: Center(child: Text('Invalid arguments for verify code')),
-            ),
-          );
-        }
         final String contactInfo = settings.arguments as String;
-        return MaterialPageRoute(
-          builder: (_) => VerifyResetCodeScreen(contactInfo: contactInfo),
-        );
+        return PremiumPageRoute(page: VerifyResetCodeScreen(contactInfo: contactInfo));
       case resetPassword:
-        if (settings.arguments == null ||
-            settings.arguments is! Map<String, dynamic>) {
-          return MaterialPageRoute(
-            builder: (_) => const Scaffold(
-              body: Center(child: Text('Invalid arguments for reset password')),
-            ),
-          );
-        }
         final args = settings.arguments as Map<String, dynamic>;
-        final String? contactInfo = args['contactInfo'] as String?;
-        final String? resetCode = args['resetCode'] as String?;
-        if (contactInfo == null || resetCode == null) {
-          return MaterialPageRoute(
-            builder: (_) => const Scaffold(
-              body: Center(child: Text('Invalid arguments for reset password')),
-            ),
-          );
-        }
-        return MaterialPageRoute(
-          builder: (_) => ResetPasswordScreen(
-              contactInfo: contactInfo, resetCode: resetCode),
-        );
+        return PremiumPageRoute(page: ResetPasswordScreen(contactInfo: args['contactInfo'], resetCode: args['resetCode']));
       case home:
-        return MaterialPageRoute(builder: (_) => const HomeScreen());
+        return PremiumPageRoute(page: const HomeScreen());
       case search:
-        return MaterialPageRoute(builder: (_) => const SearchScreen());
+        return PremiumPageRoute(page: const SearchScreen());
       case providerDetail:
-        if (settings.arguments is Map<String, dynamic>) {
-          final args = settings.arguments as Map<String, dynamic>;
-          return MaterialPageRoute(
-            builder: (_) => ProviderDetailScreen(
-              providerId: args['providerId'] as int?,
-              name: args['name'] as String?,
-              age: args['age'] as int?,
-              distanceKm: args['distanceKm'] as double?,
-              price: args['price'] as double?,
-              imageUrl: args['imageUrl'] as String?,
-              bio: args['bio'] as String?,
-              isOnline: args['isOnline'] as bool? ?? false,
-            ),
-          );
-        }
-        return MaterialPageRoute(builder: (_) => const ProviderDetailScreen());
+        return PremiumPageRoute(page: const ProviderDetailScreen());
       case booking:
-        if (settings.arguments == null ||
-            settings.arguments is! Map<String, dynamic>) {
-          return MaterialPageRoute(
-            builder: (_) => const Scaffold(
-              body: Center(child: Text('Invalid arguments for BookingScreen')),
-            ),
-          );
-        }
-        final args = settings.arguments as Map<String, dynamic>;
+        final args = settings.arguments as Map<String, dynamic>? ?? {};
         final providerId = args['providerId'] as int?;
-        final providerName = args['providerName'] as String?;
-        final price = args['price'] as double?;
-        if (providerId == null || providerName == null || price == null) {
+        final providerName =
+            (args['providerName'] ?? args['name'] ?? 'Provider').toString();
+        final priceRaw = args['price'] ?? args['hourlyRate'] ?? 0;
+        final price = (priceRaw is num) ? priceRaw.toDouble() : 0.0;
+        if (providerId == null) {
           return MaterialPageRoute(
             builder: (_) => const Scaffold(
-              body: Center(child: Text('Invalid arguments for BookingScreen')),
+              body: Center(child: Text('Missing booking providerId')),
             ),
           );
         }
-        return MaterialPageRoute(
-          builder: (_) => BookingScreen(
+        return PremiumPageRoute(
+          page: BookingScreen(
             providerId: providerId,
             providerName: providerName,
             price: price,
           ),
         );
       case bookings:
-        return MaterialPageRoute(builder: (_) => const BookingsScreen());
+        return PremiumPageRoute(page: const BookingsScreen());
       case messages:
-        if (settings.arguments == null ||
-            settings.arguments is! Map<String, dynamic>) {
-          return MaterialPageRoute(
-            builder: (_) => const Scaffold(
-              body: Center(
-                  child: Text(
-                      'otherUserId and otherUserName are required for MessagesScreen')),
-            ),
-          );
-        }
-        final args = settings.arguments as Map<String, dynamic>;
+        final args = settings.arguments as Map<String, dynamic>? ?? {};
         final otherUserId = args['otherUserId'] as int?;
-        final otherUserName = args['otherUserName'] as String?;
+        final otherUserName =
+            (args['otherUserName'] ?? args['name'] ?? 'Unknown').toString();
         if (otherUserId == null) {
           return MaterialPageRoute(
             builder: (_) => const Scaffold(
-              body: Center(
-                  child: Text('otherUserId is required for MessagesScreen')),
+              body: Center(child: Text('Missing otherUserId for chat')),
             ),
           );
         }
-        return MaterialPageRoute(
-          builder: (_) => MessagesScreen(
+        return PremiumPageRoute(
+          page: MessagesScreen(
             otherUserId: otherUserId,
-            otherUserName: otherUserName ?? 'Unknown',
+            otherUserName: otherUserName,
           ),
         );
       case account:
-        return MaterialPageRoute(builder: (_) => const AccountScreen());
-      case safetyCenter:
-        return MaterialPageRoute(builder: (_) => const SafetyCenterScreen());
-      case subscription:
-        return MaterialPageRoute(builder: (_) => const SubscriptionScreen());
+        return PremiumPageRoute(page: const AccountScreen());
       case editProfile:
-        if (settings.arguments == null ||
-            settings.arguments is! Map<String, dynamic>) {
-          return MaterialPageRoute(
-            builder: (_) => const Scaffold(
-              body: Center(
-                  child: Text('Invalid arguments for EditProfileScreen')),
-            ),
-          );
-        }
-        final args = settings.arguments as Map<String, dynamic>;
-        return MaterialPageRoute(
-          builder: (_) => EditProfileScreen(arguments: args),
-        );
+        final args = settings.arguments as Map<String, dynamic>? ?? {};
+        return PremiumPageRoute(page: EditProfileScreen(arguments: args));
       case galleryVideo:
-        if (settings.arguments == null ||
-            settings.arguments is! Map<String, dynamic>) {
-          return MaterialPageRoute(
-            builder: (_) => const Scaffold(
-              body: Center(
-                  child: Text('Invalid arguments for GalleryVideoScreen')),
-            ),
-          );
-        }
-        final args = settings.arguments as Map<String, dynamic>;
-        final userProfile = args['userProfile'] as Map<String, dynamic>;
-        return MaterialPageRoute(
-          builder: (_) => GalleryVideoScreen(userProfile: userProfile),
-        );
-
-      // BnB Owner Routes
+        final args = settings.arguments as Map<String, dynamic>? ?? {};
+        return PremiumPageRoute(page: GalleryVideoScreen(userProfile: args));
+      case safetyCenter:
+        return PremiumPageRoute(page: const SafetyCenterScreen());
+      case subscription:
+        return PremiumPageRoute(page: const SubscriptionScreen());
       case bnbDashboard:
-        return MaterialPageRoute(
-            builder: (_) => const BnBOwnerDashboardScreen());
-
+        return PremiumPageRoute(page: const BnBOwnerDashboardScreen());
       case registerBnB:
-        return MaterialPageRoute(builder: (_) => const RegisterBnBScreen());
-
-      case registerBnBOwner:
-        return MaterialPageRoute(
-            builder: (_) => const RegisterBnBOwnerScreen());
-
-      case bnbOwnerLogin:
-        return MaterialPageRoute(builder: (_) => const BnBOwnerLoginScreen());
-
+        return PremiumPageRoute(page: const RegisterBnBScreen());
       case manageBnB:
-        if (settings.arguments == null || settings.arguments is! BnB) {
-          return MaterialPageRoute(
-            builder: (_) => const Scaffold(
-              body:
-                  Center(child: Text('Invalid arguments for ManageBnBScreen')),
-            ),
-          );
-        }
         final bnb = settings.arguments as BnB;
-        return MaterialPageRoute(
-          builder: (_) => ManageBnBScreen(bnb: bnb),
-        );
-
+        return PremiumPageRoute(page: ManageBnBScreen(bnb: bnb));
       case bnbBookingHistory:
-        return MaterialPageRoute(
-            builder: (_) => const BnBBookingHistoryScreen());
-
+        return PremiumPageRoute(page: const BnBBookingHistoryScreen());
       default:
+        // Use default for others to keep logic simple for now
         return MaterialPageRoute(
           builder: (_) => Scaffold(
             body: Center(

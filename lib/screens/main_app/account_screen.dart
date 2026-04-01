@@ -262,7 +262,7 @@ class _AccountScreenState extends State<AccountScreen>
           _profileImage = image;
         });
         // Upload picked image to server
-        await _uploadProfileImage(image.path);
+        await _uploadProfileImage(image);
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -271,14 +271,14 @@ class _AccountScreenState extends State<AccountScreen>
     }
   }
 
-  Future<void> _uploadProfileImage(String path) async {
+  Future<void> _uploadProfileImage(XFile file) async {
     setState(() {
       _isUploading = true;
     });
 
     try {
-      print('📤 [ACCOUNT] Starting profile image upload: $path');
-      final result = await UserService.uploadMedia(path, type: 'profile');
+      print('📤 [ACCOUNT] Starting profile image upload: ${file.name}');
+      final result = await UserService.uploadMedia(file, type: 'profile');
       final String? imageUrl = result['url'];
 
       if (imageUrl != null) {
@@ -391,11 +391,14 @@ class _AccountScreenState extends State<AccountScreen>
               ),
               child: ClipOval(
                 child: _profileImage != null
-                    ? Image.file(File(_profileImage!.path), fit: BoxFit.cover)
-                    : _userProfile?['profileImage'] != null && _userProfile!['profileImage'].toString().isNotEmpty
-                        ? platformAwareImage(_userProfile!['profileImage'], fit: BoxFit.cover)
+                    ? (kIsWeb
+                        ? Image.network(_profileImage!.path, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image))
+                        : Image.file(File(_profileImage!.path), fit: BoxFit.cover))
+                    : (_userProfile?['profileImage'] ?? _userProfile?['profile_image'] ?? _userProfile?['profile_image_url']) != null && (_userProfile!['profileImage'] ?? _userProfile!['profile_image'] ?? _userProfile!['profile_image_url']).toString().isNotEmpty
+                        ? platformAwareImage((_userProfile!['profileImage'] ?? _userProfile!['profile_image'] ?? _userProfile!['profile_image_url']).toString(), fit: BoxFit.cover)
                         : const Icon(Icons.person, size: 60, color: AppConstants.mutedGray),
               ),
+
             ),
               Positioned(
                 bottom: 0,
@@ -575,7 +578,7 @@ class _AccountScreenState extends State<AccountScreen>
                   builder: (_) => GalleryVideoScreen(userProfile: _userProfile!),
                 ),
               );
-              // Removed redundant _fetchUserProfile(); here to prevent flickering
+              _fetchUserProfile(); // Refresh profile so new gallery shows up immediately
             }
           },
         ),

@@ -11,6 +11,8 @@ class ActiveUser {
   final double distance; // in km
   final bool isOnline;
   final DateTime lastActive;
+  final String? locationName;
+
 
   ActiveUser({
     required this.id,
@@ -24,7 +26,9 @@ class ActiveUser {
     required this.distance,
     required this.isOnline,
     required this.lastActive,
+    this.locationName,
   });
+
 
   factory ActiveUser.fromJson(Map<String, dynamic> json) => ActiveUser(
         id: json['id'] as int,
@@ -38,7 +42,9 @@ class ActiveUser {
         distance: (json['distance'] as num).toDouble(),
         isOnline: json['is_online'] as bool,
         lastActive: DateTime.parse(json['last_active'] as String),
+        locationName: json['region_name'] as String?,
       );
+
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -52,5 +58,7 @@ class ActiveUser {
         'distance': distance,
         'is_online': isOnline,
         'last_active': lastActive.toIso8601String(),
+        'region_name': locationName,
       };
+
 }

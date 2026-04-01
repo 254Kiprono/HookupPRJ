@@ -81,13 +81,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         if (response.statusCode == 200 || response.statusCode == 201) {
           final responseData = jsonDecode(response.body);
+          final int userId = responseData['user_id'];
+          final String email = _emailController.text.trim();
+          
           await StorageService.setOnboardingSeen(true);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
                 content: Text(
-                    responseData['message'] ?? 'Registration successful!')),
+                    responseData['message'] ?? 'Registration successful! Please verify your email.')),
           );
-          Navigator.pushReplacementNamed(context, Routes.safetyNotice);
+          
+          // Re-direct to verification screen instead of safetyNotice
+          Navigator.pushReplacementNamed(
+            context, 
+            Routes.verification,
+            arguments: {
+              'type': 'email',
+              'contact': email,
+              'userId': userId,
+            }
+          );
         } else {
           final errorData = jsonDecode(response.body);
           ScaffoldMessenger.of(context).showSnackBar(

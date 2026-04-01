@@ -25,7 +25,7 @@ class _BnBOwnerProfileScreenState extends State<BnBOwnerProfileScreen> {
   Future<void> _loadProfile() async {
     try {
       final profile = await UserService.getUserProfile();
-      print('[PROFILE DEBUG] Loaded profile data: $profile'); // Debug log
+      print('[PROFILE DEBUG] Loaded profile data: $profile'); 
       if (mounted) {
         setState(() {
           _userData = profile;
@@ -113,11 +113,9 @@ class _BnBOwnerProfileScreenState extends State<BnBOwnerProfileScreen> {
   }
 
   Widget _buildProfileHeader() {
-    // Robust name resolution logic
     String getDisplayName() {
       if (_userData == null) return 'BnB Owner';
 
-      // Support both snake_case and camelCase keys from backend
       final String? fullName =
           (_userData!['full_name'] ?? _userData!['fullName']) as String?;
       final String? firstName =
@@ -125,17 +123,15 @@ class _BnBOwnerProfileScreenState extends State<BnBOwnerProfileScreen> {
       final String? lastName =
           (_userData!['last_name'] ?? _userData!['lastName']) as String?;
       
-      // 1. Prioritize full_name
       if (fullName != null && fullName.trim().isNotEmpty) {
         return fullName;
       }
 
-      // 2. Try combining first and last name
       if (firstName != null && firstName.trim().isNotEmpty) {
         if (lastName != null && lastName.trim().isNotEmpty) {
           return '$firstName $lastName';
         }
-        return firstName; // First name only
+        return firstName; 
       }
 
       return 'Name Not Set';

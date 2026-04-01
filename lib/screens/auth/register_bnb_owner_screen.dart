@@ -89,14 +89,26 @@ class _RegisterBnBOwnerScreenState extends State<RegisterBnBOwnerScreen> {
 
       if (!mounted) return;
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = jsonDecode(response.body);
+        final int userId = responseData['user_id'];
+        final String email = _emailController.text.trim();
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('BnB Owner registration successful!'),
+            content: Text('BnB Owner registration successful! Please verify your email.'),
             backgroundColor: AppConstants.successColor,
           ),
         );
-        Navigator.pushReplacementNamed(context, Routes.bnbOwnerLogin);
+        Navigator.pushReplacementNamed(
+          context, 
+          Routes.verification,
+          arguments: {
+            'type': 'email',
+            'contact': email,
+            'userId': userId,
+          }
+        );
       } else {
         final errorData = jsonDecode(response.body);
         ScaffoldMessenger.of(context).showSnackBar(

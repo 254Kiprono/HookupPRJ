@@ -3,6 +3,8 @@ import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/app/routes.dart';
 import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/services/api_service.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:hook_app/screens/auth/verification_screen.dart';
 
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});
@@ -39,13 +41,13 @@ class _LoadingScreenState extends State<LoadingScreen>
 
     final String? authToken = await StorageService.getAuthToken();
     final String? userId = await StorageService.getUserId();
-    print('🔐 [LOADING] Auth token present: ${authToken != null}');
-    print('👤 [LOADING] User ID present: ${userId != null}');
-
+    print('[LOADING] Auth token present: ${authToken != null}');
+    print('[LOADING] User ID present: ${userId != null}');
+    
     if (authToken == null || authToken.isEmpty) {
       // Don't clearAll() - we need onboarding_seen and safety_accepted to persist
       // (clearAll is only for explicit logout)
-      print('❌ [LOADING] No auth token');
+      print('[LOADING] No auth token');
 
       final bool onboardingSeen = await StorageService.isOnboardingSeen();
       if (!onboardingSeen) {
@@ -61,31 +63,60 @@ class _LoadingScreenState extends State<LoadingScreen>
     }
 
     try {
-      // Skip fetching profile here to avoid 403 error loop.
-      // Trust the token we just got.
-      print('⚠️ [LOADING] Skipping getUserProfile check to unblock login');
+      // Fetch profile to verify if account is active
+      print('[LOADING] Fetching user profile...');
+      final profile = await ApiService.getUserProfile();
+      final bool isActive = profile['is_active'] ?? true;
+      final String? authProvider = profile['auth_provider'];
+      final String? mEmail = profile['email'];
+
+      final bool emailVerified = profile['email_verified'] ?? true;
+      if (!isActive && !emailVerified) {
+        print('[LOADING] Account not active/verified. Navigating to VerificationScreen.');
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => VerificationScreen(
+                verificationType: 'email',
+                contact: mEmail ?? 'your email',
+                onVerified: () {
+                  Navigator.pushReplacementNamed(
+                    context,
+                    profile['role'] == AppConstants.bnbOwnerRoleId 
+                      ? Routes.bnbDashboard 
+                      : Routes.home
+                  );
+                },
+              ),
+            ),
+          );
+        }
+        return;
+      }
 
       final roleId = await StorageService.getRoleId();
       final roleString = await StorageService.getUserRole();
+// lib/models/active_user.dart
 
-      print('👤 [LOADING] Role ID (parsed): $roleId');
-      print('👤 [LOADING] Role String (raw): "$roleString"');
+      print('[LOADING] Role ID (parsed): $roleId');
+      print('[LOADING] Role String (raw): "$roleString"');
 
       if (mounted) {
-        if (roleId == AppConstants.bnbOwnerRoleId) {
-          print('🏠 [LOADING] ➡️ Navigating to BnB Dashboard');
+        if (roleId == AppConstants.bnbOwnerRoleId || profile['role'] == AppConstants.bnbOwnerRoleId) {
+          print('[LOADING] --> Navigating to BnB Dashboard');
           Navigator.pushReplacementNamed(context, Routes.bnbDashboard);
         } else {
-          print('❤️ [LOADING] ➡️ Navigating to Home Screen');
+          print('[LOADING] --> Navigating to Home Screen');
           Navigator.pushReplacementNamed(context, Routes.home);
         }
       }
     } catch (error) {
-      print('❌ [LOADING] Error: $error');
-      // await StorageService.clearAll(); // Keep data for debugging
+      print('[LOADING] Error fetching profile: $error');
+      // If fetching fails, we can optionally fall back to Home, but safer to block or retry
       if (mounted) {
         setState(() {
-          _errorMessage = 'Error: $error\nUser ID: $userId';
+          _errorMessage = 'Error verifying account: $error\nPlease try again.';
           _isCheckingAuth = false;
         });
       }
@@ -96,6 +127,33 @@ class _LoadingScreenState extends State<LoadingScreen>
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<bool> _checkLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        // Location services are not enabled.
+        return false;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          return false;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      print('[LOADING] Location check error: $e');
+      return false;
+    }
   }
 
   @override
@@ -142,6 +200,13 @@ class _LoadingScreenState extends State<LoadingScreen>
                           _checkAuth();
                         },
                         child: const Text('Retry'),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: () => Geolocator.openLocationSettings(),
+                        icon: const Icon(Icons.settings),
+                        label: const Text('Open Settings'),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.white24),
                       ),
                       const SizedBox(height: 12),
                       TextButton(
@@ -203,6 +268,7 @@ class _LoadingScreenState extends State<LoadingScreen>
                     const SizedBox(height: 24),
                     const CircularProgressIndicator(
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      strokeWidth: 2,
                     ),
                   ],
                 ),

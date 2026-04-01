@@ -202,9 +202,26 @@ class TokenUtils {
           decoded['userId'] ?? 
           decoded['sub']; 
 
-      // Handle both 
       if (id is int) return id;
+      if (id is double) return id.toInt();
       if (id is String) return int.tryParse(id);
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Identity `profile_id` claim (aligned with backend JWT). Null if absent / legacy token.
+  static Future<int?> extractProfileId(String token) async {
+    try {
+      if (token.isEmpty) return null;
+      if (JwtDecoder.isExpired(token)) return null;
+      final decoded = JwtDecoder.decode(token);
+      final dynamic raw = decoded['profile_id'] ?? decoded['profileId'];
+      if (raw == null) return null;
+      if (raw is int) return raw;
+      if (raw is double) return raw.toInt();
+      if (raw is String) return int.tryParse(raw);
       return null;
     } catch (e) {
       return null;

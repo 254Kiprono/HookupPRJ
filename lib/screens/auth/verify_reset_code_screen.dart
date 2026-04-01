@@ -36,7 +36,7 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
   Future<void> _verifyCode() async {
     if (_codeController.text.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid 6-digit code')),
+        const SnackBar(content: Text('Please enter a valid 6-digit OTP')),
       );
       return;
     }
@@ -99,8 +99,8 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
       body: Column(
         children: <Widget>[
           const AuthHeader(
-            title: 'Verify Code',
-            subtitle: 'Enter the verification code sent to you',
+            title: 'Verify OTP',
+            subtitle: 'Enter the verification OTP sent to you',
           ),
           Expanded(
             child: SingleChildScrollView(
@@ -111,7 +111,7 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
                   TextFormField(
                     controller: _codeController,
                     decoration: InputDecoration(
-                      labelText: 'Verification Code',
+                      labelText: 'Verification OTP',
                       hintText: '123456',
                       prefixIcon: const Icon(Icons.vpn_key),
                       border: OutlineInputBorder(
@@ -142,7 +142,7 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
                       child: _isLoading
                           ? const CircularProgressIndicator(color: Colors.white)
                           : const Text(
-                              'Verify Code',
+                              'Verify OTP',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,

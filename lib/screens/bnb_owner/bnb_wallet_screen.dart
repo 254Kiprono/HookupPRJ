@@ -30,13 +30,10 @@ class _BnBWalletScreenState extends State<BnBWalletScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Load balance
       final balanceData = await WalletService.getWalletBalance();
       
-      // Load transactions
       List<WalletTransaction> transactions = await WalletService.getTransactions();
       
-      // If no transactions from API, try to get from bookings
       if (transactions.isEmpty) {
         try {
           final bookings = await BookingService.getBookingsByBnbOwner();
@@ -164,7 +161,6 @@ class _BnBWalletScreenState extends State<BnBWalletScreen> {
           throw Exception('Insufficient balance');
         }
 
-        // Use phone number from account details field for M-Pesa withdrawal
         await WalletService.requestWithdrawal(
           amount: amount,
           phoneNumber: accountController.text.isNotEmpty ? accountController.text : methodController.text,
@@ -474,7 +470,6 @@ class _BnBWalletScreenState extends State<BnBWalletScreen> {
       );
     }
 
-    // Sort by timestamp (newest first)
     filtered.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
     return ListView.builder(

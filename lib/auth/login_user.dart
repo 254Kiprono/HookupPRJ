@@ -225,6 +225,21 @@ class _LoginScreenState extends State<LoginScreen> {
         await _incrementFailedLoginAttempts();
         if (!mounted) return;
         final errorData = jsonDecode(response.body);
+        
+        // Handle unverified user redirection
+        if (response.statusCode == 403 && errorData['error_code'] == 'VERIFICATION_REQUIRED') {
+           Navigator.pushReplacementNamed(
+            context, 
+            Routes.verification,
+            arguments: {
+              'type': 'email',
+              'contact': _emailOrPhoneController.text.trim(),
+              // Note: We don't have userId here, but resendOTP can use 'email' which we pass as 'contact'
+            }
+          );
+          return;
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -535,14 +550,31 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-              SizedBox(
+              Container(
                 width: double.infinity,
+                height: 56,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppConstants.primaryColor, AppConstants.tealLight],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppConstants.primaryColor.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : () => _loginUser(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppConstants.primaryColor,
+                    backgroundColor: Colors.transparent,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shadowColor: Colors.transparent,
+                    padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
@@ -555,7 +587,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               strokeWidth: 2, color: Colors.white))
                       : const Text('Sign In',
                           style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              letterSpacing: 0.5)),
                 ),
               ),
             ],

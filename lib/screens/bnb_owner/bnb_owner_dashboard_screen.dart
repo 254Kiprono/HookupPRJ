@@ -10,6 +10,7 @@ import 'package:hook_app/screens/bnb_owner/bnb_owner_profile_screen.dart';
 import 'package:hook_app/screens/bnb_owner/bnb_wallet_screen.dart';
 import 'package:hook_app/screens/bnb_owner/bnb_bookings_screen.dart';
 import 'package:hook_app/utils/nav.dart';
+import 'package:hook_app/services/wallet_service.dart';
 
 class BnBOwnerDashboardScreen extends StatefulWidget {
   const BnBOwnerDashboardScreen({super.key});
@@ -22,6 +23,7 @@ class _BnBOwnerDashboardScreenState extends State<BnBOwnerDashboardScreen> {
   List<BnB> _bnbs = [];
   bool _isLoading = true;
   String? _error;
+  double _totalRevenue = 0.0;
 
   @override
   void initState() {
@@ -52,9 +54,19 @@ class _BnBOwnerDashboardScreenState extends State<BnBOwnerDashboardScreen> {
       print('[BNB DASHBOARD] Fetching BnBs for owner ID: $userIdInt');
       final bnbs = await BnBService.getBnBsByOwner(userIdInt);
       
+      // Fetch wallet data for real revenue
+      double revenue = 0.0;
+      try {
+        final walletData = await WalletService.getWalletBalance();
+        revenue = walletData['total_earnings']?.toDouble() ?? 0.0;
+      } catch (e) {
+        print('[BNB DASHBOARD] Wallet fetch error (ignoring): $e');
+      }
+
       print('[BNB DASHBOARD] Successfully loaded ${bnbs.length} BnBs');
       setState(() {
         _bnbs = bnbs;
+        _totalRevenue = revenue;
         _isLoading = false;
       });
     } catch (e) {
@@ -264,8 +276,6 @@ class _BnBOwnerDashboardScreenState extends State<BnBOwnerDashboardScreen> {
   Widget _buildAnalyticsCards() {
     final activeCount = _bnbs.where((b) => b.available).length;
     final inactiveCount = _bnbs.length - activeCount;
-    // Mock revenue for now
-    const totalRevenue = 45000; 
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -288,7 +298,7 @@ class _BnBOwnerDashboardScreenState extends State<BnBOwnerDashboardScreen> {
           const SizedBox(width: 12),
           _buildStatCard(
             'Total Revenue',
-            'KES $totalRevenue',
+            'KES ${_totalRevenue.toStringAsFixed(0)}',
             Icons.attach_money,
             AppConstants.accentColor,
             width: 160,
@@ -451,7 +461,7 @@ class _BnBOwnerDashboardScreenState extends State<BnBOwnerDashboardScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          bnb.location,
+                          'County: ${bnb.location}',
                           style: TextStyle(
                             color: AppConstants.softWhite.withOpacity(0.7),
                             fontSize: 14,

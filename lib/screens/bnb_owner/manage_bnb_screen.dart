@@ -21,6 +21,7 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
   late TextEditingController _priceController;
   late TextEditingController _callNumberController;
   late bool _available;
+  late int _selectedBnBType;
   bool _isEditing = false;
   bool _isSubmitting = false;
 
@@ -33,6 +34,7 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
     _priceController = TextEditingController(text: widget.bnb.priceKES.toString()); // Changed from price
     _callNumberController = TextEditingController(text: widget.bnb.callNumber ?? '');
     _available = widget.bnb.available;
+    _selectedBnBType = widget.bnb.bnbType;
   }
 
   @override
@@ -56,7 +58,7 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
         address: _addressController.text.trim(),
         priceKES: double.parse(_priceController.text.trim()),
         available: _available,
-        bnbType: widget.bnb.bnbType,
+        bnbType: _selectedBnBType,
         callNumber: _callNumberController.text.trim().isNotEmpty 
             ? _callNumberController.text.trim() 
             : '',
@@ -315,7 +317,9 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
             ],
           ),
           const SizedBox(height: 20),
-          _buildDetailRow(Icons.location_on, 'Location', widget.bnb.location),
+          _buildDetailRow(Icons.location_on, 'County', widget.bnb.location),
+          const SizedBox(height: 12),
+          _buildDetailRow(Icons.apartment, 'Type', _getBnBTypeLabel(widget.bnb.bnbType)),
           const SizedBox(height: 12),
           _buildDetailRow(Icons.map, 'Address', widget.bnb.address),
           const SizedBox(height: 12),
@@ -364,7 +368,9 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
       children: [
         _buildTextField(_nameController, 'BnB Name', Icons.home),
         const SizedBox(height: 16),
-        _buildTextField(_locationController, 'Location', Icons.location_on),
+        _buildTypeDropdown(),
+        const SizedBox(height: 16),
+        _buildTextField(_locationController, 'County', Icons.location_on),
         const SizedBox(height: 16),
         _buildTextField(_addressController, 'Address', Icons.map),
         const SizedBox(height: 16),
@@ -538,6 +544,7 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
               _priceController.text = widget.bnb.priceKES.toString(); // Changed from price
               _callNumberController.text = widget.bnb.callNumber ?? '';
               _available = widget.bnb.available;
+              _selectedBnBType = widget.bnb.bnbType;
             });
           },
           label: 'Cancel',
@@ -592,6 +599,70 @@ class _ManageBnBScreenState extends State<ManageBnBScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+  String _getBnBTypeLabel(int type) {
+    switch (type) {
+      case 0:
+        return 'Studio';
+      case 1:
+        return '1 Bedroom';
+      case 2:
+        return '2 Bedrooms';
+      case 3:
+        return '3 Bedrooms';
+      case 4:
+        return '4 Bedrooms';
+      default:
+        return 'Unknown';
+    }
+  }
+
+  Widget _buildTypeDropdown() {
+    final List<Map<String, dynamic>> types = [
+      {'value': 0, 'label': 'Studio'},
+      {'value': 1, 'label': '1 Bedroom'},
+      {'value': 2, 'label': '2 Bedrooms'},
+      {'value': 3, 'label': '3 Bedrooms'},
+      {'value': 4, 'label': '4 Bedrooms'},
+    ];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppConstants.deepPurple.withOpacity(0.6),
+            AppConstants.surfaceColor.withOpacity(0.4),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppConstants.primaryColor.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: DropdownButtonFormField<int>(
+        value: _selectedBnBType,
+        dropdownColor: AppConstants.deepPurple,
+        style: const TextStyle(color: AppConstants.softWhite),
+        decoration: const InputDecoration(
+          labelText: 'BnB Type',
+          labelStyle: TextStyle(color: AppConstants.softWhite),
+          border: InputBorder.none,
+        ),
+        items: types.map((t) {
+          return DropdownMenuItem<int>(
+            value: t['value'] as int,
+            child: Text(t['label'] as String),
+          );
+        }).toList(),
+        onChanged: (value) {
+          if (value != null) {
+            setState(() => _selectedBnBType = value);
+          }
+        },
       ),
     );
   }

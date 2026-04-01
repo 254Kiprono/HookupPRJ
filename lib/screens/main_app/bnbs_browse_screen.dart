@@ -3,6 +3,7 @@ import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/utils/nav.dart';
 import 'package:hook_app/services/bnb_service.dart';
 import 'package:hook_app/models/bnb.dart';
+import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/utils/responsive.dart';
 
 class BnBsBrowseScreen extends StatefulWidget {
@@ -34,13 +35,40 @@ class _BnBsBrowseScreenState extends State<BnBsBrowseScreen> with AutomaticKeepA
   }
 
   Future<void> _loadInitialResults() async {
-    // Silent initial load for Nairobi
+    // 1. Try to load cached results for the search field
     try {
-      final bnbs = await BnBService.getBnBsByLocation('Nairobi');
+      final lastSearch = await StorageService.getJson('last_bnb_search');
+      if (lastSearch != null) {
+        _searchController.text = lastSearch['location'] ?? 'Nairobi';
+        if (lastSearch['results'] is List) {
+          final List<BnB> cached = (lastSearch['results'] as List).map((b) => BnB.fromJson(b)).toList();
+          setState(() {
+            _bnbs = cached;
+            _applyFilters();
+          });
+        }
+      } else {
+        _searchController.text = 'Nairobi';
+      }
+    } catch (_) {}
+
+    // Silent background refresh
+    _refreshResults();
+  }
+
+  Future<void> _refreshResults() async {
+    final location = _searchController.text.isEmpty ? 'Nairobi' : _searchController.text;
+    try {
+      final bnbs = await BnBService.getBnBsByLocation(location);
       if (mounted) {
         setState(() {
           _bnbs = bnbs;
           _applyFilters();
+        });
+        // Cache success
+        await StorageService.saveJson('last_bnb_search', {
+          'location': location,
+          'results': bnbs.map((b) => b.toJson()).toList(),
         });
       }
     } catch (_) {}
@@ -66,17 +94,29 @@ class _BnBsBrowseScreenState extends State<BnBsBrowseScreen> with AutomaticKeepA
     });
 
     try {
-      final bnbs = await BnBService.getBnBsByLocation(_searchController.text);
-      setState(() {
-        _bnbs = bnbs;
-        _applyFilters();
-        _isLoading = false;
+      final location = _searchController.text;
+      final bnbs = await BnBService.getBnBsByLocation(location);
+      
+      // Cache the result
+      await StorageService.saveJson('last_bnb_search', {
+        'location': location,
+        'results': bnbs.map((b) => b.toJson()).toList(),
       });
+
+      if (mounted) {
+        setState(() {
+          _bnbs = bnbs;
+          _applyFilters();
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 

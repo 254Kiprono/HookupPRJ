@@ -20,6 +20,7 @@ class _RegisterBnBScreenState extends State<RegisterBnBScreen> {
   final _callNumberController = TextEditingController();
   bool _available = true;
   bool _isSubmitting = false;
+  int _selectedBnBType = 0; // 0: Studio, 1: 1BR, 2: 2BR, 3: 3BR, 4: 4BR
 
   // Session management
   final List<BnBSession> _sessions = [];
@@ -73,6 +74,7 @@ class _RegisterBnBScreenState extends State<RegisterBnBScreen> {
         address: _addressController.text.trim(),
         priceKES: double.parse(_priceController.text.trim()),
         available: _available,
+        bnbType: _selectedBnBType,
         callNumber: _callNumberController.text.trim(),
         sessions: _sessions,
       );
@@ -155,13 +157,15 @@ class _RegisterBnBScreenState extends State<RegisterBnBScreen> {
                           },
                         ),
                         const SizedBox(height: 16),
+                        _buildTypeDropdown(),
+                        const SizedBox(height: 16),
                         _buildTextField(
                           controller: _locationController,
-                          label: 'Location',
+                          label: 'County',
                           icon: Icons.location_on,
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
-                              return 'Please enter location';
+                              return 'Please enter county';
                             }
                             return null;
                           },
@@ -565,6 +569,56 @@ class _RegisterBnBScreenState extends State<RegisterBnBScreen> {
                     ),
                   ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTypeDropdown() {
+    final types = [
+      {'value': 0, 'label': 'Studio'},
+      {'value': 1, 'label': '1 Bedroom'},
+      {'value': 2, 'label': '2 Bedroom'},
+      {'value': 3, 'label': '3 Bedroom'},
+      {'value': 4, 'label': '4 Bedroom'},
+    ];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppConstants.deepPurple.withOpacity(0.6),
+            AppConstants.surfaceColor.withOpacity(0.4),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppConstants.primaryColor.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButtonFormField<int>(
+          value: _selectedBnBType,
+          dropdownColor: AppConstants.deepPurple,
+          style: const TextStyle(color: AppConstants.softWhite),
+          decoration: const InputDecoration(
+            labelText: 'BnB Type',
+            labelStyle: TextStyle(color: AppConstants.softWhite),
+            border: InputBorder.none,
+          ),
+          items: types.map((t) {
+            return DropdownMenuItem<int>(
+              value: t['value'] as int,
+              child: Text(t['label'] as String),
+            );
+          }).toList(),
+          onChanged: (value) {
+            if (value != null) {
+              setState(() => _selectedBnBType = value);
+            }
+          },
         ),
       ),
     );

@@ -79,6 +79,9 @@ class _GalleryVideoScreenState extends State<GalleryVideoScreen> {
       }
     }
     _galleryUrls = _galleryUrls.where(_isValidMediaUrl).toList();
+    if (_galleryUrls.length > 6) {
+      _galleryUrls = _galleryUrls.take(6).toList();
+    }
 
     // Backend may return profile_video_url or profileVideoUrl
     _videoUrl = data['profile_video_url'] ?? data['profileVideoUrl'];

@@ -48,6 +48,23 @@ class BnB {
           .toList();
     }
 
+    // Handle bnbType robustness (String or Int)
+    int parseBnbType(dynamic value) {
+      if (value == null) return 0;
+      if (value is int) return value;
+      if (value is double) return value.toInt();
+      if (value is String) {
+        final upper = value.toUpperCase();
+        if (upper.contains('STUDIO')) return 0;
+        if (upper.contains('ONE') || upper == '1') return 1;
+        if (upper.contains('TWO') || upper == '2') return 2;
+        if (upper.contains('THREE') || upper == '3') return 3;
+        if (upper.contains('FOUR') || upper == '4') return 4;
+        return int.tryParse(value) ?? 0;
+      }
+      return 0;
+    }
+
     return BnB(
       bnbId: _parseInt(json['bnb_id']) ?? _parseInt(json['bnbId']) ?? 0,
       ownerId: _parseInt(json['owner_id']) ?? _parseInt(json['ownerId']) ?? 0,
@@ -58,7 +75,7 @@ class BnB {
       priceKES: (json['price'] as num?)?.toDouble() ?? (json['price_kes'] as num?)?.toDouble() ?? 0.0,
       available: json['available'] as bool? ?? true,
       // Check multiple possible field names for bnbType
-      bnbType: _parseInt(json['bnbType']) ?? _parseInt(json['bnb_type']) ?? _parseInt(json['bn_b_type']) ?? 0,
+      bnbType: parseBnbType(json['bnbType'] ?? json['bnb_type'] ?? json['bn_b_type']),
       // Backend sends 'contactNumber', but also check 'call_number' for compatibility
       callNumber: json['contactNumber'] as String? ?? json['contact_number'] as String?,
       createdAt: json['created_at'] != null

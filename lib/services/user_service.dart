@@ -19,6 +19,7 @@ class UserService {
         '🔍 [USER_SERVICE] Using POST method (endpoint requires POST, backend extracts userID/roleID from JWT token)');
 
     final userId = await StorageService.getUserId();
+    final profileId = await StorageService.getProfileId();
 
     // Use POST method (endpoint requires POST per gRPC-Gateway)
     // Sending user_id explicitly to resolve potential extraction issues on backend
@@ -26,6 +27,9 @@ class UserService {
     final Map<String, dynamic> body = {};
     if (userId != null) {
       body['user_id'] = userId; // Send as string, do NOT parse to int
+    }
+    if (profileId != null) {
+      body['profile_id'] = profileId;
     }
 
     final response = await HttpService
@@ -81,11 +85,13 @@ class UserService {
   }) async {
     final token = await StorageService.getAuthToken();
     final userId = await StorageService.getUserId();
+    final profileId = await StorageService.getProfileId();
 
     if (token == null) throw Exception('No auth token found');
 
     final Map<String, dynamic> body = {
-      'user_id': userId,
+      if (userId != null) 'user_id': userId,
+      if (profileId != null) 'profile_id': profileId,
     };
 
     if (fullName != null) body['full_name'] = fullName;
@@ -128,6 +134,7 @@ class UserService {
   static Future<Map<String, dynamic>> updateActiveStatus(bool isActive) async {
     final token = await StorageService.getAuthToken();
     final userId = await StorageService.getUserId();
+    final profileId = await StorageService.getProfileId();
 
     if (token == null) throw Exception('No auth token found');
 
@@ -140,7 +147,8 @@ class UserService {
             'Authorization': 'Bearer $token',
           },
           body: jsonEncode({
-            'user_id': userId,
+            if (userId != null) 'user_id': userId,
+            if (profileId != null) 'profile_id': profileId,
             'is_active': isActive,
           }),
         )
@@ -156,7 +164,7 @@ class UserService {
 
   /// Update user location
   static Future<void> updateUserLocation(double latitude, double longitude,
-      {String? county}) async {
+      {String? county, String? regionName}) async {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
@@ -171,6 +179,7 @@ class UserService {
             'latitude': latitude,
             'longitude': longitude,
             if (county != null) 'county': county,
+            if (regionName != null) 'region_name': regionName,
           }),
         )
         .timeout(const Duration(seconds: 30));
@@ -314,7 +323,7 @@ class UserService {
   /// Upload media (image/video) to server
   /// Returns the JSON response from backend containing the resource URL
   static Future<Map<String, dynamic>> uploadMedia(
-    String filePath, {
+    dynamic fileData, {
     String type = 'profile',
   }) async {
     final token = await StorageService.getAuthToken();
@@ -325,13 +334,24 @@ class UserService {
 
     request.headers['Authorization'] = 'Bearer $token';
 
-    final file = await http.MultipartFile.fromPath(
-      'file',
-      filePath,
-    );
-    request.files.add(file);
+    if (fileData is String) {
+      // Legacy string path
+      request.files.add(await http.MultipartFile.fromPath('file', fileData));
+    } else {
+      // Assume XFile
+      final bytes = await fileData.readAsBytes();
+      final filename = fileData.name.isNotEmpty && fileData.name.contains('.')
+          ? fileData.name
+          : 'upload_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-    print('📤 [USER_SERVICE] Uploading $type file: $filePath');
+      request.files.add(http.MultipartFile.fromBytes(
+        'file',
+        bytes,
+        filename: filename,
+      ));
+    }
+
+    print('📤 [USER_SERVICE] Uploading $type file');
     final streamedResponse = await request.send().timeout(
           const Duration(minutes: 5), // Large files need time
         );

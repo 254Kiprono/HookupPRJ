@@ -1,5 +1,8 @@
 // lib/screens/main_app/home_screen.dart
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
 import 'package:hook_app/widgets/common/app_bar.dart';
 import 'package:hook_app/widgets/bottom_nav_bar.dart';
 import 'package:hook_app/utils/constants.dart';
@@ -15,14 +18,16 @@ import 'package:hook_app/screens/main_app/wallet_screen.dart';
 import 'package:hook_app/screens/main_app/safety_center_screen.dart';
 import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/services/api_service.dart';
-import 'package:hook_app/services/dummy_data_service.dart';
 import 'package:hook_app/services/location_service.dart';
 import 'package:hook_app/models/active_user.dart';
 import 'package:hook_app/utils/responsive.dart';
 import 'package:hook_app/utils/nav.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hook_app/widgets/web_image.dart';
+import 'package:geocoding/geocoding.dart';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -43,8 +48,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   String? _userFullName;
   String? _userGender;
   String? _userLocation;
+  String? _userProfileImage;
   bool _isLoading = true;
   String? _errorMessage;
+  bool _hasLoadedUsers = false;
   int _selectedIndex = 0;
   static const String _bugFixBuster = "B9C5B88_FORCE_REFRESH_NGINX_CACHE_SIZE_CHANGE_777888999000_BYPASS_NGINX_CACHE_TRICK_V4";
   String _selectedCategory = 'Local Services';
@@ -55,6 +62,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int? _selectedUserIndex;
   late AnimationController _pulseController;
   Timer? _locationTimer;
+  Position? _lastSentPosition;
+  DateTime? _lastUpdateTime;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   // Filter state
   double _maxDistance = 50.0; // Increased default to ensure users are visible
@@ -105,6 +116,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void dispose() {
     _pulseController.dispose();
     _locationTimer?.cancel();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -121,16 +133,38 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     print('🔍 [HOME] Auth token: ${authToken != null ? "EXISTS" : "NULL"}');
 
     if (authToken == null || authToken.isEmpty) {
-      print('⚠️ [HOME] No auth token - loading dummy data for demo');
-      setState(() {
-        _userFullName = 'Guest User';
-        _userGender = 'male';
-        _userLocation = 'Nairobi';
-        _isLoading = false;
-      });
-      await _loadActiveUsers();
-      print('✅ [HOME] Dummy data loaded for guest');
+      print('⚠️ [HOME] No auth token - redirecting to login');
+      await StorageService.clearAuth();
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, Routes.login);
+      }
       return;
+    }
+
+    // NEW: Load cached profile first for instant feel
+    try {
+      final cachedProfile = await StorageService.getJson('user_profile');
+      if (cachedProfile != null && mounted) {
+        print('⚡ [HOME] Found cached profile - showing immediately');
+        final String fullName = (cachedProfile['fullName'] ?? cachedProfile['full_name'] ?? 'User').toString();
+        setState(() {
+          _userFullName = fullName.split(' ').first;
+          _userGender = cachedProfile['gender'] ?? 'male';
+          _userLocation = cachedProfile['location'] ?? 'Nairobi';
+          _userProfileImage = cachedProfile['profileImage'] ?? cachedProfile['profile_image'];
+          _isLoading = false; // Stop initial block
+        });
+        
+        // Load cached users too
+        final cachedUsers = await StorageService.getJson('discovery_users');
+        if (cachedUsers is List && cachedUsers.isNotEmpty) {
+           _activeUsers = (cachedUsers as List).map((u) => ActiveUser.fromJson(u)).toList();
+           _hasLoadedUsers = true;
+           if (mounted) setState(() {});
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ [HOME] Local cache corrupted or missing: $e');
     }
 
     try {
@@ -153,12 +187,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       print(
           '✅ [HOME] Profile received: $fullName, gender: ${data['gender'] ?? data['gender']}');
 
-      setState(() {
-        _userFullName = firstName;
-        _userGender = data['gender'] ?? data['gender'] ?? 'male';
-        _userLocation = data['location'] ?? data['region'] ?? 'Nairobi';
-        _isLoading = false;
-      });
+      // Update cache
+      await StorageService.saveJson('user_profile', data);
+
+      if (mounted) {
+        setState(() {
+          _userFullName = firstName;
+          _userGender = data['gender'] ?? data['gender'] ?? 'male';
+          _userLocation = data['location'] ?? data['region'] ?? 'Nairobi';
+          _userProfileImage = data['profileImage'] ?? data['profile_image'];
+          _isLoading = false;
+        });
+      }
 
       print('🔍 [HOME] Loading active users...');
       await _loadActiveUsers();
@@ -183,8 +223,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _loadActiveUsers() async {
-    print('Loading active users...');
-
+    if (_isLoading && _hasLoadedUsers) return; // Guard against multiple simultaneous loads
+    
+    if (mounted) {
+        setState(() => _isLoading = true);
+    }
+    
+    debugPrint('Loading active users...');
+    
     Position? position;
     try {
       final hasPermission =
@@ -203,7 +249,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final region = _userLocation ?? 'Nairobi';
 
     try {
-      // Try real provider search first
       final loc = position ?? LocationService.getDefaultLocation();
       final providers = await ApiService.searchProviders(
         region,
@@ -218,40 +263,117 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           gender: 'female',
           latitude: loc.latitude,
           longitude: loc.longitude,
-          profileImage: 'https://via.placeholder.com/300',
-          bio: 'Verified host on CloseBy',
+          profileImage: p.profileImage ?? '',
+          bio: p.bio ?? 'Verified host on CloseBy',
           distance:
               double.tryParse(p.distance.replaceAll(RegExp(r'[^0-9.]'), '')) ??
                   2.0,
           isOnline: p.isActive,
           lastActive: DateTime.now(),
+          locationName: p.locationName,
         );
       }).toList();
+
+      // Update cache
+      await StorageService.saveJson('discovery_users', users.map((u) => u.toJson()).toList());
 
       if (mounted) {
         setState(() {
           _activeUsers = users;
+          _errorMessage = null;
+          _hasLoadedUsers = true;
+          _isLoading = false;
         });
       }
       return;
     } catch (e) {
-      // Fallback to dummy data
-    }
-
-    final loc = position ?? LocationService.getDefaultLocation();
-    final users = DummyDataService.generateActiveUsers(
-      userGender: _userGender ?? 'male',
-      centerLat: loc.latitude,
-      centerLon: loc.longitude,
-      count: 20,
-    );
-
-    if (mounted) {
-      setState(() {
-        _activeUsers = users;
-      });
+      debugPrint('⚠️ [HOME] Load failed: $e');
+      if (mounted) {
+        setState(() {
+          _activeUsers = _getDummyUsers(position ?? LocationService.getDefaultLocation());
+          _errorMessage = null;
+          _hasLoadedUsers = true;
+          _isLoading = false;
+        });
+      }
     }
   }
+
+  List<ActiveUser> _getDummyUsers(Position currentPos) {
+    return [
+      ActiveUser(
+        id: -1,
+        name: 'Stacy',
+        age: 23,
+        gender: 'female',
+        latitude: currentPos.latitude + 0.005,
+        longitude: currentPos.longitude + 0.005,
+        profileImage: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400',
+        bio: 'Passionate about traveling and meeting new people. Available for long conversations and tours.',
+        distance: 0.5,
+        isOnline: true,
+        lastActive: DateTime.now(),
+        locationName: 'Roysambu',
+      ),
+      ActiveUser(
+        id: -2,
+        name: 'Angelina',
+        age: 25,
+        gender: 'female',
+        latitude: currentPos.latitude - 0.003,
+        longitude: currentPos.longitude + 0.012,
+        profileImage: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400',
+        bio: 'Loves nature and outdoor activities. Feel free to reach out!',
+        distance: 1.2,
+        isOnline: true,
+        lastActive: DateTime.now().subtract(const Duration(minutes: 10)),
+        locationName: 'Westlands',
+      ),
+      ActiveUser(
+        id: -3,
+        name: 'Clarise',
+        age: 22,
+        gender: 'female',
+        latitude: currentPos.latitude + 0.015,
+        longitude: currentPos.longitude - 0.008,
+        profileImage: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400',
+        bio: 'Explorer at heart. I love discovering hidden gems in the city.',
+        distance: 2.1,
+        isOnline: false,
+        lastActive: DateTime.now().subtract(const Duration(hours: 2)),
+        locationName: 'Kasarani',
+      ),
+      ActiveUser(
+        id: -4,
+        name: 'Monicah',
+        age: 24,
+        gender: 'female',
+        latitude: currentPos.latitude - 0.01,
+        longitude: currentPos.longitude - 0.005,
+        profileImage: 'https://images.unsplash.com/photo-1531123897727-8f129e16fd8c?w=400',
+        bio: 'Coffee lover and book worm. Let\'s hang out!',
+        distance: 0.8,
+        isOnline: true,
+        lastActive: DateTime.now().subtract(const Duration(minutes: 5)),
+        locationName: 'Karen',
+      ),
+      ActiveUser(
+        id: -5,
+        name: 'Faith',
+        age: 27,
+        gender: 'female',
+        latitude: currentPos.latitude + 0.008,
+        longitude: currentPos.longitude + 0.002,
+        profileImage: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400',
+        bio: 'Energetic and always ready for an adventure. Text me for a meetup!',
+        distance: 1.5,
+        isOnline: true,
+        lastActive: DateTime.now(),
+        locationName: 'Juja',
+      ),
+    ];
+  }
+
 
   void _startLocationUpdates() {
     _locationTimer?.cancel();
@@ -260,7 +382,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _updateUserLocationOnServer();
 
     // Periodic update every 30 seconds (10s might be too frequent for battery, but user requested 10s)
-    _locationTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+    _locationTimer = Timer.periodic(const Duration(seconds: 60), (timer) {
       _updateUserLocationOnServer();
     });
   }
@@ -276,9 +398,72 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         return;
       }
 
+      // Optimization: Only update if moved > 50m or 30 mins passed
+      if (_lastSentPosition != null && _lastUpdateTime != null) {
+        final distance = Geolocator.distanceBetween(
+          _lastSentPosition!.latitude,
+          _lastSentPosition!.longitude,
+          position.latitude,
+          position.longitude,
+        );
+        
+        final timeDiff = DateTime.now().difference(_lastUpdateTime!);
+        
+        if (distance < 50 && timeDiff.inMinutes < 30) {
+          // Optimization: skip update if stationary
+          return;
+        }
+      }
+
       if (mounted) {
         setState(() {
           _currentPosition = position;
+        });
+      }
+
+      String? regionName;
+      try {
+        if (kIsWeb) {
+          // On Web, native geocoding is not supported. Use OSM Nominatim for reverse geocoding.
+          // Note: Nominatim requires a User-Agent and has rate limits, but for a dev app it's fine.
+          final url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.latitude}&lon=${position.longitude}&zoom=14&addressdetails=1';
+          try {
+            final response = await http.get(Uri.parse(url), headers: {
+              'User-Agent': 'HookupApp/1.0',
+            }).timeout(const Duration(seconds: 5));
+            
+            if (response.statusCode == 200) {
+              final data = jsonDecode(response.body);
+              final address = data['address'] ?? {};
+              // Build a nice regional name
+              regionName = address['suburb'] ?? address['city_district'] ?? address['city'] ?? address['town'] ?? address['village'] ?? address['county'] ?? address['state'];
+              debugPrint('🌍 [WEB-GEO] Resolved region: $regionName');
+            }
+          } catch (ge) {
+            debugPrint('⚠️ [WEB-GEO] Nominatim failed: $ge');
+          }
+          
+          // Fallback to formatted coordinates ONLY if geocoding completely fails
+          regionName ??= "${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}";
+        } else {
+          List<Placemark> placemarks = await placemarkFromCoordinates(
+            position.latitude,
+            position.longitude,
+          );
+          if (placemarks.isNotEmpty) {
+            Placemark place = placemarks[0];
+            regionName = place.administrativeArea ?? place.locality ?? place.subAdministrativeArea;
+          }
+        }
+      } catch (e) {
+        debugPrint('⚠️ [GEOCODING] Failed to get region name: $e');
+        regionName = "${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}";
+      }
+
+
+      if (mounted && regionName != null) {
+        setState(() {
+          _userLocation = regionName;
         });
       }
 
@@ -287,9 +472,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         position.latitude,
         position.longitude,
         county: _userLocation,
+        regionName: regionName,
       );
+      
+      _lastSentPosition = position;
+      _lastUpdateTime = DateTime.now();
+      
       debugPrint(
-          '📍 [LOCATION] Backend updated: ${position.latitude}, ${position.longitude}');
+          '📍 [LOCATION] Backend updated: ${position.latitude}, ${position.longitude}, region: $regionName');
     } catch (e) {
       debugPrint('⚠️ [LOCATION] Update failed: $e');
     }
@@ -300,6 +490,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       if (user.distance > _maxDistance) return false;
       if (user.age < _ageRange.start || user.age > _ageRange.end) return false;
       if (_onlineOnly && !user.isOnline) return false;
+
+      // Search Filter
+      if (_searchQuery.isNotEmpty) {
+        final query = _searchQuery.toLowerCase();
+        final nameMatch = user.name.toLowerCase().contains(query);
+        final bioMatch = (user.bio ?? '').toLowerCase().contains(query);
+        final locationMatch = (user.locationName ?? '').toLowerCase().contains(query);
+        if (!nameMatch && !bioMatch && !locationMatch) return false;
+      }
+
+
       return true;
     }).toList();
 
@@ -322,8 +523,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildHomeContent() {
-    if (_activeUsers.isEmpty) {
+    if (_isLoading && !_hasLoadedUsers) {
       return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_activeUsers.isEmpty) {
+      return _buildEmptyState(
+        message: _errorMessage ??
+            'No providers are available in this area yet.',
+        actionLabel: 'Refresh',
+        onAction: _loadActiveUsers,
+      );
     }
 
     final filteredUsers = _filteredUsers;
@@ -380,6 +590,49 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildEmptyState({
+    required String message,
+    required String actionLabel,
+    required VoidCallback onAction,
+  }) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.person_off,
+                size: 48, color: AppConstants.mutedGray),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppConstants.softWhite,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: onAction,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppConstants.primaryColor,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
+              child: Text(actionLabel,
+                  style: const TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildHomeHeader() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
@@ -419,16 +672,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.white.withOpacity(0.05)),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.near_me, color: AppConstants.primaryColor, size: 14),
-                SizedBox(width: 6),
+                const Icon(Icons.near_me, color: AppConstants.primaryColor, size: 14),
+                const SizedBox(width: 6),
                 Text(
-                  'Downtown',
-                  style: TextStyle(color: Colors.white, fontSize: 13),
+                  _userLocation ?? 'Nairobi',
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
                 ),
-                SizedBox(width: 4),
-                Icon(Icons.keyboard_arrow_down, color: AppConstants.mutedGray, size: 16),
+                const SizedBox(width: 4),
+                const Icon(Icons.keyboard_arrow_down, color: AppConstants.mutedGray, size: 16),
               ],
             ),
           ),
@@ -439,7 +692,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               const SizedBox(width: 12),
               CircleAvatar(
                 radius: 18,
-                child: ClipOval(child: platformAwareImage('https://via.placeholder.com/150')),
+                backgroundColor: AppConstants.primaryColor.withOpacity(0.2),
+                child: ClipOval(
+                  child: _userProfileImage != null && _userProfileImage!.isNotEmpty
+                      ? platformAwareImage(_userProfileImage!, fit: BoxFit.cover)
+                      : const Icon(Icons.person, color: AppConstants.primaryColor, size: 20),
+                ),
               ),
             ],
           ),
@@ -452,10 +710,32 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: TextField(
+        controller: _searchController,
+        onChanged: (value) {
+          debugPrint('🔍 [SEARCH] Query: $value');
+          setState(() {
+            _searchQuery = value;
+          });
+        },
+        style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           hintText: 'Find services nearby...',
+          hintStyle: const TextStyle(color: AppConstants.mutedGray),
           prefixIcon: const Icon(Icons.search, color: AppConstants.mutedGray),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, color: AppConstants.mutedGray),
+                  onPressed: () {
+                    debugPrint('🔍 [SEARCH] Cleared');
+                    _searchController.clear();
+                    setState(() {
+                      _searchQuery = '';
+                    });
+                  },
+                )
+              : null,
           fillColor: AppConstants.cardNavy,
+          filled: true,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,

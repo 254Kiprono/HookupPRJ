@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:hook_app/services/http_service.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/storage_service.dart';
@@ -52,25 +53,38 @@ class ApiService {
     );
 
     if (response.statusCode == 200) {
-      final dynamic body = jsonDecode(response.body);
-      final List<dynamic> userList = (body is Map && body.containsKey('users')) ? body['users'] : [];
-      
-      return userList.map((u) {
-        final profile = u['user'] ?? {};
-        return Provider(
-          id: (profile['user_id'] ?? profile['id'] ?? 0) as int,
-          name: (profile['full_name'] ?? profile['name'] ?? 'Provider').toString(),
-          price: (profile['hourly_rate'] ?? 0.0).toDouble(),
-          isActive: profile['is_active'] as bool? ?? true,
-          distance: (u['distance_km'] ?? 0.0).toString() + ' km',
-        );
-      }).toList();
+      try {
+        final dynamic body = jsonDecode(response.body);
+        final List<dynamic> userList =
+            (body is Map && body.containsKey('users')) ? body['users'] : [];
+
+        return userList.map((u) {
+          final profile = u['user'] ?? {};
+          // Ensure we handle ID conversion from string if backend changed
+          final idRaw = profile['user_id'] ?? profile['id'] ?? 0;
+          final int idValue = idRaw is int ? idRaw : int.tryParse(idRaw.toString()) ?? 0;
+          
+          return Provider(
+            id: idValue,
+            name: (profile['full_name'] ?? profile['name'] ?? 'Provider').toString(),
+            price: double.tryParse((profile['hourly_rate'] ?? 0.0).toString()) ?? 0.0,
+            isActive: profile['is_active'] as bool? ?? true,
+            distance: (u['distance_km'] ?? 0.0).toString() + ' km',
+            profileImage: profile['profile_image'] as String?,
+            bio: profile['bio'] as String?,
+            locationName: profile['region_name'] as String?,
+          );
+        }).toList();
+      } catch (parseError) {
+        debugPrint('❌ [API] searchProviders Mapping Error: $parseError');
+        return [];
+      }
     } else if (response.statusCode == 403) {
-      print('🔐 [API] 403 Forbidden - Token might be invalid for this service');
-      return []; // Return empty instead of crashing
+      debugPrint('🔐 [API] 403 Forbidden - Unauthorized for search');
+      return [];
     } else {
-      print('❌ [API] searchProviders failed: ${response.statusCode}');
-      return []; // Return empty as fallback
+      debugPrint('❌ [API] searchProviders failed: ${response.statusCode}');
+      return [];
     }
   }
 

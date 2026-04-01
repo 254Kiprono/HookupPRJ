@@ -113,12 +113,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   Future<void> _loadSubscriptionStatus() async {
     try {
-      final userIdStr = await StorageService.getUserId();
+      final profileIdStr = await StorageService.getProfileId();
       final token = await StorageService.getAuthToken();
-      if (userIdStr == null || token == null) return;
+      if (profileIdStr == null || token == null) return;
 
       final uri = Uri.parse(
-        '${AppConstants.walletServiceBaseUrl}${AppConstants.apiVersion}/wallet/$userIdStr/subscription',
+        '${AppConstants.walletServiceBaseUrl}${AppConstants.apiVersion}/wallet/profile/$profileIdStr/subscription',
       );
 
       final response = await http.get(
