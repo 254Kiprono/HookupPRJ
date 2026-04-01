@@ -32097,16 +32097,16 @@ throw A.d(n)}case 1:return A.p(q,r)}})
 return A.q($async$UF,r)},
 anl:function anl(){},
 anm:function anm(){},
-oJ(){var s=0,r=A.r(t.P),q,p,o,n,m,l,k,j,i,h,g,f
+oJ(){var s=0,r=A.r(t.P),q,p,o,n,m,l,k,j,i,h,g,f,e,d
 var $async$oJ=A.n(function(a,b){if(a===1)return A.o(b,r)
 for(;;)switch(s){case 0:s=3
 return A.h(A.cD(),$async$oJ)
-case 3:g=b
+case 3:e=b
 s=4
 return A.h(A.Ii(),$async$oJ)
-case 4:f=b
-if(g==null)throw A.d(A.b2("No auth token found"))
-A.b4("\ud83d\udd0d [USER_SERVICE] Fetching profile - RoleID: "+A.j(f))
+case 4:d=b
+if(e==null)throw A.d(A.b2("No auth token found"))
+A.b4("\ud83d\udd0d [USER_SERVICE] Fetching profile - RoleID: "+A.j(d))
 A.b4("\ud83d\udd0d [USER_SERVICE] Using POST method (endpoint requires POST, backend extracts userID/roleID from JWT token)")
 s=5
 return A.h(A.kv(),$async$oJ)
@@ -32114,14 +32114,16 @@ case 5:n=b
 s=6
 return A.h(A.qX(),$async$oJ)
 case 6:m=b
-l=t.N
-k=A.B(l,t.z)
-if(n!=null)k.p(0,"user_id",n)
-if(m!=null)k.p(0,"profile_id",m)
-j=A.bN(u.C,0,null)
-l=A.W(["Content-Type","application/json","Authorization","Bearer "+g],l,l)
+l=m!=null
+k=l&&m.length!==0&&m!=="0"
+j=t.N
+i=A.B(j,t.z)
+if(l)i.p(0,"profile_id",m)
+if(n!=null)i.p(0,"user_id",n)
+h=A.bN(k?"https://identity-service.close-by.chat/v1/auth/userby-profileid":u.C,0,null)
+l=A.W(["Content-Type","application/json","Authorization","Bearer "+e],j,j)
 s=7
-return A.h(A.lc(j,B.y.cO(k,null),l).cU(0,B.b2),$async$oJ)
+return A.h(A.lc(h,B.y.cO(i,null),l).cU(0,B.b2),$async$oJ)
 case 7:p=b
 if(p.b===200){A.b4("\u2705 [USER_SERVICE] Profile fetched successfully")
 l=p
@@ -32132,10 +32134,10 @@ o=t.P.a(B.y.bA(0,A.bR(A.bQ(l.e)).aV(0,l.w),null))
 if(J.jW(o,"userId")||J.jW(o,"user_id")){A.b4("\u26a0\ufe0f [USER_SERVICE] Non-200 status with valid body ("+p.b+"). Treating as success.")
 q=o
 s=1
-break}}catch(e){}l=p
-h=A.bR(A.bQ(l.e)).aV(0,l.w)
-A.b4("\u274c [USER_SERVICE] Profile fetch failed: "+p.b+" - "+h)
-throw A.d(A.b2("Failed to fetch user profile: "+p.b+" - "+h))
+break}}catch(c){}l=p
+f=A.bR(A.bQ(l.e)).aV(0,l.w)
+A.b4("\u274c [USER_SERVICE] Profile fetch failed: "+p.b+" - "+f)
+throw A.d(A.b2("Failed to fetch user profile: "+p.b+" - "+f))
 case 1:return A.p(q,r)}})
 return A.q($async$oJ,r)},
 lI(a,b,c,d,e,f,g,h,i,a0,a1){var s=0,r=A.r(t.P),q,p,o,n,m,l,k,j

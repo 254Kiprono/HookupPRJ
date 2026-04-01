@@ -21,28 +21,28 @@ class UserService {
     final userId = await StorageService.getUserId();
     final profileId = await StorageService.getProfileId();
 
-    // Use POST method (endpoint requires POST per gRPC-Gateway)
-    // Sending user_id explicitly to resolve potential extraction issues on backend
-    // The backend error 'invalid value for string field userId: 1' indicates it expects a STRING value.
-    final Map<String, dynamic> body = {};
-    if (userId != null) {
-      body['user_id'] = userId; // Send as string, do NOT parse to int
-    }
-    if (profileId != null) {
-      body['profile_id'] = profileId;
-    }
+    // Prefer profile-based lookup during the profile_id migration and fall back
+    // to the legacy user-based endpoint for older sessions.
+    final bool useProfileLookup =
+        profileId != null && profileId.isNotEmpty && profileId != '0';
+    final Map<String, dynamic> body = {
+      if (profileId != null) 'profile_id': profileId,
+      if (userId != null) 'user_id': userId,
+    };
+    final Uri endpoint = Uri.parse(
+      useProfileLookup
+          ? '${AppConstants.userServiceBaseUrl}/v1/auth/userby-profileid'
+          : '${AppConstants.userServiceBaseUrl}/v1/auth/get-userprofile',
+    );
 
-    final response = await HttpService
-        .post(
-          Uri.parse(
-              '${AppConstants.userServiceBaseUrl}/v1/auth/get-userprofile'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-          body: jsonEncode(body),
-        )
-        .timeout(const Duration(seconds: 30));
+    final response = await HttpService.post(
+      endpoint,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    ).timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {
       print('✅ [USER_SERVICE] Profile fetched successfully');
@@ -110,17 +110,15 @@ class UserService {
     if (hourlyRate != null) body['hourly_rate'] = hourlyRate;
     if (fcmToken != null) body['fcm_token'] = fcmToken;
 
-    final response = await HttpService
-        .patch(
-          Uri.parse(
-              '${AppConstants.userServiceBaseUrl}/v1/auth/update-userprofile'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-          body: jsonEncode(body),
-        )
-        .timeout(const Duration(seconds: 30));
+    final response = await HttpService.patch(
+      Uri.parse(
+          '${AppConstants.userServiceBaseUrl}/v1/auth/update-userprofile'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    ).timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
@@ -138,21 +136,19 @@ class UserService {
 
     if (token == null) throw Exception('No auth token found');
 
-    final response = await HttpService
-        .patch(
-          Uri.parse(
-              '${AppConstants.userServiceBaseUrl}/v1/auth/update-userprofile'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-          body: jsonEncode({
-            if (userId != null) 'user_id': userId,
-            if (profileId != null) 'profile_id': profileId,
-            'is_active': isActive,
-          }),
-        )
-        .timeout(const Duration(seconds: 30));
+    final response = await HttpService.patch(
+      Uri.parse(
+          '${AppConstants.userServiceBaseUrl}/v1/auth/update-userprofile'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        if (userId != null) 'user_id': userId,
+        if (profileId != null) 'profile_id': profileId,
+        'is_active': isActive,
+      }),
+    ).timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
@@ -168,21 +164,19 @@ class UserService {
     final token = await StorageService.getAuthToken();
     if (token == null) throw Exception('No auth token found');
 
-    final response = await HttpService
-        .post(
-          Uri.parse(AppConstants.updateLocation),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-          body: jsonEncode({
-            'latitude': latitude,
-            'longitude': longitude,
-            if (county != null) 'county': county,
-            if (regionName != null) 'region_name': regionName,
-          }),
-        )
-        .timeout(const Duration(seconds: 30));
+    final response = await HttpService.post(
+      Uri.parse(AppConstants.updateLocation),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'latitude': latitude,
+        'longitude': longitude,
+        if (county != null) 'county': county,
+        if (regionName != null) 'region_name': regionName,
+      }),
+    ).timeout(const Duration(seconds: 30));
 
     if (response.statusCode != 200) {
       throw Exception(
@@ -216,16 +210,14 @@ class UserService {
     if (page != null) body['page'] = page;
     if (limit != null) body['limit'] = limit;
 
-    final response = await HttpService
-        .post(
-          Uri.parse(AppConstants.searchNearbyUsers),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-          body: jsonEncode(body),
-        )
-        .timeout(const Duration(seconds: 30));
+    final response = await HttpService.post(
+      Uri.parse(AppConstants.searchNearbyUsers),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    ).timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200 || response.statusCode == 404) {
       if (response.body.isEmpty) {
@@ -262,13 +254,11 @@ class UserService {
     if (address != null) body['address'] = address;
     if (role != null) body['role'] = role;
 
-    final response = await HttpService
-        .post(
-          Uri.parse(AppConstants.googleSignUp),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(body),
-        )
-        .timeout(const Duration(seconds: 30));
+    final response = await HttpService.post(
+      Uri.parse(AppConstants.googleSignUp),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(body),
+    ).timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
@@ -280,13 +270,11 @@ class UserService {
 
   /// Google Sign In
   static Future<Map<String, dynamic>> googleSignIn(String idToken) async {
-    final response = await HttpService
-        .post(
-          Uri.parse(AppConstants.googleSignIn),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'id_token': idToken}),
-        )
-        .timeout(const Duration(seconds: 30));
+    final response = await HttpService.post(
+      Uri.parse(AppConstants.googleSignIn),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'id_token': idToken}),
+    ).timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
