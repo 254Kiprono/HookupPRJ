@@ -1,5 +1,6 @@
 // lib/screens/auth/verification_screen.dart
 import 'package:flutter/material.dart';
+import 'package:hook_app/app/routes.dart';
 import 'package:hook_app/utils/constants.dart';
 import 'package:hook_app/services/storage_service.dart';
 import 'package:http/http.dart' as http;
@@ -76,7 +77,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
       final String url = widget.verificationType == 'email'
           ? AppConstants.sendEmailVerification
           : AppConstants.sendPhoneVerification;
-          
+
       final Map<String, String> headers = {'Content-Type': 'application/json'};
       if (authToken != null && authToken.isNotEmpty) {
         headers['Authorization'] = 'Bearer $authToken';
@@ -87,11 +88,13 @@ class _VerificationScreenState extends State<VerificationScreen> {
         if (widget.contact != null) 'email': widget.contact,
       });
 
-      final response = await http.post(
-        Uri.parse(url),
-        headers: headers,
-        body: body,
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            Uri.parse(url),
+            headers: headers,
+            body: body,
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -117,7 +120,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
   Future<void> _verifyCode(String code) async {
     if (code.isEmpty) return;
-    
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -135,8 +138,10 @@ class _VerificationScreenState extends State<VerificationScreen> {
       }
 
       final body = {
-        'otp': code, 
+        'otp': code,
         if (widget.userId != null) 'user_id': widget.userId,
+        if (widget.verificationType == 'email' && widget.contact != null)
+          'email': widget.contact,
       };
 
       final response = await http
@@ -151,13 +156,23 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        final authToken = await StorageService.getAuthToken();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content: Text(data['message'] ?? 'Verification successful!')),
         );
         if (widget.onVerified != null) widget.onVerified!();
         if (!mounted) return;
-        Navigator.pop(context, true);
+        if (authToken != null && authToken.isNotEmpty) {
+          Navigator.pop(context, true);
+        } else {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            Routes.login,
+            (_) => false,
+            arguments: widget.contact,
+          );
+        }
       } else {
         final errorData = jsonDecode(response.body);
         setState(() {
@@ -192,7 +207,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
             children: [
               const SizedBox(height: 40),
               Icon(
-                widget.verificationType == 'email' ? Icons.email_outlined : Icons.phone_android_outlined,
+                widget.verificationType == 'email'
+                    ? Icons.email_outlined
+                    : Icons.phone_android_outlined,
                 size: 80,
                 color: AppConstants.primaryColor.withOpacity(0.8),
               ),
@@ -200,9 +217,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
               Text(
                 'Enter OTP',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
               ),
               const SizedBox(height: 12),
               Text(
@@ -214,13 +231,19 @@ class _VerificationScreenState extends State<VerificationScreen> {
               TextField(
                 controller: _codeController,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 24, letterSpacing: 8, fontWeight: FontWeight.bold, color: Colors.white),
+                style: const TextStyle(
+                    fontSize: 24,
+                    letterSpacing: 8,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
                 decoration: InputDecoration(
                   hintText: '000000',
                   hintStyle: TextStyle(color: Colors.white.withOpacity(0.2)),
                   filled: true,
                   fillColor: Colors.white.withOpacity(0.05),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.symmetric(vertical: 20),
                 ),
                 keyboardType: TextInputType.number,
@@ -249,10 +272,17 @@ class _VerificationScreenState extends State<VerificationScreen> {
                       ? null
                       : () => _verifyCode(_codeController.text.trim()),
                   child: _isLoading
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2))
                       : const Text(
                           'VERIFY OTP',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white),
                         ),
                 ),
               ),
@@ -260,7 +290,10 @@ class _VerificationScreenState extends State<VerificationScreen> {
               if (_canResend)
                 TextButton(
                   onPressed: _isLoading ? null : _resendOTP,
-                  child: const Text('RESEND OTP', style: TextStyle(color: AppConstants.primaryColor, fontWeight: FontWeight.bold)),
+                  child: const Text('RESEND OTP',
+                      style: TextStyle(
+                          color: AppConstants.primaryColor,
+                          fontWeight: FontWeight.bold)),
                 )
               else
                 Text(

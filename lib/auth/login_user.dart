@@ -11,7 +11,9 @@ import 'package:hook_app/utils/responsive.dart';
 import 'dart:ui'; // For BackdropFilter
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final String? initialContact;
+
+  const LoginScreen({super.key, this.initialContact});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -59,6 +61,10 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialContact != null &&
+        widget.initialContact!.trim().isNotEmpty) {
+      _emailOrPhoneController.text = widget.initialContact!.trim();
+    }
     _loadFailedLoginAttempts();
   }
 
@@ -225,17 +231,25 @@ class _LoginScreenState extends State<LoginScreen> {
         await _incrementFailedLoginAttempts();
         if (!mounted) return;
         final errorData = jsonDecode(response.body);
-        
+
+        final message = (errorData['message'] ?? '').toString();
+        final errorCode =
+            (errorData['error_code'] ?? errorData['errorCode'] ?? '')
+                .toString();
+
+        final bool needsVerification = response.statusCode == 403 &&
+            (errorCode == 'VERIFICATION_REQUIRED' ||
+                message.toLowerCase().contains('email not verified'));
+
         // Handle unverified user redirection
-        if (response.statusCode == 403 && errorData['error_code'] == 'VERIFICATION_REQUIRED') {
-           Navigator.pushReplacementNamed(
-            context, 
+        if (needsVerification) {
+          Navigator.pushReplacementNamed(
+            context,
             Routes.verification,
             arguments: {
               'type': 'email',
               'contact': _emailOrPhoneController.text.trim(),
-              // Note: We don't have userId here, but resendOTP can use 'email' which we pass as 'contact'
-            }
+            },
           );
           return;
         }
@@ -390,7 +404,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   @override
-
   Widget build(BuildContext context) {
     final isDesktop = Responsive.isDesktop(context);
     return Scaffold(
@@ -433,8 +446,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       color: Colors.white.withOpacity(0.05)),
                                 ),
                                 child: const Icon(Icons.favorite_rounded,
-                                    size: 48,
-                                    color: AppConstants.primaryColor),
+                                    size: 48, color: AppConstants.primaryColor),
                               ),
                               const SizedBox(height: 28),
                               const Text(
@@ -449,7 +461,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               const Text(
                                 'Trusted local services, discreet and professional.',
                                 style: TextStyle(
-                                    color: AppConstants.mutedGray, fontSize: 16),
+                                    color: AppConstants.mutedGray,
+                                    fontSize: 16),
                               ),
                               const SizedBox(height: 24),
                               Wrap(
@@ -654,7 +667,8 @@ class _LoginScreenState extends State<LoginScreen> {
           onPressed: () => Navigator.pushNamed(context, Routes.bnbOwnerLogin),
           icon: const Icon(Icons.home_work_rounded, size: 18),
           label: const Text('BnB Owner Access'),
-          style: TextButton.styleFrom(foregroundColor: AppConstants.accentColor),
+          style:
+              TextButton.styleFrom(foregroundColor: AppConstants.accentColor),
         ),
       ],
     );
@@ -684,7 +698,8 @@ class _LoginScreenState extends State<LoginScreen> {
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: AppConstants.primaryColor),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       ),
       validator: (v) => v == null || v.isEmpty ? 'Required' : null,
     );

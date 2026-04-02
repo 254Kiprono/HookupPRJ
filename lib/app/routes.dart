@@ -78,7 +78,9 @@ class Routes {
       case safetyNotice:
         return PremiumPageRoute(page: const SafetyNoticeScreen());
       case login:
-        return PremiumPageRoute(page: const LoginScreen());
+        final initialContact = settings.arguments as String?;
+        return PremiumPageRoute(
+            page: LoginScreen(initialContact: initialContact));
       case verification:
         final args = settings.arguments as Map<String, dynamic>;
         return PremiumPageRoute(
@@ -99,10 +101,14 @@ class Routes {
         return PremiumPageRoute(page: ForgotPasswordScreen(contactInfo: args));
       case verifyResetCode:
         final String contactInfo = settings.arguments as String;
-        return PremiumPageRoute(page: VerifyResetCodeScreen(contactInfo: contactInfo));
+        return PremiumPageRoute(
+            page: VerifyResetCodeScreen(contactInfo: contactInfo));
       case resetPassword:
         final args = settings.arguments as Map<String, dynamic>;
-        return PremiumPageRoute(page: ResetPasswordScreen(contactInfo: args['contactInfo'], resetCode: args['resetCode']));
+        return PremiumPageRoute(
+            page: ResetPasswordScreen(
+                contactInfo: args['contactInfo'],
+                resetCode: args['resetCode']));
       case home:
         return PremiumPageRoute(page: const HomeScreen());
       case search:
