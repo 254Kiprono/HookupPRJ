@@ -138,8 +138,9 @@ class WalletTransaction {
       return description!;
     }
 
-    if (category != null && category!.toUpperCase() == 'SUBSCRIPTION') {
-      return 'Subscription payment';
+    final cat = (category ?? '').toUpperCase();
+    if (cat == 'SUBSCRIPTION') {
+      return 'Premium Subscription';
     }
     
     if (type == TransactionType.earning) {
@@ -152,6 +153,7 @@ class WalletTransaction {
       }
       return 'Earning';
     } else {
+      if (cat == 'SUBSCRIPTION') return 'Premium Subscription';
       return 'Withdrawal${reference != null ? ' - $reference' : ''}';
     }
   }

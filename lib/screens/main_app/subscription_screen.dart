@@ -152,11 +152,26 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   Future<void> _pollSubscriptionStatus() async {
-    const attempts = 6;
+    const attempts = 20; // Poll for 40 seconds total (every 2s)
     for (var i = 0; i < attempts; i++) {
-      await Future.delayed(const Duration(seconds: 5));
+      await Future.delayed(const Duration(seconds: 2));
       await _loadSubscriptionStatus();
-      if (_hasActiveSubscription) return;
+      if (_hasActiveSubscription) {
+        if (!mounted) return;
+        
+        // Success!
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Subscription Activated Successfully!'),
+            backgroundColor: AppConstants.successColor,
+            duration: Duration(seconds: 3),
+          ),
+        );
+
+        // Close dialog if open and pop screen
+        Navigator.of(context).popUntil((route) => route.isFirst || route.settings.name == '/home' || route.settings.name == 'home');
+        return;
+      }
     }
   }
 
@@ -649,15 +664,39 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   void _showSuccessDialog(String title, String message) {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: AppConstants.cardNavy,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(title, style: const TextStyle(color: Colors.white, fontFamily: 'Sora')),
-        content: Text(message, style: const TextStyle(color: AppConstants.mutedGray)),
+        title: Row(
+          children: [
+            const Icon(Icons.check_circle_outline, color: AppConstants.successColor, size: 28),
+            const SizedBox(width: 12),
+            Text(title, style: const TextStyle(color: Colors.white, fontFamily: 'Sora')),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message, style: const TextStyle(color: AppConstants.mutedGray)),
+            const SizedBox(height: 24),
+            const Center(
+              child: CircularProgressIndicator(color: AppConstants.primaryColor),
+            ),
+            const SizedBox(height: 16),
+            const Center(
+              child: Text(
+                'Waiting for payment confirmation...',
+                style: TextStyle(color: AppConstants.mutedGray, fontSize: 13, fontStyle: FontStyle.italic),
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
-            onPressed: () => Nav.safePop(context), 
-            child: const Text('OK', style: TextStyle(color: AppConstants.primaryColor, fontWeight: FontWeight.bold)),
+            onPressed: () => Navigator.of(context).pop(), 
+            child: const Text('Cancel & Wait', style: TextStyle(color: AppConstants.mutedGray)),
           ),
         ],
       ),
