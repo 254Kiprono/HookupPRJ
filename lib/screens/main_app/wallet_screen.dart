@@ -63,7 +63,8 @@ class _WalletScreenState extends State<WalletScreen> with SingleTickerProviderSt
         ).toList();
         
         _withdrawals = transactions.where((t) => 
-          t.type == TransactionType.withdrawal
+          t.type == TransactionType.withdrawal &&
+          upperCategory(t) != 'SUBSCRIPTION'
         ).toList();
 
         _subscriptions = transactions.where((t) =>
