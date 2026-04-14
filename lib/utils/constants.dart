@@ -164,9 +164,9 @@ class AppConstants {
 
   // Role Constants
   static const int bnbOwnerRoleId = 4;
-  static const int regularUserRoleId = 1; 
+  static const int regularUserRoleId = 0; 
   static const int customerCareRoleId = 3; 
-
+  static const int adminRoleId = 1;
   // Subscription Plans (in KSh)
   static const int subWeeklyPrice = 200;
   static const int subTwoWeeksPrice = 500;

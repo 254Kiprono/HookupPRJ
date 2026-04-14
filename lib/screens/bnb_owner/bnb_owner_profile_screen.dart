@@ -180,21 +180,43 @@ class _BnBOwnerProfileScreenState extends State<BnBOwnerProfileScreen> {
           ),
         ),
         const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppConstants.primaryColor.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppConstants.primaryColor),
-          ),
-          child: const Text(
-            'Verified Owner',
-            style: TextStyle(
-              color: AppConstants.primaryColor,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppConstants.primaryColor.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppConstants.primaryColor),
+              ),
+              child: const Text(
+                'Verified Owner',
+                style: TextStyle(
+                  color: AppConstants.primaryColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-          ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppConstants.accentColor.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppConstants.accentColor),
+              ),
+              child: Text(
+                'ID: ${_userData?['profile_id'] ?? _userData?['profileId'] ?? '...'}',
+                style: const TextStyle(
+                  color: AppConstants.accentColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -246,6 +268,12 @@ class _BnBOwnerProfileScreenState extends State<BnBOwnerProfileScreen> {
       ),
       child: Column(
         children: [
+          _buildDetailItem(
+            Icons.fingerprint, 
+            'Profile ID', 
+            (_userData?['profile_id'] ?? _userData?['profileId'] ?? 'Not set').toString(),
+          ),
+          const Divider(color: AppConstants.mutedGray),
           _buildDetailItem(
             Icons.person, 
             'Full Name', 

@@ -429,13 +429,27 @@ class _AccountScreenState extends State<AccountScreen>
         const SizedBox(height: 16),
         Text(fullName, style: const TextStyle(color: Colors.white, fontFamily: 'Sora', fontSize: 22, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(color: AppConstants.primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-          child: Text(
-            _isBnBOwner ? 'BNB Provider' : 'Service Member',
-            style: const TextStyle(color: AppConstants.primaryColor, fontSize: 12, fontWeight: FontWeight.bold),
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(color: AppConstants.primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+              child: Text(
+                _isBnBOwner ? 'BNB Provider' : 'Service Member',
+                style: const TextStyle(color: AppConstants.primaryColor, fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(color: AppConstants.accentColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+              child: Text(
+                'ID: ${_userProfile?['profile_id'] ?? _userProfile?['profileId'] ?? '...'}',
+                style: const TextStyle(color: AppConstants.accentColor, fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
         ),
       ],
     );

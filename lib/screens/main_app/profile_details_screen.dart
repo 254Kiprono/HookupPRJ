@@ -307,6 +307,13 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
           ),
           _buildDivider(),
           _buildInfoRow(
+            Icons.fingerprint,
+            'Profile ID',
+            (widget.userProfile['profile_id'] ?? widget.userProfile['profileId'] ?? 'N/A').toString(),
+            isReadOnly: true,
+          ),
+          _buildDivider(),
+          _buildInfoRow(
             Icons.email_outlined,
             'Email',
             widget.userProfile['email'] ?? 'N/A',

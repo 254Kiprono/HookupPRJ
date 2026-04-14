@@ -76,14 +76,14 @@ class ApiService {
           );
         }).toList();
       } catch (parseError) {
-        debugPrint('❌ [API] searchProviders Mapping Error: $parseError');
+        debugPrint('[API] searchProviders Mapping Error: $parseError');
         return [];
       }
     } else if (response.statusCode == 403) {
-      debugPrint('🔐 [API] 403 Forbidden - Unauthorized for search');
+      debugPrint('[API] 403 Forbidden - Unauthorized for search');
       return [];
     } else {
-      debugPrint('❌ [API] searchProviders failed: ${response.statusCode}');
+      debugPrint('[API] searchProviders failed: ${response.statusCode}');
       return [];
     }
   }
@@ -106,7 +106,7 @@ class ApiService {
       final List<dynamic> bnbList = (body is Map && body.containsKey('bnbs')) ? body['bnbs'] : [];
       return bnbList.map((json) => BnB.fromJson(json)).toList();
     } else {
-      print('❌ [API] searchBnBs failed: ${response.statusCode}');
+      print('[API] searchBnBs failed: ${response.statusCode}');
       return [];
     }
   }

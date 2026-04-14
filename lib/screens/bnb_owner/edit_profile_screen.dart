@@ -134,6 +134,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        _buildReadOnlyField('Profile ID', (widget.userData['profile_id'] ?? widget.userData['profileId'] ?? 'Not set').toString(), Icons.fingerprint),
+                        const SizedBox(height: 16),
                         _buildReadOnlyField('Email', widget.userData['email'] ?? 'Not set', Icons.email),
                         const SizedBox(height: 16),
                         _buildReadOnlyField('Phone', widget.userData['phone'] ?? 'Not set', Icons.phone),
