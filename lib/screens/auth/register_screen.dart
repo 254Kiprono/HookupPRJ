@@ -8,6 +8,8 @@ import 'package:hook_app/utils/constants.dart'; // Import for base URL
 import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/app/routes.dart';
 import 'package:hook_app/utils/responsive.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -24,11 +26,71 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
+  final TextEditingController _countyController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   String? _selectedGender; // 'MALE', 'FEMALE', 'OTHER'
   bool _agreeTerms = false;
   bool _isLoading = false;
+  bool _isLoadingLocation = false;
   DateTime? _selectedDate;
+
+  Future<void> _autoFetchLocation() async {
+    setState(() {
+      _isLoadingLocation = true;
+    });
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Location permissions are denied');
+        }
+      }
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception('Location permissions are permanently denied');
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+          
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+          position.latitude, position.longitude);
+          
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        String countyStr = '';
+        String locationStr = '';
+        
+        if (place.subAdministrativeArea != null && place.subAdministrativeArea!.isNotEmpty) {
+          countyStr = '${place.subAdministrativeArea}'; // County
+        } else if (place.administrativeArea != null && place.administrativeArea!.isNotEmpty) {
+          countyStr = '${place.administrativeArea}';
+        }
+        
+        if (place.locality != null && place.locality!.isNotEmpty) {
+          locationStr = '${place.locality}'; // City
+        }
+        if (place.street != null && place.street!.isNotEmpty && !place.street!.contains('+')) {
+          locationStr = locationStr.isNotEmpty ? '$locationStr, ${place.street}' : '${place.street}';
+        }
+        setState(() {
+          _countyController.text = countyStr.trim();
+          _locationController.text = locationStr.trim().replaceAll(RegExp(r'^,\s*'), ''); // format cleanly
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to fetch location. Please enter manually.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingLocation = false;
+        });
+      }
+    }
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -53,7 +115,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _isLoading = true;
       });
 
-      const String apiUrl = AppConstants.register; // Use pre-defined constant
+      final String apiUrl = AppConstants.register; // Use pre-defined constant
       final Map<String, String> headers = {'Content-Type': 'application/json'};
       final Map<String, dynamic> body = {
         "full_name": _fullNameController.text.trim(),
@@ -62,6 +124,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         "dob":
             "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}",
         "password": _passwordController.text,
+        "county": _countyController.text.trim(),
         "location": _locationController.text.trim(),
         "gender": _selectedGender,
       };
@@ -215,11 +278,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
-                      controller: _locationController,
+                      controller: _countyController,
                       decoration: const InputDecoration(
+                        labelText: 'County',
+                        hintText: 'e.g. Nairobi',
+                        prefixIcon: Icon(Icons.map),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your county';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _locationController,
+                      decoration: InputDecoration(
                         labelText: 'Location',
                         hintText: 'City / Area',
-                        prefixIcon: Icon(Icons.location_on),
+                        prefixIcon: const Icon(Icons.location_on),
+                        suffixIcon: _isLoadingLocation 
+                            ? const Padding(
+                                padding: EdgeInsets.all(14),
+                                child: SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              )
+                            : IconButton(
+                                icon: const Icon(Icons.my_location),
+                                onPressed: _autoFetchLocation,
+                                tooltip: 'Auto-fill current location',
+                              ),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {

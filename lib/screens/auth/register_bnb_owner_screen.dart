@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:ui';
 import 'package:hook_app/utils/nav.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 class RegisterBnBOwnerScreen extends StatefulWidget {
   const RegisterBnBOwnerScreen({super.key});
@@ -20,10 +22,70 @@ class _RegisterBnBOwnerScreenState extends State<RegisterBnBOwnerScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
+  final TextEditingController _countyController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _businessLicenseController = TextEditingController();
   String _selectedGender = 'male';
   bool _isLoading = false;
+  bool _isLoadingLocation = false;
+
+  Future<void> _autoFetchLocation() async {
+    setState(() {
+      _isLoadingLocation = true;
+    });
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Location permissions are denied');
+        }
+      }
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception('Location permissions are permanently denied');
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+          
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+          position.latitude, position.longitude);
+          
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        String countyStr = '';
+        String locationStr = '';
+        
+        if (place.subAdministrativeArea != null && place.subAdministrativeArea!.isNotEmpty) {
+          countyStr = '${place.subAdministrativeArea}'; // County
+        } else if (place.administrativeArea != null && place.administrativeArea!.isNotEmpty) {
+          countyStr = '${place.administrativeArea}';
+        }
+
+        if (place.locality != null && place.locality!.isNotEmpty) {
+          locationStr = '${place.locality}'; // City
+        }
+        if (place.street != null && place.street!.isNotEmpty && !place.street!.contains('+')) {
+          locationStr = locationStr.isNotEmpty ? '$locationStr, ${place.street}' : '${place.street}';
+        }
+        setState(() {
+          _countyController.text = countyStr.trim();
+          _locationController.text = locationStr.trim().replaceAll(RegExp(r'^,\s*'), ''); // format cleanly
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to fetch location. Please enter manually.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingLocation = false;
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -32,6 +94,7 @@ class _RegisterBnBOwnerScreenState extends State<RegisterBnBOwnerScreen> {
     _phoneController.dispose();
     _passwordController.dispose();
     _dobController.dispose();
+    _countyController.dispose();
     _locationController.dispose();
     _businessLicenseController.dispose();
     super.dispose();
@@ -77,6 +140,7 @@ class _RegisterBnBOwnerScreenState extends State<RegisterBnBOwnerScreen> {
           'phone': _phoneController.text.trim(),
           'password': _passwordController.text,
           'dob': _dobController.text,
+          'county': _countyController.text.trim(),
           'location': _locationController.text.trim(),
           'business_license': _businessLicenseController.text.trim(),
           'gender': _selectedGender,
@@ -224,7 +288,23 @@ class _RegisterBnBOwnerScreenState extends State<RegisterBnBOwnerScreen> {
                                 const SizedBox(height: 16),
                                 _buildGenderSelector(),
                                 const SizedBox(height: 16),
-                                _buildTextField(_locationController, 'Location', Icons.location_on_outlined),
+                                _buildTextField(_countyController, 'County', Icons.map_outlined),
+                                const SizedBox(height: 16),
+                                _buildTextField(
+                                  _locationController, 
+                                  'Location', 
+                                  Icons.location_on_outlined,
+                                  suffixIcon: _isLoadingLocation 
+                                      ? const Padding(
+                                          padding: EdgeInsets.all(14.0),
+                                          child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                                        )
+                                      : IconButton(
+                                          icon: const Icon(Icons.my_location, color: AppConstants.primaryColor),
+                                          onPressed: _autoFetchLocation,
+                                          tooltip: 'Auto-fill current location',
+                                        ),
+                                ),
                                 const SizedBox(height: 16),
                                 _buildTextField(_businessLicenseController, 'Business License Number', Icons.badge_outlined),
                                 const SizedBox(height: 32),
@@ -251,6 +331,7 @@ class _RegisterBnBOwnerScreenState extends State<RegisterBnBOwnerScreen> {
     IconData icon, {
     bool obscureText = false,
     TextInputType? keyboardType,
+    Widget? suffixIcon,
   }) {
     return TextFormField(
       controller: controller,
@@ -261,6 +342,7 @@ class _RegisterBnBOwnerScreenState extends State<RegisterBnBOwnerScreen> {
         labelText: label,
         labelStyle: const TextStyle(color: Colors.white70),
         prefixIcon: Icon(icon, color: AppConstants.primaryColor),
+        suffixIcon: suffixIcon,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),

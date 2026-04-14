@@ -653,8 +653,13 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             const Text("New here? ",
                 style: TextStyle(color: AppConstants.mutedGray)),
-            GestureDetector(
-              onTap: () => Navigator.pushNamed(context, Routes.register),
+            TextButton(
+              onPressed: () => Navigator.pushNamed(context, Routes.register),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
               child: const Text('Create Account',
                   style: TextStyle(
                       color: AppConstants.primaryColor,

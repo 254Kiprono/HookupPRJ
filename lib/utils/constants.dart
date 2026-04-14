@@ -37,122 +37,78 @@ class AppConstants {
   // Assets
   static const String logoPath = 'assets/images/logo.png';
 
-  // API Endpoints
-  static const String userServiceBaseUrl =
-      'https://identity-service.close-by.chat';
-  static const String messagingServiceBaseUrl =
-      'https://chat-service.close-by.chat';
+  // API Endpoints — all services run on the production server via nginx
+  static const String userServiceBaseUrl = 'https://identity-service.close-by.chat';
   static const String bnbServiceBaseUrl = 'https://bnb-service.close-by.chat';
-  static const String bookingServiceBaseUrl =
-      'https://booking-service.close-by.chat';
-  static const String paymentServiceBaseUrl =
-      'https://payment-service.close-by.chat';
+  static const String bookingServiceBaseUrl = 'https://booking-service.close-by.chat';
+  static const String messagingServiceBaseUrl = 'https://chat-service.close-by.chat';
+  static const String paymentServiceBaseUrl = 'https://payment-service.close-by.chat';
+  static const String walletServiceBaseUrl = 'https://wallet-service.close-by.chat';
+
   static const String apiVersion = '/v1';
 
   // Authentication Endpoints (User Service)
-  static const String login = '$userServiceBaseUrl$apiVersion/auth/login';
-  static const String register = '$userServiceBaseUrl$apiVersion/auth/register';
-  static const String forgotPassword =
-      '$userServiceBaseUrl$apiVersion/auth/request-passreset';
-  static const String verifyOTP =
-      '$userServiceBaseUrl$apiVersion/auth/verify-otp';
-  static const String verifyEmail =
-      '$userServiceBaseUrl$apiVersion/auth/verify-email';
-  static const String verifyPhone =
-      '$userServiceBaseUrl$apiVersion/auth/verify-phone';
-  static const String sendEmailVerification =
-      '$userServiceBaseUrl$apiVersion/auth/send-email-verification';
-  static const String sendPhoneVerification =
-      '$userServiceBaseUrl$apiVersion/auth/send-phone-verification';
-  static const String googleSignUp =
-      '$userServiceBaseUrl$apiVersion/auth/google-signup';
-  static const String googleSignIn =
-      '$userServiceBaseUrl$apiVersion/auth/google-signin';
-  static const String logout = '$userServiceBaseUrl$apiVersion/auth/logout';
-  static const String updateLocation =
-      '$userServiceBaseUrl$apiVersion/auth/update-location';
-  static const String searchNearbyUsers =
-      '$userServiceBaseUrl$apiVersion/users/search-nearby';
-  static const String resetPassword =
-      '$userServiceBaseUrl$apiVersion/auth/reset-password';
-  static const String verifyResetCode =
-      '$userServiceBaseUrl$apiVersion/auth/verify-reset-code';
-  static const String resendOTP =
-      '$userServiceBaseUrl$apiVersion/auth/request-passreset';
-  static const String getuserprofile =
-      '$userServiceBaseUrl$apiVersion/auth/get-userprofile';
-  static const String mediaUpload =
-      '$userServiceBaseUrl$apiVersion/media/upload';
-  static const String mediaProxy =
-      '$userServiceBaseUrl$apiVersion/media/proxy';
+  static const String login = '${userServiceBaseUrl}${apiVersion}/auth/login';
+  static const String register = '${userServiceBaseUrl}${apiVersion}/auth/register';
+  static const String forgotPassword = '${userServiceBaseUrl}${apiVersion}/auth/request-passreset';
+  static const String verifyOTP = '${userServiceBaseUrl}${apiVersion}/auth/verify-otp';
+  static const String verifyEmail = '${userServiceBaseUrl}${apiVersion}/auth/verify-email';
+  static const String verifyPhone = '${userServiceBaseUrl}${apiVersion}/auth/verify-phone';
+  static const String sendEmailVerification = '${userServiceBaseUrl}${apiVersion}/auth/send-email-verification';
+  static const String sendPhoneVerification = '${userServiceBaseUrl}${apiVersion}/auth/send-phone-verification';
+  static const String googleSignUp = '${userServiceBaseUrl}${apiVersion}/auth/google-signup';
+  static const String googleSignIn = '${userServiceBaseUrl}${apiVersion}/auth/google-signin';
+  static const String logout = '${userServiceBaseUrl}${apiVersion}/auth/logout';
+  static const String updateLocation = '${userServiceBaseUrl}${apiVersion}/auth/update-location';
+  static const String searchNearbyUsers = '${userServiceBaseUrl}${apiVersion}/users/search-nearby';
+  static const String resetPassword = '${userServiceBaseUrl}${apiVersion}/auth/reset-password';
+  static const String verifyResetCode = '${userServiceBaseUrl}${apiVersion}/auth/verify-reset-code';
+  static const String resendOTP = '${userServiceBaseUrl}${apiVersion}/auth/request-passreset';
+  static const String getuserprofile = '${userServiceBaseUrl}${apiVersion}/auth/get-userprofile';
+  static const String mediaUpload = '${userServiceBaseUrl}${apiVersion}/media/upload';
+  static const String mediaProxy = '${userServiceBaseUrl}${apiVersion}/media/proxy';
 
   // User Service Search Endpoints
-  static const String searchProviders =
-      '$userServiceBaseUrl$apiVersion/users/search-nearby';
-  static const String searchBnBs = '$bnbServiceBaseUrl$apiVersion/bnb/location';
+  static const String searchProviders = '${userServiceBaseUrl}${apiVersion}/users/search-nearby';
+  static const String searchBnBs = '${bnbServiceBaseUrl}${apiVersion}/bnb/location';
 
   // BnB Service Endpoints
-  static const String registerBnB =
-      '$bnbServiceBaseUrl$apiVersion/bnb/register';
-  static const String updateBnB =
-      '$bnbServiceBaseUrl$apiVersion/bnb'; // + /{bnb_id}
-  static const String getBnBsByLocation =
-      '$bnbServiceBaseUrl$apiVersion/bnb/location'; // + /{location}
-  static const String getBnBDetails =
-      '$bnbServiceBaseUrl$apiVersion/bnb'; // + /{bnb_id}
-  static const String deleteBnB =
-      '$bnbServiceBaseUrl$apiVersion/bnb'; // + /{bnb_id}
-  static const String getBnBsByOwner =
-      '$bnbServiceBaseUrl$apiVersion/bnb/owner'; // + /{owner_id}
+  static const String registerBnB = '${bnbServiceBaseUrl}${apiVersion}/bnb/register';
+  static const String updateBnB = '${bnbServiceBaseUrl}${apiVersion}/bnb';
+  static const String getBnBsByLocation = '${bnbServiceBaseUrl}${apiVersion}/bnb/location';
+  static const String getBnBDetails = '${bnbServiceBaseUrl}${apiVersion}/bnb';
+  static const String deleteBnB = '${bnbServiceBaseUrl}${apiVersion}/bnb';
+  static const String getBnBsByOwner = '${bnbServiceBaseUrl}${apiVersion}/bnb/owner';
 
   // Booking Service Endpoints
-  static const String createBooking =
-      '$bookingServiceBaseUrl$apiVersion/bookings';
-  static const String updateBookingStatus =
-      '$bookingServiceBaseUrl$apiVersion/bookings'; // + /{booking_id}
-  static const String getBooking =
-      '$bookingServiceBaseUrl$apiVersion/bookings'; // + /{booking_id}
-  static const String listBookings =
-      '$bookingServiceBaseUrl$apiVersion/bookings';
-  static const String getBookingsByBnbOwner =
-      '$bookingServiceBaseUrl$apiVersion/bnb/bookings';
+  static const String createBooking = '${bookingServiceBaseUrl}${apiVersion}/bookings';
+  static const String updateBookingStatus = '${bookingServiceBaseUrl}${apiVersion}/bookings';
+  static const String getBooking = '${bookingServiceBaseUrl}${apiVersion}/bookings';
+  static const String listBookings = '${bookingServiceBaseUrl}${apiVersion}/bookings';
+  static const String getBookingsByBnbOwner = '${bookingServiceBaseUrl}${apiVersion}/bnb/bookings';
 
-  // Messaging Endpoints (Messaging Service) - Aligned with .proto
-  static const String conversations =
-      '$messagingServiceBaseUrl$apiVersion/conversations';
-  static const String messages = '$messagingServiceBaseUrl$apiVersion/messages';
-  static const String sendMessage =
-      '$messages/send'; // Matches POST /v1/messages/send
-  static const String deleteMessage =
-      '$messages/{message_id}'; // Matches DELETE /v1/messages/{message_id}
-  static const String bookingInitiate =
-      '$messagingServiceBaseUrl$apiVersion/booking/initiate'; // Matches POST /v1/booking/initiate
-  static const String bookingRespond =
-      '$messagingServiceBaseUrl$apiVersion/booking/respond'; // Matches POST /v1/booking/respond
-  static const String notificationsSms =
-      '$messagingServiceBaseUrl$apiVersion/notifications/sms'; // Matches POST /v1/notifications/sms
-  static const String bookings = '$messagingServiceBaseUrl$apiVersion/bookings';
-  static const String bookingHistory =
-      '$messagingServiceBaseUrl$apiVersion/bookings/history';
+  // Messaging Endpoints
+  static const String conversations = '${messagingServiceBaseUrl}${apiVersion}/conversations';
+  static const String messages = '${messagingServiceBaseUrl}${apiVersion}/messages';
+  static const String sendMessage = '${messages}/send';
+  static const String deleteMessage = '${messages}/{message_id}';
+  static const String bookingInitiate = '${messagingServiceBaseUrl}${apiVersion}/booking/initiate';
+  static const String bookingRespond = '${messagingServiceBaseUrl}${apiVersion}/booking/respond';
+  static const String notificationsSms = '${messagingServiceBaseUrl}${apiVersion}/notifications/sms';
+  static const String bookings = '${messagingServiceBaseUrl}${apiVersion}/bookings';
+  static const String bookingHistory = '${messagingServiceBaseUrl}${apiVersion}/bookings/history';
 
   // Wallet Service Endpoints
-  static const String walletServiceBaseUrl =
-      'https://wallet-service.close-by.chat';
-  static const String getWalletBalance =
-      '$walletServiceBaseUrl$apiVersion/wallet'; // + /{user_id}/balance
-  static const String withdraw =
-      '$walletServiceBaseUrl$apiVersion/wallet/withdraw';
-  static const String getWithdrawHistory =
-      '$walletServiceBaseUrl$apiVersion/wallet'; // + /{user_id}/withdrawals
-  static const String getPaymentHistory =
-      '$walletServiceBaseUrl$apiVersion/wallet'; // + /{user_id}/payment-history
-  
+  static const String getWalletBalance = '${walletServiceBaseUrl}${apiVersion}/wallet';
+  static const String withdraw = '${walletServiceBaseUrl}${apiVersion}/wallet/withdraw';
+  static const String getWithdrawHistory = '${walletServiceBaseUrl}${apiVersion}/wallet';
+  static const String getPaymentHistory = '${walletServiceBaseUrl}${apiVersion}/wallet';
+
   // Payment Service Endpoints
-  static const String initiatePayment = '$paymentServiceBaseUrl/pyts/send-request';
-  
+  static const String initiatePayment = '${paymentServiceBaseUrl}/pyts/send-request';
+
   // WebSocket Endpoint
-  static const String websocketUrl =
-      'wss://chat-service.close-by.chat/v1/stream'; // Use wss:// for Flutter WebSocket connection through proxy
+  static const String websocketUrl = 'wss://chat-service.close-by.chat/v1/stream';
 
   // SharedPreferences Keys
   static const String authTokenKey = 'auth_token';
