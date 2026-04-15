@@ -50,6 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailOrPhoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
   int _failedLoginAttempts = 0;
   DateTime? _lastFailedAttempt;
 
@@ -687,12 +688,26 @@ class _LoginScreenState extends State<LoginScreen> {
   }) {
     return TextFormField(
       controller: controller,
-      obscureText: isPassword,
-      style: const TextStyle(color: Colors.white),
+      obscureText: isPassword ? _obscurePassword : false,
+      enableSuggestions: !isPassword,
+      autocorrect: !isPassword,
+      autofillHints: isPassword 
+          ? [AutofillHints.password] 
+          : [AutofillHints.email, AutofillHints.username],
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: AppConstants.mutedGray),
         prefixIcon: Icon(icon, color: AppConstants.primaryColor, size: 20),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                  color: AppConstants.mutedGray,
+                  size: 20,
+                ),
+                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+              )
+            : null,
         filled: true,
         fillColor: AppConstants.cardNavy,
         enabledBorder: OutlineInputBorder(

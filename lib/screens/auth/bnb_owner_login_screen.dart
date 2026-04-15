@@ -21,6 +21,7 @@ class _BnBOwnerLoginScreenState extends State<BnBOwnerLoginScreen> {
   final TextEditingController _emailOrPhoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -230,12 +231,27 @@ class _BnBOwnerLoginScreenState extends State<BnBOwnerLoginScreen> {
   }) {
     return TextFormField(
       controller: controller,
-      obscureText: isPassword,
+      obscureText: isPassword ? _obscurePassword : false,
+      enableSuggestions: !isPassword,
+      autocorrect: !isPassword,
+      autofillHints: isPassword 
+          ? [AutofillHints.password] 
+          : [AutofillHints.email, AutofillHints.username],
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: AppConstants.mutedGray),
         prefixIcon: Icon(icon, color: color, size: 20),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                  color: AppConstants.mutedGray,
+                  size: 20,
+                ),
+                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+              )
+            : null,
         filled: true,
         fillColor: AppConstants.cardNavy,
         enabledBorder: OutlineInputBorder(

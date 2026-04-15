@@ -32,6 +32,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _agreeTerms = false;
   bool _isLoading = false;
   bool _isLoadingLocation = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
   DateTime? _selectedDate;
 
   Future<void> _autoFetchLocation() async {
@@ -356,12 +358,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _passwordController,
-                      decoration: const InputDecoration(
+                      obscureText: _obscurePassword,
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      autofillHints: const [AutofillHints.newPassword],
+                      decoration: InputDecoration(
                         labelText: 'Password',
                         hintText: '••••••••',
-                        prefixIcon: Icon(Icons.lock),
+                        prefixIcon: const Icon(Icons.lock),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            color: Colors.grey,
+                            size: 20,
+                          ),
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        ),
                       ),
-                      obscureText: true,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter a password';
@@ -387,12 +400,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _confirmPasswordController,
-                      decoration: const InputDecoration(
+                      obscureText: _obscureConfirmPassword,
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      autofillHints: const [AutofillHints.newPassword],
+                      decoration: InputDecoration(
                         labelText: 'Confirm Password',
                         hintText: '••••••••',
-                        prefixIcon: Icon(Icons.lock),
+                        prefixIcon: const Icon(Icons.lock),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                            color: Colors.grey,
+                            size: 20,
+                          ),
+                          onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                        ),
                       ),
-                      obscureText: true,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please confirm your password';

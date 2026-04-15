@@ -27,6 +27,7 @@ class _RegisterBnBOwnerScreenState extends State<RegisterBnBOwnerScreen> {
   final TextEditingController _businessLicenseController = TextEditingController();
   String _selectedGender = 'male';
   bool _isLoading = false;
+  bool _obscurePassword = true;
   bool _isLoadingLocation = false;
 
   Future<void> _autoFetchLocation() async {
@@ -282,29 +283,34 @@ class _RegisterBnBOwnerScreenState extends State<RegisterBnBOwnerScreen> {
                                 const SizedBox(height: 16),
                                 _buildTextField(_phoneController, 'Phone', Icons.phone_outlined, keyboardType: TextInputType.phone),
                                 const SizedBox(height: 16),
-                                _buildTextField(_passwordController, 'Password', Icons.lock_outline, obscureText: true),
-                                const SizedBox(height: 16),
-                                _buildDateField(),
-                                const SizedBox(height: 16),
-                                _buildGenderSelector(),
-                                const SizedBox(height: 16),
-                                _buildTextField(_countyController, 'County', Icons.map_outlined),
-                                const SizedBox(height: 16),
-                                _buildTextField(
-                                  _locationController, 
-                                  'Location', 
-                                  Icons.location_on_outlined,
-                                  suffixIcon: _isLoadingLocation 
-                                      ? const Padding(
-                                          padding: EdgeInsets.all(14.0),
-                                          child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-                                        )
-                                      : IconButton(
-                                          icon: const Icon(Icons.my_location, color: AppConstants.primaryColor),
-                                          onPressed: _autoFetchLocation,
-                                          tooltip: 'Auto-fill current location',
-                                        ),
-                                ),
+                                 _buildTextField(
+                                   _passwordController, 
+                                   'Password', 
+                                   Icons.lock_outline, 
+                                   isPassword: true
+                                 ),
+                                 const SizedBox(height: 16),
+                                 _buildDateField(),
+                                 const SizedBox(height: 16),
+                                 _buildGenderSelector(),
+                                 const SizedBox(height: 16),
+                                 _buildTextField(_countyController, 'County', Icons.map_outlined),
+                                 const SizedBox(height: 16),
+                                 _buildTextField(
+                                   _locationController, 
+                                   'Location', 
+                                   Icons.location_on_outlined,
+                                   suffixIcon: _isLoadingLocation 
+                                       ? const Padding(
+                                           padding: EdgeInsets.all(14.0),
+                                           child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                                         )
+                                       : IconButton(
+                                           icon: const Icon(Icons.my_location, color: AppConstants.primaryColor),
+                                           onPressed: _autoFetchLocation,
+                                           tooltip: 'Auto-fill current location',
+                                         ),
+                                 ),
                                 const SizedBox(height: 16),
                                 _buildTextField(_businessLicenseController, 'Business License Number', Icons.badge_outlined),
                                 const SizedBox(height: 32),
@@ -329,20 +335,33 @@ class _RegisterBnBOwnerScreenState extends State<RegisterBnBOwnerScreen> {
     TextEditingController controller,
     String label,
     IconData icon, {
-    bool obscureText = false,
+    bool isPassword = false,
     TextInputType? keyboardType,
     Widget? suffixIcon,
   }) {
     return TextFormField(
       controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
+      obscureText: isPassword ? _obscurePassword : false,
+      enableSuggestions: !isPassword,
+      autocorrect: !isPassword,
+      autofillHints: isPassword 
+          ? [AutofillHints.newPassword] 
+          : (label.contains('Email') ? [AutofillHints.email] : (label.contains('Phone') ? [AutofillHints.telephoneNumber] : null)),
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.white70),
         prefixIcon: Icon(icon, color: AppConstants.primaryColor),
-        suffixIcon: suffixIcon,
+        suffixIcon: suffixIcon ?? (isPassword 
+            ? IconButton(
+                icon: Icon(
+                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.white70,
+                  size: 20,
+                ),
+                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+              )
+            : null),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
@@ -411,24 +430,21 @@ class _RegisterBnBOwnerScreenState extends State<RegisterBnBOwnerScreen> {
           const SizedBox(height: 8),
           Row(
             children: [
-              Expanded(
-                child: RadioListTile<String>(
-                  title: const Text('Male', style: TextStyle(color: Colors.white)),
-                  value: 'male',
-                  groupValue: _selectedGender,
-                  activeColor: AppConstants.primaryColor,
-                  onChanged: (value) => setState(() => _selectedGender = value!),
-                ),
+              Radio<String>(
+                value: 'male',
+                groupValue: _selectedGender,
+                activeColor: AppConstants.primaryColor,
+                onChanged: (value) => setState(() => _selectedGender = value!),
               ),
-              Expanded(
-                child: RadioListTile<String>(
-                  title: const Text('Female', style: TextStyle(color: Colors.white)),
-                  value: 'female',
-                  groupValue: _selectedGender,
-                  activeColor: AppConstants.primaryColor,
-                  onChanged: (value) => setState(() => _selectedGender = value!),
-                ),
+              const Text('Male', style: TextStyle(color: Colors.white)),
+              const SizedBox(width: 24),
+              Radio<String>(
+                value: 'female',
+                groupValue: _selectedGender,
+                activeColor: AppConstants.primaryColor,
+                onChanged: (value) => setState(() => _selectedGender = value!),
               ),
+              const Text('Female', style: TextStyle(color: Colors.white)),
             ],
           ),
         ],
