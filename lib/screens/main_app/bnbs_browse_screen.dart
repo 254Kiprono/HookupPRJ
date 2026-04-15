@@ -35,7 +35,6 @@ class _BnBsBrowseScreenState extends State<BnBsBrowseScreen> with AutomaticKeepA
   }
 
   Future<void> _loadInitialResults() async {
-    // 1. Try to load cached results for the search field
     try {
       final lastSearch = await StorageService.getJson('last_bnb_search');
       if (lastSearch != null) {
@@ -52,7 +51,6 @@ class _BnBsBrowseScreenState extends State<BnBsBrowseScreen> with AutomaticKeepA
       }
     } catch (_) {}
 
-    // Silent background refresh
     _refreshResults();
   }
 

@@ -80,13 +80,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final String? authToken = await StorageService.getAuthToken();
 
       final uri = Uri.parse('${AppConstants.mediaUpload}?type=$type');
-      print('📤 Uploading $type to $uri');
+      print('Uploading $type to $uri');
 
       var request = http.MultipartRequest('POST', uri);
       request.headers['Authorization'] = 'Bearer $authToken';
 
       final bytes = await file.readAsBytes();
-      print('📦 File size: ${bytes.length} bytes, Name: ${file.name}');
+      print('File size: ${bytes.length} bytes, Name: ${file.name}');
 
       request.files.add(http.MultipartFile.fromBytes(
         'file',

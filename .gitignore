@@ -1,4 +1,4 @@
-build/
+build/*
 !build/web/
 .dart_tool/
 android/.gradle/
