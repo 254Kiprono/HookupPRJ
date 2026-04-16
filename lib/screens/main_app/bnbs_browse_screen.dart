@@ -472,7 +472,12 @@ class _BnBsBrowseScreenState extends State<BnBsBrowseScreen> with AutomaticKeepA
                     Text('KSh ${bnb.priceKES.toStringAsFixed(0)} / mo', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                     ElevatedButton(
                       onPressed: () {
-                        Nav.toScreen(context, BnBDetailsScreen(bnb: bnb));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BnBDetailsScreen(bnb: bnb),
+                          ),
+                        );
                       },
                       style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0)),
                       child: const Text('Details'),
