@@ -5,6 +5,7 @@ import 'package:hook_app/services/bnb_service.dart';
 import 'package:hook_app/models/bnb.dart';
 import 'package:hook_app/services/storage_service.dart';
 import 'package:hook_app/utils/responsive.dart';
+import 'package:hook_app/screens/main_app/bnb_details_screen.dart';
 
 class BnBsBrowseScreen extends StatefulWidget {
   const BnBsBrowseScreen({super.key});
@@ -470,7 +471,9 @@ class _BnBsBrowseScreenState extends State<BnBsBrowseScreen> with AutomaticKeepA
                   children: [
                     Text('KSh ${bnb.priceKES.toStringAsFixed(0)} / mo', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Nav.toScreen(context, BnBDetailsScreen(bnb: bnb));
+                      },
                       style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0)),
                       child: const Text('Details'),
                     ),
